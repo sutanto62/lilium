@@ -43,6 +43,7 @@ export interface ChurchPosition {
 	name: string;
 	code: string | null;
 	description: string | null;
+	isPpg: boolean | false;
 	sequence: number | null;
 	type: string;
 }

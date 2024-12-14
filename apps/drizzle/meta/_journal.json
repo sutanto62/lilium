@@ -22,6 +22,13 @@
       "when": 1734148703000,
       "tag": "0002_silly_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1734170969076,
+      "tag": "0003_cloudy_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

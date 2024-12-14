@@ -33,6 +33,7 @@ export const church_position = sqliteTable('church_position', {
 	name: text('name').notNull(),
 	code: text('code'),
 	description: text('description'),
+	isPpg: integer('is_ppg').notNull().default(0),
 	sequence: integer('sequence'),
 	type: text('type', { enum: ['usher', 'prodiakon', 'peta'] }).notNull()
 });

@@ -3,7 +3,12 @@
 	import NavigationAdmin from '$components/NavigationAdmin.svelte';
 	import { Button } from 'flowbite-svelte';
 	import { Section, HeroHeader, FeatureDefault, FeatureItem } from 'flowbite-svelte-blocks';
-	import { BookmarkSolid, CalendarMonthSolid } from 'flowbite-svelte-icons';
+	import {
+		QuestionCircleSolid,
+		ClipboardListSolid,
+		UserCircleSolid,
+		CalendarMonthSolid
+	} from 'flowbite-svelte-icons';
 
 	// Props
 	export let data: PageData;
@@ -21,25 +26,42 @@
 			>Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</svelte:fragment
 		>
 	</HeroHeader>
-	<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-3 gap-4 ">
+	<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-4 gap-4 ">
 		{#if data.isAdmin}
 			<FeatureItem>
 				<svelte:fragment slot="icon"
-					><CalendarMonthSolid
+					><ClipboardListSolid
 						size="xl"
 						class="text-primary-600 dark:text-primary-300"
 					/></svelte:fragment
 				>
 				<svelte:fragment slot="h3">Jadwal Tata Tertib</svelte:fragment>
 				<svelte:fragment slot="paragraph"
-					>Kelola jadwal tata tertib lingkungan. Hanya dapat diakses oleh admin.
+					>Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar
+					petugas.
 					<div class="mt-4">
 						<Button size="sm" href="/admin/jadwal">Kelola</Button>
 					</div>
 				</svelte:fragment>
 			</FeatureItem>
+			<FeatureItem>
+				<svelte:fragment slot="icon"
+					><UserCircleSolid
+						size="xl"
+						class="text-primary-600 dark:text-primary-300"
+					/></svelte:fragment
+				>
+				<svelte:fragment slot="h3">PIC PETA</svelte:fragment>
+				<svelte:fragment slot="paragraph"
+					>Setiap minggu petugas PETA akan bergantian menjadi PIC pada setiap misa. PIC harus sudah
+					terdaftar.
+					<div class="mt-4">
+						<Button size="sm" href="/admin/jadwal">Atur PIC</Button>
+					</div>
+				</svelte:fragment>
+			</FeatureItem>
 		{/if}
-		<hr class="my-4 block h-px border-0 bg-gray-200 dark:bg-gray-700 lg:hidden" />
+		<hr class="my-4 block h-px border-0 bg-gray-200 lg:hidden dark:bg-gray-700" />
 		<FeatureItem>
 			<svelte:fragment slot="icon"
 				><CalendarMonthSolid
@@ -56,10 +78,13 @@
 				</div>
 			</svelte:fragment>
 		</FeatureItem>
-		<hr class="my-4 block h-px border-0 bg-gray-200 dark:bg-gray-700 lg:hidden" />
+		<hr class="my-4 block h-px border-0 bg-gray-200 lg:hidden dark:bg-gray-700" />
 		<FeatureItem>
 			<svelte:fragment slot="icon"
-				><BookmarkSolid size="xl" class="text-primary-600 dark:text-primary-300" /></svelte:fragment
+				><QuestionCircleSolid
+					size="xl"
+					class="text-primary-600 dark:text-primary-300"
+				/></svelte:fragment
 			>
 			<svelte:fragment slot="h3">Petunjuk Pemakaian</svelte:fragment>
 			<svelte:fragment slot="paragraph"

@@ -9,7 +9,7 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 	let churchConfigured: Church | null = null;
 	churchConfigured = await repo.findChurchById(cid);
 	if (!churchConfigured) {
-		throw error(404, 'Gereja belum terdaftar pada LIS');
+		throw error(500, `CID ${cid} belum terdaftar pada LIS`);
 	} else {
 		cookies.set('cid', churchConfigured.id, {
 			path: '/',

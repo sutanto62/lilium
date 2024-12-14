@@ -1,0 +1,184 @@
+[
+	{
+		"id": "550e8400-e29b-41d4-a716-446655440000",
+		"church": "Gereja St. Laurensius",
+		"mass": "Misa Sabtu, pkl 17:00",
+		"date": "Sabtu, 12 Oktober 2024",
+		"totalUshers": 23,
+		"totalPpg": 6,
+		"totalKolekte": 12,
+		"zones": [
+			{
+				"zone": "Gereja",
+				"pic": ["Agung", "Budi", "Cahaya"],
+				"zoneUshers": 23,
+				"zonePpg": 6,
+				"zoneKolekte": 12,
+				"items": [
+					{
+						"lingkungan": "St. Bernadeth",
+						"zone": "Gereja",
+						"ushers": [
+							{
+								"name": "Agung",
+								"position": "P1",
+								"isPpg": true,
+								"isKolekte": false
+							},
+							{
+								"name": "Budi",
+								"position": "P2",
+								"isPpg": false,
+								"isKolekte": true
+							},
+							{
+								"name": "Cahaya",
+								"position": "P3",
+								"isPpg": false,
+								"isKolekte": false
+							}
+						]
+					},
+					{
+						"lingkungan": "St. Gregorius",
+						"zone": "Gereja",
+						"ushers": [
+							{
+								"name": "Agung",
+								"position": "P1",
+								"isPpg": true,
+								"isKolekte": false
+							},
+							{
+								"name": "Budi",
+								"position": "P2",
+								"isPpg": false,
+								"isKolekte": true
+							},
+							{
+								"name": "Cahaya",
+								"position": "P3",
+								"isPpg": false,
+								"isKolekte": false
+							}
+						]
+					}
+				]
+			},
+			{
+				"zone": "Aula",
+				"pic": ["Agung", "Budi", "Cahaya"],
+				"zoneUshers": 23,
+				"zonePpg": 6,
+				"zoneKolekte": 12,
+				"items": [
+					{
+						"lingkungan": "St. Bernadeth",
+						"zone": "Gereja",
+						"ushers": [
+							{
+								"name": "Agung",
+								"position": "P1",
+								"isPpg": true,
+								"isKolekte": false
+							},
+							{
+								"name": "Budi",
+								"position": "P2",
+								"isPpg": false,
+								"isKolekte": true
+							},
+							{
+								"name": "Cahaya",
+								"position": "P3",
+								"isPpg": false,
+								"isKolekte": false
+							}
+						]
+					},
+					{
+						"lingkungan": "St. Gregorius",
+						"zone": "Gereja",
+						"ushers": [
+							{
+								"name": "Agung",
+								"position": "P1",
+								"isPpg": true,
+								"isKolekte": false
+							},
+							{
+								"name": "Budi",
+								"position": "P2",
+								"isPpg": false,
+								"isKolekte": true
+							},
+							{
+								"name": "Cahaya",
+								"position": "P3",
+								"isPpg": false,
+								"isKolekte": false
+							}
+						]
+					}
+				]
+			},
+			{
+				"zone": "GKP",
+				"pic": ["Agung", "Budi", "Cahaya"],
+				"zoneUshers": 23,
+				"zonePpg": 6,
+				"zoneKolekte": 12,
+				"items": [
+					{
+						"lingkungan": "St. Bernadeth",
+						"zone": "Gereja",
+						"ushers": [
+							{
+								"name": "Agung",
+								"position": "P1",
+								"isPpg": true,
+								"isKolekte": false
+							},
+							{
+								"name": "Budi",
+								"position": "P2",
+								"isPpg": false,
+								"isKolekte": true
+							},
+							{
+								"name": "Cahaya",
+								"position": "P3",
+								"isPpg": false,
+								"isKolekte": false
+							}
+						]
+					},
+					{
+						"lingkungan": "St. Gregorius",
+						"zone": "Gereja",
+						"ushers": [
+							{
+								"name": "Agung",
+								"position": "P1",
+								"isPpg": true,
+								"isKolekte": false
+							},
+							{
+								"name": "Budi",
+								"position": "P2",
+								"isPpg": false,
+								"isKolekte": true
+							},
+							{
+								"name": "Cahaya",
+								"position": "P3",
+								"isPpg": false,
+								"isKolekte": false
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+]

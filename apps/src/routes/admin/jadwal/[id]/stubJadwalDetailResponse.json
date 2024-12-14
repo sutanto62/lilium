@@ -1,0 +1,109 @@
+{
+	"id": "550e8400-e29b-41d4-a716-446655440000",
+	"church": "Church A",
+	"mass": "Misa Sabtu, pkl.17:00",
+	"date": "12 Okt 2024",
+	"rows": [
+		{
+			"name": "Gereja",
+			"lingkungan": ["Lingkungan A", "Lingkungan B"],
+			"pic": ["Agung", "Budi", "Cahaya"],
+			"zoneUshers": 23,
+			"zonePpg": 6,
+			"zoneKolekte": 12,
+			"detail": [
+				{
+					"name": "St. Cosmas",
+					"zone": "Gereja",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Cayadi", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				},
+				{
+					"name": "St. Damianus",
+					"zone": "Aula",
+					"status": "kosong",
+					"ushers": [
+						{ "name": "Liawati", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				}
+			]
+		},
+		{
+			"name": "Aula",
+			"lingkungan": ["Lingkungan A", "Lingkungan B"],
+			"pic": ["Agung", "Budi", "Cahaya"],
+			"totalUshers": 23,
+			"totalPpg": 12,
+			"totalKolekte": 10,
+			"detail": [
+				{
+					"name": "St. Filemon",
+					"zone": "Gereja",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Cayadi", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				},
+				{
+					"name": "St. Padre Pio",
+					"zone": "Aula",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Liawati", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				},
+				{
+					"name": "St. Gerardus",
+					"zone": "GKP",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Nathan", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				}
+			]
+		},
+		{
+			"zone": "GKP",
+			"pic": ["Agung", "Budi", "Cahaya"],
+			"totalUshers": 12,
+			"totalPpg": 3,
+			"totalKolekte": 12,
+			"detail": [
+				{
+					"name": "St. Bartolomeus",
+					"zone": "Gereja",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Cayadi", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				},
+				{
+					"name": "St. Bonaventura",
+					"zone": "Aula",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Liawati", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				},
+				{
+					"name": "St. Nikolas",
+					"zone": "GKP",
+					"status": "lengkap",
+					"ushers": [
+						{ "name": "Nathan", "position": "P1", "isPpg": true },
+						{ "name": "Sutanto", "position": "P2", "isKolekte": true }
+					]
+				}
+			]
+		}
+	]
+}

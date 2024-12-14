@@ -65,7 +65,6 @@ export interface Lingkungan {
 
 export interface Usher {
 	name: string;
-	whatsapp: string | null;
 	isPpg: boolean | false;
 	isKolekte: boolean | false;
 	sequence: number | null;

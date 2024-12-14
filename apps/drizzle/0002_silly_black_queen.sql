@@ -1,0 +1,1 @@
+ALTER TABLE `event_usher` DROP COLUMN `whatsapp`;

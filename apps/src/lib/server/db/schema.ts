@@ -104,7 +104,6 @@ export const event_usher = sqliteTable('event_usher', {
 	wilayah: text('wilayah').notNull(),
 	lingkungan: text('lingkungan').notNull(),
 	position: text('position_id').references(() => church_position.id),
-	whatsapp: text('whatsapp'),
 	isPpg: integer('is_ppg'),
 	isKolekte: integer('is_kolekte'),
 	sequence: integer('sequence'),

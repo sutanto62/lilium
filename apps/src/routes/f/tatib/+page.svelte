@@ -23,7 +23,6 @@
 	let ushers: Usher[] = [
 		{
 			name: '',
-			whatsapp: '',
 			isPpg: false,
 			isKolekte: false,
 			sequence: 0

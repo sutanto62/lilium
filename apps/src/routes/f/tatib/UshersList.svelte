@@ -27,7 +27,6 @@
 	export let ushers: Usher[] = [
 		{
 			name: '',
-			whatsapp: '',
 			isPpg: false,
 			isKolekte: false,
 			sequence: 0
@@ -76,7 +75,7 @@
 			return;
 		}
 
-		ushers = [...ushers, { name: '', whatsapp: '', isPpg: false, isKolekte: false, sequence: 0 }];
+		ushers = [...ushers, { name: '', isPpg: false, isKolekte: false, sequence: 0 }];
 	}
 
 	// Recalculate progress whenever ushers changes
@@ -100,7 +99,6 @@
 		ushers = [
 			{
 				name: '',
-				whatsapp: '',
 				isPpg: false,
 				isKolekte: false,
 				sequence: 0
@@ -140,7 +138,6 @@
 		{#if screenWidth > screenMinWidth}
 			<TableHeadCell class="w-10 px-4">#</TableHeadCell>
 			<TableHeadCell class="w-max min-w-48 px-4">Nama</TableHeadCell>
-			<TableHeadCell class="w-48 min-w-48 px-4">WhatsApp</TableHeadCell>
 			<TableHeadCell class="w-20 px-4">PPG</TableHeadCell>
 			<TableHeadCell class="w-20 px-4">Kolekte</TableHeadCell>
 		{:else}
@@ -160,15 +157,6 @@
 							placeholder="Tulis nama"
 							required
 							bind:value={usher.name}
-						/>
-					</TableBodyCell>
-					<TableBodyCell class="w-48 min-w-48">
-						<Input
-							type="tel"
-							id="whatsapp-{index}"
-							placeholder="Tulis no WhatsApp"
-							bind:value={usher.whatsapp}
-							pattern="[0-9]*"
 						/>
 					</TableBodyCell>
 					<TableBodyCell class="w-20">
@@ -198,14 +186,6 @@
 								placeholder="Tulis nama"
 								required
 								bind:value={usher.name}
-							/>
-							<Input
-								type="text"
-								id="whatsapp-{index}"
-								placeholder="Tulis nomor WhatsApp"
-								required
-								bind:value={usher.whatsapp}
-								pattern="[0-9]*"
 							/>
 							<div class="flex flex-row gap-4">
 								<Toggle

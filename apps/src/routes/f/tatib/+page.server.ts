@@ -120,7 +120,13 @@ export const actions = {
 
 			// Update ushers with position
 			await queueManager.submitConfirmationQueue(createdEvent, selectedLingkungan);
-			await queueManager.processConfirmationQueue();
+
+			try {
+				await queueManager.processConfirmationQueue();
+			} catch (err) {
+				logger.error('Error processing queue:', err);
+				return fail(404, { error: err });
+			}
 
 			// Return ushers position to client
 			return { success: true, json: { ushers: queueManager.assignedUshers } };

@@ -3,6 +3,7 @@ import { QueueManager } from './QueueManager';
 import type { ChurchPosition, Lingkungan } from '$core/entities/schedule';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
 
 describe('QueueManager', () => {
 	const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
@@ -130,7 +131,7 @@ describe('QueueManager', () => {
 
 		// Process queue
 		await expect(manager.processConfirmationQueue()).rejects.toThrowError(
-			expect.objectContaining({ status: 500 })
+			expect.objectContaining({ cause: 404 })
 		);
 	});
 });
@@ -156,7 +157,6 @@ function createTestEventUsherB(): EventUsher[] {
 			name: 'B.1',
 			wilayah: '1',
 			lingkungan: '1B',
-			whatsapp: '4',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
@@ -168,7 +168,6 @@ function createTestEventUsherB(): EventUsher[] {
 			name: 'B.2',
 			wilayah: '1',
 			lingkungan: '1B',
-			whatsapp: '5',
 			isPpg: false,
 			isKolekte: true,
 			position: null,
@@ -180,7 +179,6 @@ function createTestEventUsherB(): EventUsher[] {
 			name: 'B.3',
 			wilayah: '1',
 			lingkungan: '1B',
-			whatsapp: '6',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
@@ -192,7 +190,6 @@ function createTestEventUsherB(): EventUsher[] {
 			name: 'B.4',
 			wilayah: '1',
 			lingkungan: '1B',
-			whatsapp: '7',
 			isPpg: false,
 			isKolekte: false,
 			position: null,
@@ -204,7 +201,6 @@ function createTestEventUsherB(): EventUsher[] {
 			name: 'B.5',
 			wilayah: '1',
 			lingkungan: '1B',
-			whatsapp: '8',
 			isPpg: true,
 			isKolekte: true,
 			position: null,
@@ -221,7 +217,6 @@ function createTestEventUsherA(): EventUsher[] {
 			name: 'A.1',
 			wilayah: '1',
 			lingkungan: '1A',
-			whatsapp: '1',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
@@ -233,7 +228,6 @@ function createTestEventUsherA(): EventUsher[] {
 			name: 'A.2',
 			wilayah: '1',
 			lingkungan: '1A',
-			whatsapp: '2',
 			isPpg: false,
 			isKolekte: true,
 			position: null,
@@ -245,7 +239,6 @@ function createTestEventUsherA(): EventUsher[] {
 			name: 'A.3',
 			wilayah: '1',
 			lingkungan: '1A',
-			whatsapp: '3',
 			isPpg: true,
 			isKolekte: false,
 			position: null,

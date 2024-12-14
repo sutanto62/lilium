@@ -59,8 +59,7 @@ export class QueueManager {
 
 			this.positions = await repo.getPositionsByMass(queue.event.church, queue.event.mass);
 			if (this.positions.length === 0) {
-				logger.error('no positions found for event: ', queue.event);
-				continue; // TODO: return message if no positions found
+				throw new Error('Gagal menemukan titik tugas', { cause: 404 })
 			}
 
 			// Count assigned ushers

@@ -14,7 +14,6 @@ export interface EventUsher {
 	name: string;
 	wilayah: string;
 	lingkungan: string;
-	whatsapp: string | null;
 	isPpg: boolean | false;
 	isKolekte: boolean | false;
 	position: string | null;
@@ -42,7 +41,6 @@ export interface UsherByEvent {
 	zone: string | null;
 	wilayah: string | null;
 	lingkungan: string | null;
-	whatsapp: string | null;
 	isPpg: boolean | false;
 	isKolekte: boolean | false;
 	position: string | null;

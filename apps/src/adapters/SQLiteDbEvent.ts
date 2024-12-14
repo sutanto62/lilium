@@ -77,7 +77,6 @@ export async function createEventUsher(
 		id: uuidv4(),
 		event: eventId,
 		name: usher.name,
-		whatsapp: usher.whatsapp,
 		isPpg: usher.isPpg ? 1 : 0,
 		isKolekte: usher.isKolekte ? 1 : 0,
 		sequence: index + 1,
@@ -260,7 +259,6 @@ export async function findEventUshers(
 				wilayah: row.wilayah,
 				lingkungan: row.lingkungan,
 				position: row.position,
-				whatsapp: row.whatsapp,
 				isPpg: row.isPpg === 1 ? true : false,
 				isKolekte: row.isKolekte === 1 ? true : false,
 				createdAt: row.createdAt ?? 0
@@ -281,7 +279,6 @@ export async function findUshersByEvent(
 			wilayah: wilayah.name,
 			lingkungan: lingkungan.name,
 			position: church_position.name,
-			whatsapp: event_usher.whatsapp,
 			isPpg: event_usher.isPpg,
 			isKolekte: event_usher.isKolekte,
 			createdAt: event_usher.createdAt

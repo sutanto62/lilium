@@ -58,8 +58,10 @@ export class QueueManager {
 			this.ushers = await repo.getEventUshers(queue.event.id); // Get all ushers for the event (including past unprocessed events)
 
 			this.positions = await repo.getPositionsByMass(queue.event.church, queue.event.mass);
+
+			// Break 
 			if (this.positions.length === 0) {
-				throw new Error('Gagal menemukan titik tugas', { cause: 404 })
+				throw new Error(`Gagal menemukan titik tugas untuk ${queue.event.mass}`, { cause: 404 })
 			}
 
 			// Count assigned ushers

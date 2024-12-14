@@ -133,9 +133,12 @@ dist
 .pnp.*
 
 # SQLite database files
+db/
 *.db
 *.sqlite
 *.sqlite3
+*.db-shm
+*.db-wal
 
 # Svelte
 .output
@@ -148,5 +151,3 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 /test-results
-
-

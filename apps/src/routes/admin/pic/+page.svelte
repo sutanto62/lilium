@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ActionData, PageData } from './$types';
-	import { Heading, Hr, Button, Alert } from 'flowbite-svelte';
+	import { P, Hr, Button, Alert } from 'flowbite-svelte';
 	import { FloppyDiskSolid, ClipboardCleanSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import type { TagsInputEvents } from 'svelte-tags-input';
@@ -94,7 +94,7 @@
 
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 			<section class="rounded-lg border bg-white p-6 md:col-span-1">
-				<h1>PIC Misa sebelumnya</h1>
+				<P size="xl" class="mb-3" weight="bold">PIC Misa sebelumnya</P>
 				<ul>
 					{#each data.masses as mass}
 						<li>{mass.name}</li>
@@ -102,21 +102,25 @@
 				</ul>
 			</section>
 			<section class="rounded-lg border bg-white p-6 md:col-span-3">
-				<h1>Form isian PIC</h1>
+				<P size="xl" class="mb-3" weight="bold">Form isian PIC</P>
 
 				{#each data.masses as mass}
-					<Heading tag="h6" class="mt-3">{mass.name}</Heading>
-					<Hr hrClass="my-1" />
-					<Tags
-						bind:tags={picAssignments[mass.id]}
-						placeholder="Add PIC..."
-						allowPaste={true}
-						allowDrop={true}
-						onlyUnique={true}
-						addKeys={[13, 188]}
-						on:tags:add={handleTagAdd}
-						on:tags:remove={handleTagRemove}
-					/>
+					<P size="lg" class="mt-3" weight="semibold">{mass.name}</P>
+					<div class="input-tag">
+						<Tags
+							name="pic-assignments"
+							bind:tags={picAssignments[mass.id]}
+							placeholder="Ketikan nama PIC..."
+							allowPaste={true}
+							allowDrop={true}
+							onlyUnique={true}
+							addKeys={[13, 188]}
+							on:tags:add={handleTagAdd}
+							on:tags:remove={handleTagRemove}
+							labelShow={true}
+							labelText="PIC PETA"
+						/>
+					</div>
 				{/each}
 			</section>
 		</div>
@@ -130,3 +134,30 @@
 	<h2 class="mb-6 text-2xl font-bold">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
 	<p>Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
 {/if}
+
+<style>
+	/* Customize svelte-tags-input */
+	.input-tag :global(.svelte-tags-input-layout) {
+		display: -webkit-box;
+		display: -ms-flexbox;
+		display: flex;
+		-ms-flex-wrap: wrap;
+		flex-wrap: wrap;
+		-webkit-box-align: center;
+		-ms-flex-align: center;
+		align-items: center;
+		padding: 0px 5px 5px 5px;
+		border-radius: 10px !important;
+		border: 1px solid #ccc;
+	}
+
+	.input-tag :global(.svelte-tags-input-layout:focus),
+	.input-tag :global(.svelte-tags-input-layout:hover) {
+		border-radius: 1rem;
+		border: solid 1px grey;
+	}
+
+	.input-tag :global(.svelte-tags-input-layout:focus-within) {
+		outline: 0px solid #fff !important;
+	}
+</style>

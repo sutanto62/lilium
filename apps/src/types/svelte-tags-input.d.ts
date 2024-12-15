@@ -22,6 +22,8 @@ declare module 'svelte-tags-input' {
         autoCompleteKey?: number[];
         name?: string;
         id?: string;
+        labelText?: string;
+        labelShow?: boolean;
     }
 
     export default class Tags extends SvelteComponentTyped<

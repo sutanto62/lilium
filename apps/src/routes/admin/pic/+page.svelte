@@ -3,6 +3,7 @@
 	import { Heading, Hr, Button, Alert } from 'flowbite-svelte';
 	import { FloppyDiskSolid, ClipboardCleanSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
+	import type { TagsInputEvents } from 'svelte-tags-input';
 	import Tags from 'svelte-tags-input';
 
 	// Utils
@@ -21,6 +22,26 @@
 	let selectedDate: Date = new Date();
 	let picPeta: string[] = ['Virginia', 'Irwan', 'Julianto', 'Agus', 'Liawati'];
 	let picPetaAssigned: string[] = [];
+
+	// Create a separate array for each mass
+	let picAssignments: Record<string, string[]> = {};
+
+	// Initialize empty arrays for each mass
+	onMount(() => {
+		currentDay = new Date().getDay();
+		data.masses.forEach((mass) => {
+			picAssignments[mass.id] = [];
+		});
+	});
+
+	// Optional: Handle tag events
+	function handleTagAdd(event: CustomEvent<TagsInputEvents>) {
+		console.log('Tag added:', event.detail.tag);
+	}
+
+	function handleTagRemove(event: CustomEvent<TagsInputEvents>) {
+		console.log('Tag removed:', event.detail.tag);
+	}
 
 	// Show/hide form
 	$: isFeatureEnabled = featureFlags.isEnabled('no_saturday_sunday');
@@ -86,7 +107,16 @@
 				{#each data.masses as mass}
 					<Heading tag="h6" class="mt-3">{mass.name}</Heading>
 					<Hr hrClass="my-1" />
-					<Tags />
+					<Tags
+						bind:tags={picAssignments[mass.id]}
+						placeholder="Add PIC..."
+						allowPaste={true}
+						allowDrop={true}
+						onlyUnique={true}
+						addKeys={[13, 188]}
+						on:tags:add={handleTagAdd}
+						on:tags:remove={handleTagRemove}
+					/>
 				{/each}
 			</section>
 		</div>

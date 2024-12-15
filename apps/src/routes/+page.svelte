@@ -56,7 +56,7 @@
 					>Setiap minggu petugas PETA akan bergantian menjadi PIC pada setiap misa. PIC harus sudah
 					terdaftar.
 					<div class="mt-4">
-						<Button size="sm" href="/admin/jadwal">Atur PIC</Button>
+						<Button size="sm" href="/admin/pic">Atur PIC</Button>
 					</div>
 				</svelte:fragment>
 			</FeatureItem>

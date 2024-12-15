@@ -3,6 +3,7 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { repo } from '$src/lib/server/db';
 import { redirect } from '@sveltejs/kit';
+
 /**
  * Page server load function for the jadwal (schedule) page.
  * @type {import('./$types').PageServerLoad}

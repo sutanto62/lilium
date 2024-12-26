@@ -11,6 +11,7 @@
 
 	// Components
 	import Regional from '$components/Regional.svelte';
+	import { logger } from '$src/lib/utils/logger';
 
 	// Props
 	export let data: PageData;
@@ -62,7 +63,7 @@
 			try {
 				await navigator.clipboard.writeText(element.innerText);
 			} catch (error) {
-				console.error('Failed to copy text: ', error);
+				logger.error('Failed to copy text: ', error);
 			}
 		}
 	}

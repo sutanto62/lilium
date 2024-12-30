@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "5ff1d979-36b2-426b-92c7-eb88ee0c50cb",
+  "id": "50bbf75c-3253-4fb2-86e8-ed4977ee2f97",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "church": {
@@ -93,6 +93,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "is_ppg": {
+          "name": "is_ppg",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "sequence": {
           "name": "sequence",
@@ -345,13 +353,6 @@
         },
         "position_id": {
           "name": "position_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "whatsapp": {
-          "name": "whatsapp",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -683,6 +684,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user'"
         }
       },
       "indexes": {

@@ -45,7 +45,7 @@ You can preview the production build with `npm run preview`.
 
 Initiate sqlite db with WAL (performance consideration)
 
-````sqlite3 my_database.db <<EOF
+````sqlite3 lilium.db <<EOF
 PRAGMA journal_mode=WAL;
 PRAGMA synchronous=NORMAL;
 PRAGMA temp_store=MEMORY;
@@ -53,10 +53,14 @@ PRAGMA mmap_size=30000000000;
 .quit
 EOF```
 
+Create database schema `npm run db:migrate` or `npx drizzle-kit push`
+
 Import CSV using sqlite3 CLI
-```
+````
+
 $ sqlite3 database.db
 sqlite> .import --csv --skip 1 file.csv tablename
+
 ```
 --skip 1 will ignore CSV first line/header
 
@@ -65,7 +69,7 @@ sqlite> .import --csv --skip 1 file.csv tablename
 2. Run script `npm run db:generate` to create sql scripts.
 3. Run script `npm run db:push` to run the sql scripts (no migration files, during dev).
 4. Run script `npm run db:migrate` to migrate the database (with migration files).
-````
+```
 
 ### Maintenance
 
@@ -87,3 +91,9 @@ and adapters architecture in order to extend the database supports.
 1. Svelte page and script serves human interface layer.
 2. Human interface layer interacts with data through service.
 3. Service responsible to get and format returned data from repository. Add `Response` suffix for returned entities.
+
+### Authentication
+
+Use MS Entra and Gmail only. All user should be registered by super admin.
+
+1. Register to MS Entra

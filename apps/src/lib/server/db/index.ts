@@ -14,7 +14,7 @@ function createDatabase(): ScheduleRepository {
 	if (
 		databaseUrl.startsWith('/') ||
 		databaseUrl.startsWith('../') ||
-		databaseUrl.startsWith('file:')
+		databaseUrl.startsWith('')
 	) {
 		const sqlite = new Database(databaseUrl);
 		database = drizzle(sqlite);

@@ -24,7 +24,7 @@ import {
 } from './SQLiteDbFacility';
 import { findWilayahs, findLingkungans, findLingkunganById } from './SQLiteDbRegion';
 
-import type { Church, ChurchZone } from '$core/entities/schedule';
+import type { Church, ChurchZone } from '$core/entities/Schedule';
 import type { EventUsher } from '$core/entities/Event';
 import { findUserByEmail } from './SQLiteDbUser';
 

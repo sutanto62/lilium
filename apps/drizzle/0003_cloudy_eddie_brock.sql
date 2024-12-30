@@ -1,1 +1,0 @@
-ALTER TABLE `church_position` ADD `is_ppg` integer DEFAULT 0 NOT NULL;

@@ -5,7 +5,7 @@ import type {
 	Lingkungan,
 	ChurchPosition,
 	Church
-} from '$core/entities/schedule';
+} from '$core/entities/Schedule';
 import type { Event } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
 

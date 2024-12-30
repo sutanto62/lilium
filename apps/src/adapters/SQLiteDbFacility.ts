@@ -1,7 +1,7 @@
 import type { drizzle } from 'drizzle-orm/better-sqlite3';
 import { church, church_zone, church_position, mass_zone } from '$src/lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
-import type { Church, ChurchPosition, ChurchZone } from '$core/entities/schedule';
+import type { Church, ChurchPosition, ChurchZone } from '$core/entities/Schedule';
 
 export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Church[]> {
 	return await db.select().from(church).orderBy(church.code);
@@ -39,21 +39,27 @@ export async function findZonesByChurch(
 	}));
 }
 
-export async function findPositionByChurch(db: ReturnType<typeof drizzle>, id: string) {
-	return await db
-		.select({
-			id: church_position.id,
-			church_zone_id: church_zone.name,
-			name: church_position.name,
-			code: church_position.code,
-			description: church_position.description,
-			sequence: church_position.sequence,
-			type: church_position.type
-		})
+export async function findPositionByChurch(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<ChurchPosition[]> {
+	const result = await db
+		.select()
 		.from(church_position)
 		.innerJoin(church_zone, eq(church_position.zone, church_zone.id))
 		.where(eq(church_zone.church, id))
 		.orderBy(church_position.sequence);
+
+	return result.map((position) => ({
+		id: position.church_position.id,
+		church: position.church_zone?.church ?? '',
+		name: position.church_position.name,
+		code: position.church_position.code,
+		description: position.church_position.description,
+		isPpg: position.church_position.isPpg ? true : false,
+		sequence: position.church_position.sequence,
+		type: position.church_position.type
+	}));
 }
 
 export async function findPositionByMass(
@@ -81,6 +87,7 @@ export async function findPositionByMass(
 		name: position.church_position.name,
 		code: position.church_position.code,
 		description: position.church_position.description,
+		isPpg: position.church_position.isPpg ? true : false,
 		sequence: position.church_position.sequence,
 		type: position.church_position.type
 	}));

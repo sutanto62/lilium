@@ -1,4 +1,4 @@
-import type { Mass } from '$core/entities/schedule';
+import type { Mass } from '$core/entities/Schedule';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 
 /**

@@ -4,7 +4,11 @@
 /.nx
 
 # Output
+/build
+.svelte-kit
 
+# Logs
+logs/
 
 # OS
 .DS_Store

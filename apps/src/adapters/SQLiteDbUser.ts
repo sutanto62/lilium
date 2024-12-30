@@ -1,5 +1,5 @@
-import type { User } from '$core/entities/Authentication'
 import { user } from '$lib/server/db/schema';
+import type { User } from '@auth/core/types';
 import { eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/better-sqlite3';
 

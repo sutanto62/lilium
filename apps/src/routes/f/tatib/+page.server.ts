@@ -8,7 +8,7 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { logger } from '$src/lib/utils/logger';
 import { QueueManager } from '$core/service/QueueManager';
-import type { Church } from '$core/entities/schedule';
+import type { Church } from '$core/entities/Schedule';
 
 let churchService: ChurchService;
 let eventService: EventService;

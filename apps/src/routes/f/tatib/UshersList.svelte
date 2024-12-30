@@ -20,7 +20,7 @@
 	} from 'flowbite-svelte';
 
 	import { UserAddSolid } from 'flowbite-svelte-icons';
-	import type { Usher } from '$core/entities/schedule';
+	import type { Usher } from '$core/entities/Schedule';
 
 	// Props
 	export let isSubmitable: boolean = false;

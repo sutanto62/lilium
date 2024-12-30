@@ -1,4 +1,4 @@
-import type { Church } from '$core/entities/schedule';
+import type { Church } from '$core/entities/Schedule';
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { repo } from '$src/lib/server/db';

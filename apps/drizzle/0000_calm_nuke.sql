@@ -11,6 +11,7 @@ CREATE TABLE `church_position` (
 	`name` text NOT NULL,
 	`code` text,
 	`description` text,
+	`is_ppg` integer DEFAULT 0 NOT NULL,
 	`sequence` integer,
 	`type` text NOT NULL,
 	FOREIGN KEY (`church_zone_id`) REFERENCES `church_zone`(`id`) ON UPDATE no action ON DELETE cascade
@@ -45,7 +46,6 @@ CREATE TABLE `event_usher` (
 	`wilayah` text NOT NULL,
 	`lingkungan` text NOT NULL,
 	`position_id` text,
-	`whatsapp` text,
 	`is_ppg` integer,
 	`is_kolekte` integer,
 	`sequence` integer,
@@ -87,7 +87,8 @@ CREATE TABLE `mass_zone` (
 CREATE TABLE `user` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
-	`email` text NOT NULL
+	`email` text NOT NULL,
+	`role` text DEFAULT 'user' NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `wilayah` (

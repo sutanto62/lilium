@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueueManager } from './QueueManager';
-import type { ChurchPosition, Lingkungan } from '$core/entities/schedule';
+import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';

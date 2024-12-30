@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Label, Select } from 'flowbite-svelte';
 
-	import type { Mass, Wilayah, Lingkungan } from '$core/entities/schedule';
+	import type { Mass, Wilayah, Lingkungan } from '$core/entities/Schedule';
 
 	// Props
 	export let masses: Mass[];

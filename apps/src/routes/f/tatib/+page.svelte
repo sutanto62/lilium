@@ -8,7 +8,7 @@
 	import { featureFlags } from '$lib/utils/FeatureFlag';
 
 	// Components
-	import type { Usher } from '$core/entities/schedule';
+	import type { Usher } from '$core/entities/Schedule';
 	import UshersList from './UshersList.svelte';
 	import Regional from '$components/Regional.svelte';
 

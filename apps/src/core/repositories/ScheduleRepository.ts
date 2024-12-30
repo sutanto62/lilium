@@ -8,7 +8,7 @@ import type {
 	Lingkungan,
 	Wilayah,
 	ChurchPosition,
-} from '$core/entities/schedule';
+} from '$core/entities/Schedule';
 import type {
 	Event as ChurchEvent,
 	EventUsher,
@@ -55,7 +55,7 @@ export interface ScheduleRepository {
 	getChurches(): Promise<Church[]>;
 	findChurchById(id: string): Promise<Church>;
 	getZones(id: string): Promise<ChurchZone[]>;
-	findPositionByChurch(id: string): Promise<any[]>;
+	findPositionByChurch(id: string): Promise<ChurchPosition[]>;
 	getPositionsByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;
 	// findPositionByMass(churchId: string, massId: string)
 

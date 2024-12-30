@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ChurchService } from './ChurchService';
 import { repo } from '$src/lib/server/db';
-import type { ChurchZone, Mass } from '$core/entities/schedule';
+import type { ChurchZone, Mass } from '$core/entities/Schedule';
 
 describe('ChurchService', () => {
 	it('should initialize zones and masses', async () => {

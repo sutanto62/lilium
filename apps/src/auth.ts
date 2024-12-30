@@ -31,6 +31,7 @@ export type UserRole = 'admin' | 'user' | 'visitor';
 export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	trustHost: true,
 	providers: providers,
+	secret: import.meta.env.AUTH_SECRET,
 	pages: {
 		signIn: '/signin'
 	},

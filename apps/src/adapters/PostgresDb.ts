@@ -2,7 +2,7 @@
 
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
-import type { Church, ChurchPosition, ChurchZone, Usher } from '$core/entities/schedule';
+import type { Church, ChurchPosition, ChurchZone, Usher } from '$core/entities/Schedule';
 
 // Adapter
 export class PostgresDatabase implements ScheduleRepository {

@@ -65,7 +65,7 @@
 	"type": "module",
 	"dependencies": {
 		"@auth/drizzle-adapter": "^1.7.2",
-		"@auth/sveltekit": "^1.7.2",
+		"@auth/sveltekit": "^1.7.4",
 		"@casl/ability": "^6.7.1",
 		"@libsql/client": "^0.14.0",
 		"@sveltejs/kit": "^2.15.0",

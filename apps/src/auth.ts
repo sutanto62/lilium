@@ -37,13 +37,16 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	},
 	callbacks: {
 		async jwt({ token, user, account }) {
+			logger.debug(`jwt callback: ${JSON.stringify(token)}`);
 			if (user && account) {
+				logger.debug(`validating user ${user.email} and account ${account.provider}`);
 				// Check if the user exists in the database
 				const dbUser = await repo.getUserByEmail(user.email ?? '');
 
 				if (!dbUser) {
 					logger.debug(`unregistered user ${user.email} detected`);
 					// Return token with unregistered flag
+					logger.debug(`returning unregistered user token`);
 					return {
 						...token,
 						cid: '',
@@ -55,6 +58,7 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
+				logger.debug(`returning registered user token`);
 			}
 			return token;
 		},

@@ -17,11 +17,10 @@ clean:
 	@echo "🧹 Cleaning project..."
 	@rm -rf ./node_modules 2>/dev/null || true
 	@rm -rf ./.svelte-kit 2>/dev/null || true
-	@rm -rf ./dist 2>/dev/null || true
+	@rm -rf ./build 2>/dev/null || true
 	@rm -rf ./package-lock.json 2>/dev/null || true
 	@rm -rf ./tests-results 2>/dev/null || true
 	@rm -rf ./coverage 2>/dev/null || true
-	@rm -rf ./sqlpkg 2>/dev/null || true
 	@npm cache clean --force 2>/dev/null || true
 	@echo "✅ Clean completed!"
 

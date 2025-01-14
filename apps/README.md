@@ -1,99 +1,111 @@
-# create-svelte
+# Lilium Inter Spinas (L.I.S)
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+A digital service information system built with SvelteKit, TypeScript, and SQLite.
 
-## Creating a project
+## Prerequisites
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Node.js (LTS version)
+- npm or pnpm
+- SQLite3
+- sqlpkg (for database extensions)
+
+## Quick Start
+
+1. Clone the repository
 
 ```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+git clone <repository-url>
+cd apps <repository-url>
 ```
 
-## Developing
+2. Initialize the project
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```bash
+make init
+```
+
+This will:
+
+- Install Node.js dependencies
+- Install sqlpkg and required extensions
+- Set up the development environment
+
+```bash
+make db-create
+```
+
+## Development
+
+1. Start the development server:
 
 ```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev --open
 ```
 
-## Building
+## Database Management
 
-To create a production version of your app:
+1. Generate database migrations
 
 ```bash
-npm run build
+npm run db:generate
 ```
 
-You can preview the production build with `npm run preview`.
+Use `npx drizzle-kit drop` to remove the generated migrations if requqired. Do not remove the file manually.
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+2. Apply migrations
 
-### Structures
-
-1. Components, all reusable components should be placed inside `/src/components` folders and import from any file using `$components`.
-
-### Database
-
-Initiate sqlite db with WAL (performance consideration)
-
-````sqlite3 lilium.db <<EOF
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=NORMAL;
-PRAGMA temp_store=MEMORY;
-PRAGMA mmap_size=30000000000;
-.quit
-EOF```
-
-Create database schema `npm run db:migrate` or `npx drizzle-kit push`
-
-Import CSV using sqlite3 CLI
-````
-
-$ sqlite3 database.db
-sqlite> .import --csv --skip 1 file.csv tablename
-
-```
---skip 1 will ignore CSV first line/header
-
-
-1. Create table and models in `src/lib/server/db/schema.ts` and `src/lib/models/schedule.ts`
-2. Run script `npm run db:generate` to create sql scripts.
-3. Run script `npm run db:push` to run the sql scripts (no migration files, during dev).
-4. Run script `npm run db:migrate` to migrate the database (with migration files).
+```bash
+npm run db:migrate
 ```
 
-### Maintenance
+3. View database in Studio:
 
-`npx npm-check` to check update for npm module
+```
+npm run db:studio
+```
 
-### Database Connectivity
+## Project Structure
 
-The system provides support to use any database engine provided. LIS uses ports
-and adapters architecture in order to extend the database supports.
+```
+lilium/
+├── apps/                   # Main SvelteKit application
+│   ├── src/
+│   │   ├── components/    # Reusable UI components
+│   │   │   ├── jadwal/    # Schedule-related components
+│   │   │   └── Navigation.svelte
+│   │   ├── core/
+│   │   │   ├── entities/  # Core domain entities
+│   │   │   └── service/   # Business logic services
+│   │   ├── lib/
+│   │   │   ├── server/    # Server-side code
+│   │   │   │   └── db/    # Database configuration
+│   │   │   └── utils/     # Utility functions
+│   │   ├── routes/        # SvelteKit routes
+│   │   │   ├── admin/     # Admin pages
+│   │   │   └── f/         # Frontend pages
+│   │   ├── app.css        # Global styles
+│   │   └── app.html       # HTML template
+│   ├── static/            # Static assets
+│   ├── tests/             # Test files
+│   ├── drizzle/           # Database migrations
+│   └── db/                # SQLite database files
+├── api/                   # Go API server (separate service)
+└── docs/                  # Documentation
+```
 
-1. M
+Key points:
 
-### Drizzle Drop Migration
-
-`npx drizzle-kit drop`
-
-### Design
-
-1. Svelte page and script serves human interface layer.
-2. Human interface layer interacts with data through service.
-3. Service responsible to get and format returned data from repository. Add `Response` suffix for returned entities.
-
-### Authentication
-
-Use MS Entra and Gmail only. All user should be registered by super admin.
-
-1. Register to MS Entra
+1. Frontend Architecture:
+   - Built with SvelteKit and TypeScript
+   - Uses Tailwind CSS for styling
+   - Flowbite components for UI elements
+   - Clean architecture with separation of concerns
+2. Database:
+   - SQLite with WAL mode for performance
+   - Drizzle ORM for database operations
+   - Migration management through drizzle-kit
+3. Core Features:
+   - Church event management
+   - Usher scheduling system
+   - Authentication via MS Entra and Gmail
+   - Role-based access control

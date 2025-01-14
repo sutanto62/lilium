@@ -58,7 +58,6 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
-				logger.debug(`returning registered user token`);
 			}
 			return token;
 		},

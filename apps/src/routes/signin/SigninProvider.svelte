@@ -30,15 +30,13 @@
 	}
 </script>
 
-<Button class="w-full">
-	<SignIn provider={provider.id} className="w-full">
-		<div slot="submitButton" class="flex w-full items-center">
-			<div class="mr-2 flex-shrink-0">
-				<img src={getProviderIcon(provider.id)} alt={`${provider.name} icon`} class="h-6 w-6" />
-			</div>
-			<span class="flex-gro text-center">
-				{mapProviderName(provider.id)}
-			</span>
+<SignIn provider={provider.id}>
+	<div slot="submitButton" class="bg-primary-600 flex w-full max-w-full rounded p-2 text-white">
+		<div class="mr-2 flex-shrink-0">
+			<img src={getProviderIcon(provider.id)} alt={`${provider.name} icon`} class="h-6 w-6" />
 		</div>
-	</SignIn>
-</Button>
+		<span class="flex-grow text-center">
+			{mapProviderName(provider.id)}
+		</span>
+	</div>
+</SignIn>

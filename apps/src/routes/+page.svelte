@@ -1,14 +1,15 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import NavigationAdmin from '$components/NavigationAdmin.svelte';
-	import { Button } from 'flowbite-svelte';
-	import { Section, HeroHeader, FeatureDefault, FeatureItem } from 'flowbite-svelte-blocks';
+	import { Section, HeroHeader, FeatureDefault } from 'flowbite-svelte-blocks';
 	import {
 		QuestionCircleSolid,
 		ClipboardListSolid,
 		UserCircleSolid,
 		CalendarMonthSolid
 	} from 'flowbite-svelte-icons';
+	import FeatureCard from '$components/FeatureCard.svelte';
+	import { P, Heading } from 'flowbite-svelte';
 
 	// Props
 	export let data: PageData;
@@ -16,83 +17,53 @@
 
 <NavigationAdmin />
 <Section name="feature">
-	<HeroHeader
-		class="mb-8 max-w-screen-md lg:mb-16"
-		h2Class="mb-4 text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white"
-		pClass="text-gray-500 sm:text-xl dark:text-gray-400"
-	>
-		<svelte:fragment slot="h2">Selamat Melayani</svelte:fragment>
-		<svelte:fragment slot="paragraph"
-			>Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</svelte:fragment
-		>
-	</HeroHeader>
+	<!-- TODO: Provide separate page for admin related features -->
+
+	<Heading tag="h2" class="mb-4 mt-8 text-4xl tracking-tight text-gray-900 dark:text-white">
+		Selamat Melayani
+	</Heading>
+	<P class="mb-6">Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</P>
+	{#if data.isAdmin}
+		<div class="mb-8 rounded-lg bg-gray-50 p-6 dark:bg-gray-400">
+			<Heading tag="h2" class="mb-2 text-2xl tracking-tight text-gray-900 dark:text-white">
+				Menu Admin
+			</Heading>
+			<P class="mb-6"
+				>Menu khusus untuk admin sistem. Hanya dapat diakses oleh pengguna dengan hak akses admin.</P
+			>
+			<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-4 gap-4">
+				<FeatureCard
+					icon={ClipboardListSolid}
+					title="Jadwal Tata Tertib"
+					description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
+					buttonHref="/admin/jadwal"
+					buttonText="Kelola"
+					isAdmin={true}
+				/>
+				<FeatureCard
+					icon={UserCircleSolid}
+					title="PIC PETA"
+					description="Setiap minggu petugas PETA akan bergantian menjadi PIC pada setiap misa. PIC harus sudah terdaftar."
+					buttonHref="/admin/pic"
+					buttonText="Atur PIC"
+				/>
+			</FeatureDefault>
+		</div>
+	{/if}
 	<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-4 gap-4 ">
-		{#if data.isAdmin}
-			<FeatureItem>
-				<svelte:fragment slot="icon"
-					><ClipboardListSolid
-						size="xl"
-						class="text-primary-600 dark:text-primary-300"
-					/></svelte:fragment
-				>
-				<svelte:fragment slot="h3">Jadwal Tata Tertib</svelte:fragment>
-				<svelte:fragment slot="paragraph"
-					>Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar
-					petugas.
-					<div class="mt-4">
-						<Button size="sm" href="/admin/jadwal">Kelola</Button>
-					</div>
-				</svelte:fragment>
-			</FeatureItem>
-			<FeatureItem>
-				<svelte:fragment slot="icon"
-					><UserCircleSolid
-						size="xl"
-						class="text-primary-600 dark:text-primary-300"
-					/></svelte:fragment
-				>
-				<svelte:fragment slot="h3">PIC PETA</svelte:fragment>
-				<svelte:fragment slot="paragraph"
-					>Setiap minggu petugas PETA akan bergantian menjadi PIC pada setiap misa. PIC harus sudah
-					terdaftar.
-					<div class="mt-4">
-						<Button size="sm" href="/admin/pic">Atur PIC</Button>
-					</div>
-				</svelte:fragment>
-			</FeatureItem>
-		{/if}
-		<hr class="my-4 block h-px border-0 bg-gray-200 lg:hidden dark:bg-gray-700" />
-		<FeatureItem>
-			<svelte:fragment slot="icon"
-				><CalendarMonthSolid
-					size="xl"
-					class="text-primary-600 dark:text-primary-300"
-				/></svelte:fragment
-			>
-			<svelte:fragment slot="h3">Tugas Tata Tertib</svelte:fragment>
-			<svelte:fragment slot="paragraph"
-				>Konfirmasi kehadiran tugas tata tertib lingkungan. Jadwal konfirmasi hanya dibuka setiap
-				Senin s.d. Kamis.
-				<div class="mt-4">
-					<Button size="sm" href="/f/tatib">Konfirmasi</Button>
-				</div>
-			</svelte:fragment>
-		</FeatureItem>
-		<hr class="my-4 block h-px border-0 bg-gray-200 lg:hidden dark:bg-gray-700" />
-		<FeatureItem>
-			<svelte:fragment slot="icon"
-				><QuestionCircleSolid
-					size="xl"
-					class="text-primary-600 dark:text-primary-300"
-				/></svelte:fragment
-			>
-			<svelte:fragment slot="h3">Petunjuk Pemakaian</svelte:fragment>
-			<svelte:fragment slot="paragraph"
-				>Aturan, tata cara, dan hal penting lain yang perlu diketahui selama mempergunakan sistem.
-				<div class="mt-4">
-					<Button size="sm" href="/f/petunjuk">Baca</Button>
-				</div>
-			</svelte:fragment>
-		</FeatureItem>
+		<FeatureCard
+			icon={CalendarMonthSolid}
+			title="Tugas Tata Tertib"
+			description="Konfirmasi kehadiran tugas tata tertib lingkungan. Jadwal konfirmasi hanya dibuka setiap Senin s.d. Kamis."
+			buttonHref="/f/tatib"
+			buttonText="Konfirmasi"
+		/>
+		<FeatureCard
+			icon={QuestionCircleSolid}
+			title="Petunjuk Pemakaian"
+			description="Aturan, tata cara, dan hal penting lain yang perlu diketahui selama mempergunakan sistem."
+			buttonHref="/f/petunjuk"
+			buttonText="Baca"
+		/>
 	</FeatureDefault>
 </Section>

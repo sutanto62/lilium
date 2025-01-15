@@ -8,6 +8,7 @@ import type {
 } from '$core/entities/Schedule';
 import type { Event } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
 
 /**
  * ChurchService is a class responsible for managing church-related data,
@@ -51,9 +52,10 @@ export class ChurchService {
 	 * Fetches the masses for the church from the repository and stores them.
 	 */
 	private async fetchMasses(): Promise<void> {
+		logger.debug('Fetching masses');
 		this.masses = await repo.getMasses(this.churchId);
+		logger.debug('Masses fetched', { masses: this.masses ?? 'no masses found' });
 	}
-
 	/**
 	 * Retrieves the list of masses for the church, initializing if necessary.
 	 * @returns A promise that resolves to an array of Mass objects.

@@ -20,9 +20,6 @@
 					{$page.data.session.user?.email ?? $page.data.session.user?.name} ({$page.data.session
 						.user?.role})
 				</span>
-				{#if $page.data.session.user?.role !== 'visitor'}
-					<NavLi class="text-l"><a href="/admin/jadwal">Jadwal</a></NavLi>
-				{/if}
 				<NavLi class="text-l">
 					<SignOut options={{ redirectTo: `/` }}>
 						<div slot="submitButton" class="buttonPrimary">Keluar</div>

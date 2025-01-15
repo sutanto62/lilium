@@ -8,6 +8,7 @@ import type {
 	Lingkungan,
 	Wilayah,
 	ChurchPosition,
+	Mass,
 } from '$core/entities/Schedule';
 import type {
 	Event as ChurchEvent,
@@ -23,7 +24,7 @@ import type { User } from '@auth/sveltekit';
  */
 export interface ScheduleRepository {
 	// Mass
-	getMasses: (churchId: string) => Promise<(typeof mass.$inferSelect)[]>;
+	getMasses: (churchId: string) => Promise<Mass[]>;
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
 
 	// Region

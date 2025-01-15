@@ -1,31 +1,23 @@
 <script lang="ts">
 	import { Breadcrumb, BreadcrumbItem, Heading, P, Timeline } from 'flowbite-svelte';
-	import JadwalCard from '$components/jadwal/JadwalTimeline.svelte';
-
 	export let data;
 
-	$: events = data.events;
+	$: masses = data.masses;
 </script>
 
-<svelte:head>
-	<title>Kelola Tatib</title>
-	<meta name="description" content="LIS" />
-</svelte:head>
+${masses.length}
 
 <Breadcrumb class="mb-4	">
 	<BreadcrumbItem href="/admin" home>Beranda</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
+	<BreadcrumbItem href="/admin/misa">Misa</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="w-full">
-	<Heading tag="h2" class="mb-2 text-2xl tracking-tight text-gray-900 dark:text-white">
-		Review Tatib Misa
-	</Heading>
-	<P class="mb-6">Melihat lingkungan yang telah melakukan konfirmasi tugas tata tertib.</P>
-	{#if events.length === 0}
+	{#if masses.length === 0}
 		<div
 			class="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800"
 		>
+			;
 			<p class="mb-2 text-lg font-medium text-gray-900 dark:text-white">
 				Petugas Tatib masih kosong.
 			</p>
@@ -34,9 +26,9 @@
 			</p>
 		</div>
 	{/if}
-	<Timeline>
-		{#each events as event}
-			<JadwalCard {event} usherCounts={event.usherCounts} />
-		{/each}
-	</Timeline>
+	{#each masses as mass}
+		<div>
+			<p>{mass.name}</p>
+		</div>
+	{/each}
 </div>

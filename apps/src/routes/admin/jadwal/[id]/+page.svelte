@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Button } from 'flowbite-svelte';
-	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
+	import { Button, Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
 	import {
 		ArchiveOutline,
 		CashOutline,
@@ -14,6 +13,8 @@
 	export let data;
 
 	$: jadwalDetail = data.jadwalDetail;
+	$: users = data.users;
+	$: zones = data.zones;
 
 	let openRow: number | null = null;
 
@@ -22,10 +23,11 @@
 	};
 
 	let deleting = false;
+	// let defaultModal = false;
 </script>
 
 <Breadcrumb class="mb-4	">
-	<BreadcrumbItem href="/admin" home>Beranda</BreadcrumbItem>
+	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
 	<BreadcrumbItem href={`/admin/jadwal/${jadwalDetail.id}`}>
 		{jadwalDetail.mass}
@@ -64,7 +66,7 @@
 
 <div class="mt-4">
 	{#if jadwalDetail.rows && jadwalDetail.rows.length > 0}
-		<JadwalKonfirmasi rows={jadwalDetail.rows} {openRow} {toggleRow} />
+		<JadwalKonfirmasi rows={jadwalDetail.rows} {openRow} {toggleRow} {users} {zones} />
 	{:else}
 		<p>Data tidak ditemukan</p>
 	{/if}

@@ -6,15 +6,27 @@
 		TableBody,
 		TableBodyRow,
 		TableBodyCell,
-		Tooltip
+		Tooltip,
+		Modal,
+		Label,
+		Select,
+		Button
 	} from 'flowbite-svelte';
 
 	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 	import JadwalKonfirmasiDetail from '$components/jadwal/JadwalKonfirmasiDetail.svelte';
+	import type { User } from '$core/entities/Authentication';
+	import type { ChurchZone } from '$core/entities/Schedule';
 
 	export let rows;
 	export let openRow;
 	export let toggleRow;
+
+	let defaultModal = false;
+	export let users: User[];
+	export let zones: ChurchZone[];
+	let selectedZoneId: string | null = null;
+	let selectedUserId: string | null = null;
 </script>
 
 <Table>
@@ -33,6 +45,7 @@
 	</TableHead>
 	<TableBody tableBodyClass="divide-y">
 		{#each rows as jadwalDetaillZone, i}
+			<!-- TODO: prevent open on tambah pic click -->
 			<TableBodyRow class="hover:bg-gray-100" on:click={() => toggleRow(i)}>
 				<TableBodyCell class="px-2 align-top"
 					>{jadwalDetaillZone.name}
@@ -52,11 +65,15 @@
 							</ol>
 						</div>
 						<div>
-							<span>PIC PETA</span>
 							<ol>
-								{#each jadwalDetaillZone.pic as pic}
-									<li>{pic}</li>
-								{/each}
+								{#if jadwalDetaillZone.pic && jadwalDetaillZone.pic.length > 0}
+									{#each jadwalDetaillZone.pic as pic}
+										<li>{pic}</li>
+									{/each}
+								{:else}
+									<Button size="xs" on:click={() => (defaultModal = true)}>Tambah PIC</Button>
+									<!-- <P class="text-sm text-gray-500">Tidak ada PIC</P> -->
+								{/if}
 							</ol>
 						</div>
 					</div>
@@ -79,3 +96,37 @@
 		{/each}
 	</TableBody>
 </Table>
+
+<Modal title="Tambah PIC" bind:open={defaultModal}>
+	<form method="POST" action="?/jadwalDetailPic">
+		<div class="mb-4 grid gap-4 sm:grid-cols-1">
+			<div>
+				<Label for="zone" class="mb-2">Zona Tugas</Label>
+				<Select
+					id="zone"
+					name="zone"
+					class="mt-2"
+					items={zones.map((e) => ({ value: e.id ?? '', name: e.name ?? '' }))}
+					bind:value={selectedZoneId}
+					placeholder="Pilih Zona"
+					required
+				/>
+			</div>
+			<div>
+				<Label for="pic" class="mb-2">PIC Peta</Label>
+				<Select
+					id="pic"
+					name="pic"
+					class="mt-2"
+					items={users.map((e) => ({ value: e.id ?? '', name: e.name ?? '' }))}
+					bind:value={selectedUserId}
+					placeholder="Pilih Petugas"
+					required
+				/>
+			</div>
+		</div>
+		<div class="flex justify-end">
+			<Button type="submit" class="w-28">Simpan</Button>
+		</div>
+	</form>
+</Modal>

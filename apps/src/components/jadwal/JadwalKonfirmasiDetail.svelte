@@ -5,7 +5,7 @@
 <script lang="ts">
 	import html2canvas from 'html2canvas';
 	import { Card, Button } from 'flowbite-svelte';
-	import { ArchiveSolid, CashSolid, CameraPhotoSolid } from 'flowbite-svelte-icons';
+	import { ArchiveSolid, CashSolid, CameraPhotoSolid, DownloadSolid } from 'flowbite-svelte-icons';
 
 	export let lingkungan: any;
 
@@ -39,7 +39,7 @@
 				on:click={captureSnapshot}
 				id=""
 			>
-				<CameraPhotoSolid class="size-4" />
+				<DownloadSolid class="size-4" />
 			</Button>
 		</div>
 	</div>

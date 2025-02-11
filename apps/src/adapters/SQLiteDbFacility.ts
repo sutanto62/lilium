@@ -1,7 +1,8 @@
 import type { drizzle } from 'drizzle-orm/better-sqlite3';
-import { church, church_zone, church_position, mass_zone } from '$src/lib/server/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { church, church_zone, church_position, mass_zone, event } from '$src/lib/server/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import type { Church, ChurchPosition, ChurchZone } from '$core/entities/Schedule';
+import { logger } from '$src/lib/utils/logger';
 
 export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Church[]> {
 	return await db.select().from(church).orderBy(church.code);
@@ -29,6 +30,37 @@ export async function findZonesByChurch(
 		.orderBy(church_zone.sequence);
 
 	return result.map((zone) => ({
+		id: zone.id,
+		church: zone.church ?? '',
+		name: zone.name,
+		code: zone.code,
+		description: zone.description,
+		sequence: zone.sequence,
+		pic: zone.pic
+	}));
+}
+
+export async function findZonesByEvent(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	eventId: string
+): Promise<ChurchZone[]> {
+
+	const resultEvent = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
+
+	const massZones = await db
+		.select()
+		.from(mass_zone)
+		.where(eq(mass_zone.mass, resultEvent[0].mass_id))
+		.orderBy(mass_zone.sequence);
+
+	const churchZones = await db
+		.select()
+		.from(church_zone)
+		.where(inArray(church_zone.id, massZones.map((zone) => zone.zone)))
+		.orderBy(church_zone.sequence);
+
+	return churchZones.map((zone) => ({
 		id: zone.id,
 		church: zone.church ?? '',
 		name: zone.name,
@@ -92,3 +124,7 @@ export async function findPositionByMass(
 		type: position.church_position.type
 	}));
 }
+function debug(result: { church_zone: { name: string; description: string | null; church: string | null; id: string; code: string | null; sequence: number | null; pic: string | null; }; mass_zone: { id: string; sequence: number | null; mass: string; zone: string; is_active: number; }; }[]) {
+	throw new Error('Function not implemented.');
+}
+

@@ -20,6 +20,11 @@ export interface EventUsher {
 	createdAt: number;
 }
 
+export interface EventPicRequest {
+	event: string;
+	zone: string;
+	user: string;
+}
 export interface EventListResponse {
 	events: Event[];
 }
@@ -56,6 +61,7 @@ export interface JadwalDetailResponse {
 }
 
 export interface JadwalDetailZone {
+	id: string;
 	name: string | null;
 	lingkungan: string[];
 	pic: string[];

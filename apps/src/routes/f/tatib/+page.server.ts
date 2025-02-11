@@ -26,6 +26,7 @@ const queueManager = QueueManager.getInstance();
  */
 export const load: PageServerLoad = async (events) => {
 	const churchId = events.cookies.get('cid') as string | '';
+
 	let church: Church | null = null;
 	church = await repo.findChurchById(churchId);
 	if (!church) {

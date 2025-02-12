@@ -5,7 +5,8 @@ import type {
 	EventUsher,
 	JadwalDetailZone,
 	JadwalDetailResponse,
-	UsherByEvent
+	UsherByEvent,
+	EventPicRequest
 } from '$core/entities/Event';
 import {
 	church,
@@ -14,8 +15,10 @@ import {
 	lingkungan,
 	event,
 	event_usher,
+	event_zone_pic,
 	church_position,
-	church_zone
+	church_zone,
+	user
 } from '$lib/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { featureFlags } from '$lib/utils/FeatureFlag';
@@ -86,6 +89,37 @@ export async function createEventUsher(
 	}));
 
 	await db.insert(event_usher).values(usherValues);
+	return true;
+}
+
+export async function createEventPic(
+	db: ReturnType<typeof drizzle>,
+	pic: EventPicRequest
+): Promise<boolean> {
+	const picValues = {
+		id: uuidv4(),
+		event: pic.event,
+		zone: pic.zone,
+		pic: pic.user
+	}
+
+	// 1 zone 1 pic only 
+	const existingPic = await db
+		.select()
+		.from(event_zone_pic)
+		.where(and(
+			eq(event_zone_pic.event, pic.event),
+			eq(event_zone_pic.zone, pic.zone),
+			eq(event_zone_pic.pic, pic.user)
+		));
+
+	if (existingPic.length > 0) {
+		logger.warn(`Failed to create event zone pic ${JSON.stringify(picValues)}`);
+		return false;
+	}
+
+	await db.insert(event_zone_pic).values(picValues);
+	logger.debug(`Created event zone pic ${JSON.stringify(picValues)}`);
 	return true;
 }
 
@@ -330,8 +364,9 @@ export async function findJadwalDetail(
 	}
 
 	// Get event ushers
-	const result = await db
+	const massEventUsher = await db
 		.select({
+			id: church_zone.id,
 			zone: church_zone.name,
 			wilayah: wilayah.name,
 			lingkungan: lingkungan.name,
@@ -348,16 +383,31 @@ export async function findJadwalDetail(
 		.where(eq(event_usher.event, eventId))
 		.orderBy(church_zone.sequence, lingkungan.sequence, event_usher.sequence);
 
+	// Get event PIC
+	const massEventPic = await db
+		.select({
+			id: event_zone_pic.id,
+			event: event_zone_pic.event,
+			zone: church_zone.name,
+			pic: user.name
+		})
+		.from(event_zone_pic)
+		.leftJoin(user, eq(user.id, event_zone_pic.pic))
+		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
+		.where(eq(event_zone_pic.event, eventId));
+
 	// Define the type for our accumulator (reducer)
 	interface ZoneAccumulator {
 		[key: string]: JadwalDetailZone;
 	}
 
 	// Transforms result to rows: JadwalDetailZone
-	const groupedByZone = result.reduce((acc: ZoneAccumulator, r) => {
+	const groupedByZone = massEventUsher.reduce((acc: ZoneAccumulator, r) => {
 		const zoneName = r.zone || 'Non Zona';
+		const zoneId = r.id || '';
 		if (!acc[zoneName]) {
 			acc[zoneName] = {
+				id: zoneId,
 				name: zoneName,
 				lingkungan: [],
 				pic: [], // TODO: Add PETA pic data when available
@@ -366,6 +416,14 @@ export async function findJadwalDetail(
 				zoneKolekte: 0,
 				detail: []
 			};
+		}
+
+		// Add pic
+		if (massEventPic.length > 0) {
+			acc[zoneName].pic = massEventPic
+				.filter((pic) => pic.zone === zoneName)
+				.map((pic) => pic.pic)
+				.filter((pic): pic is string => pic !== null);
 		}
 
 		// Count ushers, PPG, and Kolekte

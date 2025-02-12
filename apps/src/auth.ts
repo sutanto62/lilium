@@ -37,7 +37,7 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	},
 	callbacks: {
 		async jwt({ token, user, account }) {
-			logger.debug(`jwt callback: ${JSON.stringify(token)}`);
+			// logger.debug(`jwt callback: ${JSON.stringify(token)}`);
 			if (user && account) {
 				logger.debug(`validating user ${user.email} and account ${account.provider}`);
 				// Check if the user exists in the database

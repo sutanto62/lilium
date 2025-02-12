@@ -7,7 +7,11 @@ export const user = sqliteTable('user', {
 	email: text('email').unique().notNull(),
 	role: text('role', { enum: ['admin', 'user'] })
 		.notNull()
-		.default('user')
+		.default('user'),
+	cid: text('cid')
+		.references(() => church.id, { onDelete: 'cascade' })
+		.notNull()
+		.default('1')
 });
 
 export const church = sqliteTable('church', {
@@ -93,6 +97,19 @@ export const event = sqliteTable('event', {
 		.default(sql`CURRENT_TIMESTAMP`),
 	isComplete: integer('is_complete').notNull().default(0),
 	active: integer('active').notNull().default(1)
+});
+
+export const event_zone_pic = sqliteTable('event_zone_pic', {
+	id: text('id').primaryKey().unique().notNull(),
+	event: text('event_id')
+		.references(() => event.id, { onDelete: 'cascade' })
+		.notNull(),
+	zone: text('zone_id')
+		.references(() => church_zone.id, { onDelete: 'cascade' })
+		.notNull(),
+	pic: text('pic')
+		.references(() => user.id, { onDelete: 'cascade' })
+		.notNull()
 });
 
 // TODO: add created_at field - auto assignment position

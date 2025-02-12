@@ -53,6 +53,7 @@ npm run db:generate
 Use `npx drizzle-kit drop` to remove the generated migrations if requqired. Do not remove the file manually.
 
 2. Apply migrations
+   Altering table might find challenges with drizzle-kit ORM migrations.
 
 ```bash
 npm run db:migrate

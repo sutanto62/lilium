@@ -4,7 +4,8 @@ import type {
 	Event as ChurchEvent,
 	EventUsher,
 	UsherByEvent,
-	JadwalDetailResponse
+	JadwalDetailResponse,
+	EventPicRequest
 } from '$core/entities/Event';
 import { logger } from '$src/lib/utils/logger';
 
@@ -31,7 +32,7 @@ export class EventService {
 	}
 
 	async getJadwalDetail(eventId: string): Promise<JadwalDetailResponse> {
-		return await repo.getJadwalDetail(eventId);
+		return await repo.findJadwalDetail(eventId);
 	}
 
 	async deactivateEvent(eventId: string): Promise<boolean> {
@@ -85,5 +86,9 @@ export class EventService {
 			logger.error('Gagal menambahkan petugas pada tugas misa:', error);
 			throw new Error('Sistem gagal mencatat petugas');
 		}
+	}
+
+	async insertEventPic(pic: EventPicRequest): Promise<boolean> {
+		return await repo.createEventPic(pic);
 	}
 }

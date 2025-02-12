@@ -12,23 +12,29 @@ import {
 	findEventById,
 	findUshersByEvent,
 	findJadwalDetail,
-	softDeleteEvent
+	softDeleteEvent,
+	createEventPic
 } from './SQLiteDbEvent';
 import { findMasses, getMassById } from './SQLiteDbMass';
 import {
 	findChurches,
 	findChurchById,
 	findZonesByChurch,
+	findZonesByEvent,
 	findPositionByChurch,
 	findPositionByMass
 } from './SQLiteDbFacility';
 import { findWilayahs, findLingkungans, findLingkunganById } from './SQLiteDbRegion';
 
 import type { Church, ChurchZone } from '$core/entities/Schedule';
-import type { EventUsher } from '$core/entities/Event';
-import { findUserByEmail } from './SQLiteDbUser';
+import type { EventPicRequest, EventUsher } from '$core/entities/Event';
+import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
 
 // Adapter
+// It is used to abstract the database implementation.
+// Future implementation can be changed to different database type.
+// For example, PostgreSQL, MySQL, etc.
+
 export class SQLiteAdapter implements ScheduleRepository {
 	private db: ReturnType<typeof drizzle>;
 
@@ -54,11 +60,12 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getEvents = (churchId: string) => findEvents(this.db, churchId);
 	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
-	getJadwalDetail = (eventId: string) => findJadwalDetail(this.db, eventId);
+	findJadwalDetail = (eventId: string) => findJadwalDetail(this.db, eventId);
 	deactivateEvent = (eventId: string) => softDeleteEvent(this.db, eventId);
+
 	insertEvent = (churchId: string, massId: string, date: string) =>
 		createEvent(this.db, churchId, massId, date);
-
+	createEventPic = (pic: EventPicRequest) => createEventPic(this.db, pic);
 	insertEventUshers = (
 		eventId: string,
 		ushers: EventUsher[],
@@ -76,11 +83,13 @@ export class SQLiteAdapter implements ScheduleRepository {
 	findChurchById = (id: string): Promise<Church> => findChurchById(this.db, id);
 
 	getZones = (id: string): Promise<ChurchZone[]> => findZonesByChurch(this.db, id);
-
+	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
 	findPositionByChurch = (id: string) => findPositionByChurch(this.db, id);
 
 	// Authentication
 	getUserByEmail = (email: string) => findUserByEmail(this.db, email);
+	getUsers = (churchId: string) => findUsersByChurch(this.db, churchId);
+	findUsersByChurch = (churchId: string) => findUsersByChurch(this.db, churchId);
 
 	// Report
 	// findUshersByEvent = (eventId: string, date: string) => findUshersByEvent(this.db, eventId, date)dd

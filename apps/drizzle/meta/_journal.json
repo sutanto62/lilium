@@ -8,6 +8,20 @@
       "when": 1735469290126,
       "tag": "0000_calm_nuke",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1738286873279,
+      "tag": "0001_gigantic_talon",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1738727302897,
+      "tag": "0002_special_nemesis",
+      "breakpoints": true
     }
   ]
 }

@@ -8,14 +8,16 @@ import type {
 	Lingkungan,
 	Wilayah,
 	ChurchPosition,
+	Mass,
 } from '$core/entities/Schedule';
 import type {
 	Event as ChurchEvent,
+	EventPicRequest,
 	EventUsher,
 	JadwalDetailResponse,
 	UsherByEvent
 } from '$core/entities/Event';
-import type { User } from '@auth/sveltekit';
+import type { User } from '$core/entities/Authentication';
 
 // Port
 /*
@@ -23,7 +25,7 @@ import type { User } from '@auth/sveltekit';
  */
 export interface ScheduleRepository {
 	// Mass
-	getMasses: (churchId: string) => Promise<(typeof mass.$inferSelect)[]>;
+	getMasses: (churchId: string) => Promise<Mass[]>;
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
 
 	// Region
@@ -40,11 +42,12 @@ export interface ScheduleRepository {
 		wilayahId: string,
 		lingkunganId: string
 	) => Promise<boolean>;
+	createEventPic: (pic: EventPicRequest) => Promise<boolean>;
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
 	getEvents(churchId: string): Promise<ChurchEvent[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
-	getJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
+	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
 	deactivateEvent(eventId: string): Promise<boolean>;
 	listUshers(eventId: string): Promise<UsherByEvent[]>; // formatted response
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
@@ -55,12 +58,14 @@ export interface ScheduleRepository {
 	getChurches(): Promise<Church[]>;
 	findChurchById(id: string): Promise<Church>;
 	getZones(id: string): Promise<ChurchZone[]>;
+	getZonesByEvent(churchId: string, eventId: string): Promise<ChurchZone[]>;
 	findPositionByChurch(id: string): Promise<ChurchPosition[]>;
 	getPositionsByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;
 	// findPositionByMass(churchId: string, massId: string)
 
 	// Authentication
 	getUserByEmail(email: string): Promise<User>;
+	findUsersByChurch(churchId: string): Promise<User[]>;
 
 	// Report
 	// findUshersByEvent(eventId: string, date: string): Promise<any[]>;

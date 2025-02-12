@@ -49,7 +49,9 @@ export const actions: Actions = {
 		const eventService = new EventService(churchId);
 		await eventService.deactivateEvent(eventId);
 
-		throw redirect(303, '/jadwal');
+		logger.info(`Event ${eventId} deactivated`);
+
+		throw redirect(303, '/admin/jadwal');
 	},
 	jadwalDetailPic: async (event: RequestEvent) => {
 		const session = await event.locals.auth();
@@ -70,6 +72,8 @@ export const actions: Actions = {
 
 		const eventService = new EventService(churchId);
 		await eventService.insertEventPic(submittedPic);
+
+		logger.info(`Event ${eventId} PIC set to ${submittedPic.user}`);
 
 		return { success: true };
 	}

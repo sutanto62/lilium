@@ -5,7 +5,7 @@
 <script lang="ts">
 	import html2canvas from 'html2canvas';
 	import { Card, Button } from 'flowbite-svelte';
-	import { ArchiveSolid, CashSolid, CameraPhotoSolid, DownloadSolid } from 'flowbite-svelte-icons';
+	import { ArchiveSolid, CashSolid, DownloadSolid } from 'flowbite-svelte-icons';
 
 	export let lingkungan: any;
 

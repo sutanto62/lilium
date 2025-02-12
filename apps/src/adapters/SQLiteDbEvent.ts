@@ -102,8 +102,24 @@ export async function createEventPic(
 		zone: pic.zone,
 		pic: pic.user
 	}
+
+	// 1 zone 1 pic only 
+	const existingPic = await db
+		.select()
+		.from(event_zone_pic)
+		.where(and(
+			eq(event_zone_pic.event, pic.event),
+			eq(event_zone_pic.zone, pic.zone),
+			eq(event_zone_pic.pic, pic.user)
+		));
+
+	if (existingPic.length > 0) {
+		logger.warn(`Failed to create event zone pic ${JSON.stringify(picValues)}`);
+		return false;
+	}
+
 	await db.insert(event_zone_pic).values(picValues);
-	logger.debug(`PIC created ${JSON.stringify(picValues)}`);
+	logger.debug(`Created event zone pic ${JSON.stringify(picValues)}`);
 	return true;
 }
 

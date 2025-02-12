@@ -71,8 +71,8 @@
 										<li>{pic}</li>
 									{/each}
 								{:else}
+									<!-- 1 zone 1 pic -->
 									<Button size="xs" on:click={() => (defaultModal = true)}>Tambah PIC</Button>
-									<!-- <P class="text-sm text-gray-500">Tidak ada PIC</P> -->
 								{/if}
 							</ol>
 						</div>

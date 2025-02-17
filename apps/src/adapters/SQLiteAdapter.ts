@@ -13,7 +13,8 @@ import {
 	findUshersByEvent,
 	findJadwalDetail,
 	softDeleteEvent,
-	createEventPic
+	createEventPic,
+	findCetakJadwal,
 } from './SQLiteDbEvent';
 import { findMasses, getMassById } from './SQLiteDbMass';
 import {
@@ -77,6 +78,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 	findEvent = (churchId: string, massId?: string, date?: string) =>
 		findEvent(this.db, churchId, massId, date);
 	findEventById = (id: string) => findEventByIdResponse(this.db, id);
+	findCetakJadwal = (eventId: string) => findCetakJadwal(this.db, eventId);
 
 	// SQLiteDbFacility
 	getChurches = () => findChurches(this.db);

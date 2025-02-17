@@ -5,6 +5,7 @@ import type {
 	EventUsher,
 	UsherByEvent,
 	JadwalDetailResponse,
+	CetakJadwalResponse,
 	EventPicRequest
 } from '$core/entities/Event';
 import { logger } from '$src/lib/utils/logger';
@@ -90,5 +91,9 @@ export class EventService {
 
 	async insertEventPic(pic: EventPicRequest): Promise<boolean> {
 		return await repo.createEventPic(pic);
+	}
+
+	async getCetakJadwal(eventId: string): Promise<CetakJadwalResponse> {
+		return await repo.findCetakJadwal(eventId);
 	}
 }

@@ -515,7 +515,7 @@ export async function findCetakJadwal(
 			mass: null,
 			date: null,
 			weekday: null,
-			sections: []
+			zones: []
 		};
 	}
 
@@ -616,7 +616,7 @@ export async function findCetakJadwal(
 
 	return {
 		...jadwal,
-		sections: rows
+		zones: rows
 	};
 
 }

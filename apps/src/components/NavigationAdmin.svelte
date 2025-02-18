@@ -4,7 +4,7 @@
 	import { SignIn, SignOut } from '@auth/sveltekit/components';
 </script>
 
-<Navbar color="primary" class="mb-7 py-7" fluid={true} id="navadmin">
+<Navbar color="primary" class="mb-7 py-7 print:hidden" fluid={true} id="navadmin">
 	<div class="container flex justify-between sm:px-0 md:px-3">
 		<NavBrand href="/">
 			<!-- Kidung Agung 2:2 -->

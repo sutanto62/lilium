@@ -92,7 +92,7 @@ export interface CetakJadwalResponse {
 	mass: string | null;
 	date: string | null;
 	weekday: string | null;
-	sections: CetakJadwalSection[];
+	zones: CetakJadwalSection[];
 }
 
 export interface CetakJadwalSection {

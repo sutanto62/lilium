@@ -2,7 +2,7 @@
 	import { Navbar, NavBrand } from 'flowbite-svelte';
 </script>
 
-<Navbar color="primary" class="mb-7 py-7" fluid={true} id="nav">
+<Navbar color="primary" class="mb-7 py-7 print:hidden" fluid={true} id="nav">
 	<div class="container sm:px-0 md:px-3">
 		<NavBrand href="/">
 			<!-- Kidung Agung 2:2 -->

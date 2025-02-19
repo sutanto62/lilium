@@ -2,7 +2,9 @@
 	export let data;
 
 	$: mass = data.jadwalDetail;
-	$: zones = mass.zones;
+	$: zones = mass.listUshers;
+	$: kolekte = mass.listKolekte;
+	$: ppg = mass.listPpg;
 </script>
 
 <!-- {JSON.stringify(mass, null, 2)} -->
@@ -44,12 +46,44 @@
 			<tr style="background-color: #FFFF00;">
 				<td colspan="6" style="border: 1px solid black;"> Petugas Misa </td>
 			</tr>
-			{#each zones as zone}
-				{#each zone.ushers as usher, j}
+			{#each zones as item}
+				{#each item.ushers as usher, j}
 					<tr style="border: 1px solid black;">
 						{#if j === 0}
-							<td rowspan={zone.rowSpan}>{zone.zone}</td>
-							<td rowspan={zone.rowSpan}>{zone.pic}</td>
+							<td rowspan={item.rowSpan}>{item.zone}</td>
+							<td rowspan={item.rowSpan}>{item.pic}</td>
+						{/if}
+						<td>{usher.position}</td>
+						<td>{usher.name}</td>
+						<td>{usher.wilayah}</td>
+						<td>{usher.lingkungan}</td>
+					</tr>
+				{/each}
+			{/each}
+			<tr style="background-color: #FFFF00;">
+				<td colspan="6" style="border: 1px solid black;">Setelah selesai perayaan Misa Ekaristi</td>
+			</tr>
+			{#each kolekte as item}
+				{#each item.ushers as usher, j}
+					<tr style="border: 1px solid black;">
+						{#if j === 0}
+							<td rowspan={item.rowSpan} colspan="2">{item.zone}</td>
+						{/if}
+						<td>{usher.position}</td>
+						<td>{usher.name}</td>
+						<td>{usher.wilayah}</td>
+						<td>{usher.lingkungan}</td>
+					</tr>
+				{/each}
+			{/each}
+			<tr style="background-color: #FFFF00;">
+				<td colspan="6" style="border: 1px solid black;">Bersama tim PPG menghitung uang amplop</td>
+			</tr>
+			{#each ppg as item}
+				{#each item.ushers as usher, j}
+					<tr style="border: 1px solid black;">
+						{#if j === 0}
+							<td rowspan={item.rowSpan} colspan="2">{item.zone}</td>
 						{/if}
 						<td>{usher.position}</td>
 						<td>{usher.name}</td>

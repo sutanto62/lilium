@@ -702,5 +702,4 @@ export async function findCetakJadwal(
 		listKolekte: rowsKolekte,
 		listPpg: rowsPpg
 	};
-
 }

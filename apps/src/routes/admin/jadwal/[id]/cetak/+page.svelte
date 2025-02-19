@@ -102,12 +102,14 @@
 		border-collapse: collapse;
 		width: 100%;
 		border: 1px solid black;
+		font-size: 11px;
 	}
 
 	th,
 	td {
 		border: 1px solid black;
-		padding: 2px;
+		padding: 1px 2px;
+		line-height: 1.2;
 	}
 
 	.rowspan {
@@ -117,7 +119,11 @@
 	/* Print-specific styles */
 	@media print {
 		.print-content {
-			padding: 0.5rem;
+			padding: 0.25rem;
+		}
+
+		@page {
+			margin: 1cm;
 		}
 	}
 </style>

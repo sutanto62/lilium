@@ -15,6 +15,7 @@ import type {
 	EventPicRequest,
 	EventUsher,
 	JadwalDetailResponse,
+	CetakJadwalResponse,
 	UsherByEvent
 } from '$core/entities/Event';
 import type { User } from '$core/entities/Authentication';
@@ -53,7 +54,7 @@ export interface ScheduleRepository {
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
 	findEventById(id: string): Promise<ChurchEvent>; // formatted response
 	editEventUshers(ushers: EventUsher[]): Promise<void>;
-
+	findCetakJadwal(eventId: string): Promise<CetakJadwalResponse>;
 	// Facility
 	getChurches(): Promise<Church[]>;
 	findChurchById(id: string): Promise<Church>;

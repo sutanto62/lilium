@@ -1,6 +1,6 @@
 # Lilium Inter Spinas (L.I.S)
 
-A digital service information system built with SvelteKit, TypeScript, and SQLite.
+A digital service information system built with SvelteKit, TypeScript, and SQLite. Contribution to Catholic community.
 
 ## Prerequisites
 

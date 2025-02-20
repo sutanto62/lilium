@@ -5,8 +5,10 @@ import type {
 	EventUsher,
 	JadwalDetailZone,
 	JadwalDetailResponse,
+	CetakJadwalResponse,
 	UsherByEvent,
-	EventPicRequest
+	EventPicRequest,
+	CetakJadwalSection
 } from '$core/entities/Event';
 import {
 	church,
@@ -488,4 +490,218 @@ export async function softDeleteEvent(
 		.where(eq(event.id, eventId))
 		.then(() => true)
 		.catch(() => false);
+}
+
+export async function findCetakJadwal(
+	db: ReturnType<typeof drizzle>,
+	eventId: string
+): Promise<CetakJadwalResponse> {
+	// Get mass event
+	const massEvent = await db
+		.select({
+			id: event.id,
+			church: church.name,
+			mass: mass.name,
+			date: event.date,
+			time: mass.time
+		})
+		.from(event)
+		.leftJoin(church, eq(church.id, event.church_id))
+		.leftJoin(mass, eq(mass.id, event.mass_id))
+		.where(and(eq(event.id, eventId), eq(event.active, 1)))
+		.limit(1);
+
+	if (massEvent.length === 0) {
+		return {
+			church: null,
+			mass: null,
+			date: null,
+			weekday: null,
+			time: null,
+			listUshers: [],
+			listKolekte: [],
+			listPpg: []
+		};
+	}
+
+	// Get weekday from date
+	const eventDate = new Date(massEvent[0].date);
+	const weekdays = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+	const weekday = weekdays[eventDate.getDay()];
+
+	// Add weekday to massEvent
+	const jadwalEvent = {
+		...massEvent[0],
+		weekday
+	};
+
+
+	// Get event ushers
+	const massEventUsher = await db
+		.select({
+			id: church_zone.id,
+			zone: church_zone.name,
+			wilayah: wilayah.name,
+			lingkungan: lingkungan.name,
+			name: event_usher.name,
+			position: church_position.name,
+			isPpg: event_usher.isPpg,
+			isKolekte: event_usher.isKolekte
+		})
+		.from(event_usher)
+		.leftJoin(wilayah, eq(wilayah.id, event_usher.wilayah))
+		.leftJoin(lingkungan, eq(lingkungan.id, event_usher.lingkungan))
+		.leftJoin(church_position, eq(church_position.id, event_usher.position))
+		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
+		.where(eq(event_usher.event, eventId))
+
+	// Get event PIC
+	const massEventPic = await db
+		.select({
+			id: event_zone_pic.id,
+			event: event_zone_pic.event,
+			zone: church_zone.name,
+			pic: user.name
+		})
+		.from(event_zone_pic)
+		.leftJoin(user, eq(user.id, event_zone_pic.pic))
+		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
+		.where(eq(event_zone_pic.event, eventId));
+
+	// Define the type for our accumulator (reducer)
+	interface CetakAccumulator {
+		[key: string]: CetakJadwalSection;
+	}
+
+	// Ushers
+	// TODO: Refactor
+	const rowsUshersData = massEventUsher.reduce((acc: CetakAccumulator, r) => {
+		const zone = r.zone || 'Non Zona';
+
+		if (!acc[zone]) {
+			acc[zone] = {
+				zone: zone,
+				pic: '',
+				rowSpan: 0,
+				ushers: []
+			};
+		}
+
+		// Add pic
+		if (massEventPic.length > 0) {
+			acc[zone].pic = massEventPic
+				.filter((pic) => pic.zone === zone)
+				.map((pic) => pic.pic)
+				.filter((pic): pic is string => pic !== null)
+				.join(', ');
+		}
+
+		// Count ushers
+		acc[zone].rowSpan++
+
+		// Add usher
+		const ushers = {
+			position: r.position || 'Posisi Kosong',
+			name: r.name || 'No Name',
+			wilayah: r.wilayah || 'Wilayah Kosong',
+			lingkungan: r.lingkungan || 'Lingkungan Kosong',
+			kolekte: r.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
+			ppg: r.isPpg === 1 ? 'PPG' : 'Non PPG'
+		}
+
+		acc[zone].ushers.push(ushers);
+
+		return acc;
+	}, {} as CetakAccumulator);
+
+	const rowsUshers = Object.values(rowsUshersData);
+
+	// Kolekte
+	const listKolekte = massEventUsher.filter((usher) => usher.isKolekte === 1);
+	const rowsKolekteData = listKolekte.reduce((acc: CetakAccumulator, r) => {
+		const zone = 'Menghitung uang kolekte';
+
+		if (!acc[zone]) {
+			acc[zone] = {
+				zone: zone,
+				pic: '',
+				rowSpan: 0,
+				ushers: []
+			};
+		}
+
+		// Count ushers
+		acc[zone].rowSpan++
+
+		// Add usher
+		const ushers = {
+			position: r.position || 'Posisi Kosong',
+			name: r.name || 'No Name',
+			wilayah: r.wilayah || 'Wilayah Kosong',
+			lingkungan: r.lingkungan || 'Lingkungan Kosong',
+			kolekte: r.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
+			ppg: r.isPpg === 1 ? 'PPG' : 'Non PPG'
+		}
+		acc[zone].ushers.push(ushers);
+
+		return acc;
+	}, {} as CetakAccumulator);
+
+	const rowsKolekte = Object.values(rowsKolekteData);
+
+	// List PPG
+	const listPpg = massEventUsher.filter((usher) => usher.isPpg === 1);
+	const rowsPpgData = listPpg.reduce((acc: CetakAccumulator, r) => {
+		const zone = "Menghitung uang amplop PPG";
+
+		if (!acc[zone]) {
+			acc[zone] = {
+				zone: zone,
+				pic: '',
+				rowSpan: 0,
+				ushers: []
+			};
+		}
+
+		// Add pic
+		// if (massEventPic.length > 0) {
+		// 	acc[zone].pic = massEventPic
+		// 		.filter((pic) => pic.zone === zone)
+		// 		.map((pic) => pic.pic)
+		// 		.filter((pic): pic is string => pic !== null)
+		// 		.join(', ');
+		// }
+
+		// Count ushers
+		acc[zone].rowSpan++
+
+		// Add usher
+		const ushers = {
+			position: r.position || 'Posisi Kosong',
+			name: r.name || 'No Name',
+			wilayah: r.wilayah || 'Wilayah Kosong',
+			lingkungan: r.lingkungan || 'Lingkungan Kosong',
+			kolekte: r.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
+			ppg: r.isPpg === 1 ? 'PPG' : 'Non PPG'
+		}
+		acc[zone].ushers.push(ushers);
+
+		return acc;
+	}, {} as CetakAccumulator);
+
+	const rowsPpg = Object.values(rowsPpgData);
+
+	const jadwal = jadwalEvent || {
+		church: '',
+		mass: '',
+		date: '',
+		weekday: ''
+	};
+
+	return {
+		...jadwal,
+		listUshers: rowsUshers,
+		listKolekte: rowsKolekte,
+		listPpg: rowsPpg
+	};
 }

@@ -1,3 +1,5 @@
+import type UshersList from "$src/routes/f/tatib/UshersList.svelte";
+
 export interface Event {
 	id: string;
 	church: string;
@@ -82,4 +84,30 @@ export interface JadwalDetailUsher {
 	position: string;
 	isPpg: boolean;
 	isKolekte: boolean;
+}
+
+// For printing
+export interface CetakJadwalResponse {
+	church: string | null;
+	mass: string | null;
+	date: string | null;
+	weekday: string | null;
+	time: string | null;
+	listUshers: CetakJadwalSection[];
+	listKolekte: CetakJadwalSection[];
+	listPpg: CetakJadwalSection[];
+}
+
+export interface CetakJadwalSection {
+	zone: string;
+	pic: string;
+	rowSpan: number;
+	ushers: CetakJadwalUsher[];
+}
+
+export interface CetakJadwalUsher {
+	position: string;
+	name: string;
+	wilayah: string;
+	lingkungan: string;
 }

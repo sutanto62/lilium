@@ -11,12 +11,12 @@ export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Chur
 export async function findChurchById(db: ReturnType<typeof drizzle>, id: string): Promise<Church> {
 	const result = await db.select().from(church).where(eq(church.id, id)).limit(1);
 
-	return result.map((church) => ({
-		id: church.id,
-		name: church.name ?? '',
-		code: church.code ?? '',
-		parish: church.parish ?? ''
-	}))[0];
+	return {
+		id: result[0]?.id ?? '',
+		name: result[0]?.name ?? '',
+		code: result[0]?.code ?? '',
+		parish: result[0]?.parish ?? ''
+	};
 }
 
 export async function findZonesByChurch(

@@ -58,7 +58,10 @@
 				{deleting ? 'Menghapus...' : 'Hapus'}
 			</Button>
 		</form>
-		<Button size="xs">
+		<Button
+			size="xs"
+			on:click={() => window.open(`/admin/jadwal/${jadwalDetail.id}/cetak`, '_blank')}
+		>
 			<PrinterOutline class="me-2 h-5 w-5" /> Cetak
 		</Button>
 	</div>

@@ -18,6 +18,7 @@ import { debug } from 'console';
  */
 export class ChurchService {
 	churchId: string; // Unique identifier for the church
+	church: Church;
 	churches: Church[]; // Array to hold church schedules
 	zones: ChurchZone[]; // Array to hold church zones
 	masses: Mass[]; // Array to hold mass schedules
@@ -27,6 +28,12 @@ export class ChurchService {
 
 	constructor(churchId: string) {
 		this.churchId = churchId;
+		this.church = {
+			id: '',
+			name: '',
+			code: '',
+			parish: ''
+		};
 		this.churches = []; // Initialize churches array
 		this.zones = []; // Initialize zones array
 		this.masses = []; // Initialize masses array
@@ -40,6 +47,11 @@ export class ChurchService {
 	 */
 	async initialize(): Promise<void> {
 		await Promise.all([this.fetchZones(), this.fetchMasses(), this.getLingkungans()]);
+	}
+
+	async getChurch(): Promise<Church> {
+		this.church = await repo.findChurchById(this.churchId);
+		return this.church;
 	}
 
 	/**

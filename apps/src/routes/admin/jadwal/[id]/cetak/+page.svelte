@@ -5,16 +5,15 @@
 	$: zones = mass.listUshers;
 	$: kolekte = mass.listKolekte;
 	$: ppg = mass.listPpg;
+	$: church = data.church;
 </script>
-
-<!-- {JSON.stringify(mass, null, 2)} -->
 
 <div class="print-content">
 	<div class="print-header mb-4 text-center">
 		<h1
 			class="mb-2 text-2xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white md:text-2xl lg:text-3xl"
 		>
-			Gereja St. Laurensius, Paroki Alam Sutera
+			{church.name}, {church.parish}
 		</h1>
 		<h1
 			class="mb-0 text-xl font-bold leading-none tracking-tight text-gray-900 dark:text-white md:text-xl lg:text-2xl"
@@ -102,7 +101,7 @@
 		border-collapse: collapse;
 		width: 100%;
 		border: 1px solid black;
-		font-size: 11px;
+		font-size: 10px;
 	}
 
 	th,

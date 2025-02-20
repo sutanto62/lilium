@@ -6,6 +6,17 @@
 	$: kolekte = mass.listKolekte;
 	$: ppg = mass.listPpg;
 	$: church = data.church;
+
+	$: briefingTime = mass.time
+		? new Date(`2000-01-01 ${mass.time}`).getTime() - 75 * 60 * 1000
+		: null;
+	$: formattedBriefingTime = briefingTime
+		? new Date(briefingTime).toLocaleTimeString('id-ID', {
+				hour: '2-digit',
+				minute: '2-digit',
+				hour12: false
+			})
+		: '';
 </script>
 
 <div class="print-content">
@@ -15,6 +26,7 @@
 		>
 			{church.name}, {church.parish}
 		</h1>
+
 		<h1
 			class="mb-0 text-xl font-bold leading-none tracking-tight text-gray-900 dark:text-white md:text-xl lg:text-2xl"
 		>
@@ -29,6 +41,28 @@
 					})
 				: ''}
 		</h1>
+		<div class="mt-2 text-left">
+			<h2 class="mb-2 font-bold">CATATAN:</h2>
+			<ol class="list-inside list-decimal">
+				<li>
+					Petugas TATIB dan PM wajib hadir {formattedBriefingTime} sebelum Misa untuk briefing
+				</li>
+				<li>
+					Pakaian saat bertugas : (khusus Petugas TATIB lingkungan)
+					<ul class="ml-4 list-inside list-disc">
+						<li>Atasan kemeja/blouse PUTIH Berlengan (bukan Polo T-Shirt atau Kaos)</li>
+						<li>Bawahan HITAM / Warna Gelap (bukan celana Legging / training (khusus wanita)</li>
+						<li>Sepatu tertutup (bukan sepatu sandal / selop)</li>
+					</ul>
+				</li>
+				<li>Petugas TIDAK DIPERBOLEHKAN membawa tas pada saat bertugas</li>
+				<li>Membawa Handsanitizer dan botol minum sendiri</li>
+				<li>
+					Petugas menempati posisi tugas masing-masing yang telah ditentukan dan tidak berpindah
+					tempat
+				</li>
+			</ol>
+		</div>
 	</div>
 	<table style="border-collapse: collapse; width: 100%;">
 		<thead>

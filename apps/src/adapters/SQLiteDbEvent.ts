@@ -503,6 +503,7 @@ export async function findCetakJadwal(
 			church: church.name,
 			mass: mass.name,
 			date: event.date,
+			time: mass.time
 		})
 		.from(event)
 		.leftJoin(church, eq(church.id, event.church_id))
@@ -516,6 +517,7 @@ export async function findCetakJadwal(
 			mass: null,
 			date: null,
 			weekday: null,
+			time: null,
 			listUshers: [],
 			listKolekte: [],
 			listPpg: []

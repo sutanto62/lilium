@@ -52,7 +52,9 @@ export const mass = sqliteTable('mass', {
 		enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 	})
 		.notNull()
-		.default('sunday')
+		.default('sunday'),
+	time: text('time'),
+	active: integer('active').notNull().default(1)
 });
 
 export const mass_zone = sqliteTable('mass_zone', {

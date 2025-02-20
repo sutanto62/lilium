@@ -36,13 +36,13 @@
 
 <h1 class="my-4 text-xl font-bold">{jadwalDetail.mass}</h1>
 
-<div class="flex justify-between align-middle">
-	<ul class="mt-3 flex gap-4 text-sm font-light text-gray-500">
+<div class="flex flex-col gap-4">
+	<ul class="flex gap-4 text-sm font-light text-gray-500">
 		<li class="flex items-center gap-2"><UsersOutline class="size-4" /><span>Petugas</span></li>
 		<li class="flex items-center gap-2"><ArchiveOutline class="size-4" /> <span>PPG</span></li>
 		<li class="flex items-center gap-2"><CashOutline class="size-4" /> <span>Kolekte</span></li>
 	</ul>
-	<div class="items-right flex gap-2">
+	<div class="flex justify-end gap-2">
 		<form
 			method="POST"
 			action="?/deactivate"

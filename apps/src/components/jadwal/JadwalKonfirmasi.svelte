@@ -54,6 +54,16 @@
 							<li>{lingkungan}</li>
 						{/each}
 					</ol>
+					<ol class="mt-2 block lg:hidden">
+						{#if jadwalDetaillZone.pic && jadwalDetaillZone.pic.length > 0}
+							{#each jadwalDetaillZone.pic as pic}
+								<li>PIC: {pic}</li>
+							{/each}
+						{:else}
+							<!-- 1 zone 1 pic -->
+							<Button size="xs" on:click={() => (defaultModal = true)}>Tambah PIC</Button>
+						{/if}
+					</ol>
 				</TableBodyCell>
 				<TableBodyCell class="hidden px-2 align-top lg:table-cell">
 					<div class="grid grid-cols-2 gap-2">
@@ -68,7 +78,7 @@
 							<ol>
 								{#if jadwalDetaillZone.pic && jadwalDetaillZone.pic.length > 0}
 									{#each jadwalDetaillZone.pic as pic}
-										<li>{pic}</li>
+										<li>PIC: {pic}</li>
 									{/each}
 								{:else}
 									<!-- 1 zone 1 pic -->

@@ -9,7 +9,6 @@ import type {
 import type { Event } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
-import { debug } from 'console';
 
 /**
  * ChurchService is a class responsible for managing church-related data,

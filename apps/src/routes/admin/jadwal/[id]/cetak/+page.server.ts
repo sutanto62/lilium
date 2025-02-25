@@ -19,6 +19,5 @@ export const load: PageServerLoad = async (events) => {
     const eventService = new EventService(churchId);
     const [jadwalDetail] = await Promise.all([eventService.getCetakJadwal(eventId)]);
 
-    logger.debug(JSON.stringify(church, null, 2));
     return { church, jadwalDetail };
 };

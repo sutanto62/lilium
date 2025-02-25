@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { Button } from 'flowbite-svelte';
+	import html2canvas from 'html2canvas';
+
 	export let data;
 
 	$: mass = data.jadwalDetail;
@@ -17,9 +20,49 @@
 				hour12: false
 			})
 		: '';
+
+	async function downloadImage() {
+		const element = document.getElementById('print-content');
+		if (!element) return;
+
+		try {
+			const canvas = await html2canvas(element, {
+				useCORS: true,
+				logging: false
+			});
+
+			// Convert canvas to data URL
+			const dataUrl = canvas.toDataURL('image/png');
+
+			// Create temporary link element
+			const link = document.createElement('a');
+			link.download = `jadwal_${mass.date?.replace(/\s+/g, '_')}_${
+				mass.date ? new Date(mass.date).toISOString().split('T')[0] : 'undated'
+			}.png`;
+			link.href = dataUrl;
+
+			// Trigger download
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		} catch (error) {
+			console.error('Error generating image:', error);
+		}
+	}
 </script>
 
-<div class="print-content">
+<div class="no-print mb-4">
+	<div class="flex items-center justify-center gap-2">
+		<Button
+			class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300"
+			on:click={downloadImage}
+		>
+			Download Daftar
+		</Button>
+	</div>
+</div>
+
+<div class="print-content" id="print-content">
 	<div class="print-header mb-4 text-center">
 		<h1
 			class="mb-2 text-2xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white md:text-2xl lg:text-3xl"
@@ -81,15 +124,23 @@
 			</tr>
 			{#each zones as item}
 				{#each item.ushers as usher, j}
-					<tr style="border: 1px solid black;">
+					<tr>
 						{#if j === 0}
-							<td rowspan={item.rowSpan}>{item.zone}</td>
-							<td rowspan={item.rowSpan}>{item.pic}</td>
+							<td
+								rowspan={item.rowSpan}
+								style="border-bottom: 1px solid black;
+							border-right: 1px solid black;">{item.zone}</td
+							>
+							<td
+								rowspan={item.rowSpan}
+								style="border-bottom: 1px solid black;
+							border-right: 1px solid black;">{item.pic}</td
+							>
 						{/if}
-						<td>{usher.position}</td>
-						<td>{usher.name}</td>
-						<td>{usher.wilayah}</td>
-						<td>{usher.lingkungan}</td>
+						<td style="border-bottom: 1px solid black;">{usher.position}</td>
+						<td style="border-bottom: 1px solid black;">{usher.name}</td>
+						<td style="border-bottom: 1px solid black;">{usher.wilayah}</td>
+						<td style="border-bottom: 1px solid black;">{usher.lingkungan}</td>
 					</tr>
 				{/each}
 			{/each}
@@ -98,14 +149,16 @@
 			</tr>
 			{#each kolekte as item}
 				{#each item.ushers as usher, j}
-					<tr style="border: 1px solid black;">
+					<tr>
 						{#if j === 0}
-							<td rowspan={item.rowSpan} colspan="2">{item.zone}</td>
+							<td style="border-right: 1px solid black;" rowspan={item.rowSpan} colspan="2"
+								>{item.zone}</td
+							>
 						{/if}
-						<td>{usher.position}</td>
-						<td>{usher.name}</td>
-						<td>{usher.wilayah}</td>
-						<td>{usher.lingkungan}</td>
+						<td style="border-bottom: 1px solid black;">{usher.position}</td>
+						<td style="border-bottom: 1px solid black;">{usher.name}</td>
+						<td style="border-bottom: 1px solid black;">{usher.wilayah}</td>
+						<td style="border-bottom: 1px solid black;">{usher.lingkungan}</td>
 					</tr>
 				{/each}
 			{/each}
@@ -114,14 +167,16 @@
 			</tr>
 			{#each ppg as item}
 				{#each item.ushers as usher, j}
-					<tr style="border: 1px solid black;">
+					<tr>
 						{#if j === 0}
-							<td rowspan={item.rowSpan} colspan="2">{item.zone}</td>
+							<td style="border-right: 1px solid black;" rowspan={item.rowSpan} colspan="2"
+								>{item.zone}</td
+							>
 						{/if}
-						<td>{usher.position}</td>
-						<td>{usher.name}</td>
-						<td>{usher.wilayah}</td>
-						<td>{usher.lingkungan}</td>
+						<td style="border-bottom: 1px solid black;">{usher.position}</td>
+						<td style="border-bottom: 1px solid black;">{usher.name}</td>
+						<td style="border-bottom: 1px solid black;">{usher.wilayah}</td>
+						<td style="border-bottom: 1px solid black;">{usher.lingkungan}</td>
 					</tr>
 				{/each}
 			{/each}
@@ -131,32 +186,27 @@
 
 <style>
 	/* Base styles for both print and non-print */
+	.print-content {
+		padding: 5rem;
+		/* font-size: 0.875rem; 14px */
+		border: 1px solid black;
+	}
 	table {
 		border-collapse: collapse;
 		width: 100%;
 		border: 1px solid black;
-		font-size: 10px;
+		/* font-size: 0.75rem; 12px */
+	}
+
+	tr {
+		height: 1.2rem;
 	}
 
 	th,
 	td {
-		border: 1px solid black;
-		padding: 1px 2px;
-		line-height: 1.2;
-	}
-
-	.rowspan {
-		border-bottom: none;
-	}
-
-	/* Print-specific styles */
-	@media print {
-		.print-content {
-			padding: 0.25rem;
-		}
-
-		@page {
-			margin: 1cm;
-		}
+		vertical-align: middle; /* Center content vertically */
+		white-space: nowrap; /* Prevent text wrapping */
+		overflow: hidden; /* Handle overflow */
+		text-overflow: ellipsis; /* Show ellipsis for overflowing text */
 	}
 </style>

@@ -19,10 +19,9 @@
 		| 'primary'
 		| 'none'
 		| 'alternative' = 'primary';
-	export let isAdmin: boolean = false;
 </script>
 
-<hr class="my-4 block h-px border-0 bg-gray-200 lg:hidden dark:bg-gray-700" />
+<hr class="my-4 block h-px border-0 bg-gray-200 dark:bg-gray-700 lg:hidden" />
 <FeatureItem>
 	<svelte:fragment slot="icon">
 		<svelte:component this={icon} size="xl" class="text-primary-600 dark:text-primary-300" />

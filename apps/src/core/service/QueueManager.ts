@@ -52,6 +52,7 @@ export class QueueManager {
 	 * @returns {Promise<void>}
 	 */
 	async processConfirmationQueue(): Promise<void> {
+		logger.debug(`processing queue of ${this.confirmationQueue.length} event(s)`);
 		this.assignedUshers = [];
 
 		for (const queue of this.confirmationQueue) {
@@ -95,8 +96,14 @@ export class QueueManager {
 	 * @private
 	 */
 	private assignPositions(unassignedUshers: EventUsher[], assignedCount: number): EventUsher[] {
+		logger.debug(`assigning ${unassignedUshers.length} ushers`);
+
 		const availablePositions = this.positions.slice(assignedCount);
+
+		logger.debug(`found ${availablePositions.length} available positions`);
+
 		const newAssignedUshers = unassignedUshers.map((usher, index) => {
+			logger.debug(`assigning ${index + 1} (usher: ${usher.name}, lingkungan: ${usher.lingkungan}) of ${unassignedUshers.length} to ${availablePositions[index].name}`);
 			if (index < availablePositions.length) {
 				return {
 					...usher,
@@ -106,6 +113,9 @@ export class QueueManager {
 			}
 			return usher;
 		});
+
+		logger.debug(`assigned ${newAssignedUshers.length} ushers, empty positions: ${availablePositions.length - newAssignedUshers.length}`);
+
 		return newAssignedUshers;
 	}
 

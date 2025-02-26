@@ -27,7 +27,10 @@ describe('ChurchService', () => {
 				name: 'Mass A',
 				sequence: 1,
 				church: churchId,
-				day: 'sunday' as const
+				day: 'sunday' as const,
+				time: '08:00',
+				briefingTime: '07:30',
+				active: 1
 			}
 		];
 		vi.spyOn(repo, 'getZones').mockResolvedValue(expectedZones);

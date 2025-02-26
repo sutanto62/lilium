@@ -103,18 +103,19 @@ export class QueueManager {
 		logger.debug(`found ${availablePositions.length} available positions`);
 
 		const newAssignedUshers = unassignedUshers.map((usher, index) => {
-			logger.debug(`assigning ${index + 1} (usher: ${usher.name}, lingkungan: ${usher.lingkungan}) of ${unassignedUshers.length} to ${availablePositions[index].name}`);
-			if (index < availablePositions.length) {
-				return {
-					...usher,
-					position: availablePositions[index].id,
-					positionName: availablePositions[index].name
-				};
-			}
-			return usher;
+
+			const positionIndex = index % availablePositions.length;
+
+			logger.debug(`${usher.name} position index: ${availablePositions[positionIndex].name}`);
+
+			return {
+				...usher,
+				position: availablePositions[positionIndex].id,
+				positionName: availablePositions[positionIndex].name
+			};
 		});
 
-		logger.debug(`assigned ${newAssignedUshers.length} ushers, empty positions: ${availablePositions.length - newAssignedUshers.length}`);
+		logger.debug(`finished assigning ${newAssignedUshers.length} ushers to ${availablePositions.length} positions`);
 
 		return newAssignedUshers;
 	}

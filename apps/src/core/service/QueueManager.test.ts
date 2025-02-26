@@ -149,11 +149,15 @@ describe('QueueManager', () => {
 
 		// Submit confirmation queue
 		await manager.submitConfirmationQueue(event, lingkungan[0]);
+		await manager.processConfirmationQueue();
 
-		// Process queue
-		await expect(manager.processConfirmationQueue()).rejects.toThrowError(
-			expect.objectContaining({ cause: 404 })
-		);
+		// Verify position assignments
+		expect(manager.ushers.every((usher) => usher.position !== null)).toBe(true);
+
+		// Check that all assigned ushers have positions
+		const assignedUshers = manager.ushers.filter((usher) => usher.position !== null);
+		expect(assignedUshers).toHaveLength(0);
+
 	});
 });
 
@@ -275,7 +279,7 @@ function createUshersLingkunganC(): EventUsher[] {
 			event: '1',
 			name: 'B.1',
 			wilayah: '1',
-			lingkungan: '1B',
+			lingkungan: '1C',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
@@ -286,7 +290,7 @@ function createUshersLingkunganC(): EventUsher[] {
 			event: '1',
 			name: 'B.2',
 			wilayah: '1',
-			lingkungan: '1B',
+			lingkungan: '1C',
 			isPpg: false,
 			isKolekte: true,
 			position: null,
@@ -297,7 +301,7 @@ function createUshersLingkunganC(): EventUsher[] {
 			event: '1',
 			name: 'B.3',
 			wilayah: '1',
-			lingkungan: '1B',
+			lingkungan: '1C',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
@@ -308,7 +312,7 @@ function createUshersLingkunganC(): EventUsher[] {
 			event: '1',
 			name: 'B.4',
 			wilayah: '1',
-			lingkungan: '1B',
+			lingkungan: '1C',
 			isPpg: false,
 			isKolekte: false,
 			position: null,
@@ -319,7 +323,7 @@ function createUshersLingkunganC(): EventUsher[] {
 			event: '1',
 			name: 'B.5',
 			wilayah: '1',
-			lingkungan: '1B',
+			lingkungan: '1C',
 			isPpg: true,
 			isKolekte: true,
 			position: null,
@@ -354,7 +358,8 @@ function createUshersLingkunganC(): EventUsher[] {
 function createTestLingkungan(): Lingkungan[] {
 	return [
 		{ id: '1A', name: '1A', wilayah: '1', sequence: 1, church: '1' },
-		{ id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1' }
+		{ id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1' },
+		{ id: '1C', name: '1C', wilayah: '1', sequence: 1, church: '1' },
 	];
 }
 

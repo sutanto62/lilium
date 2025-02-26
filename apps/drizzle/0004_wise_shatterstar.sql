@@ -1,0 +1,1 @@
+ALTER TABLE `mass` ADD `briefing_time` text;

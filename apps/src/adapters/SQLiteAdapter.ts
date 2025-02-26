@@ -30,6 +30,7 @@ import { findWilayahs, findLingkungans, findLingkunganById } from './SQLiteDbReg
 import type { Church, ChurchZone } from '$core/entities/Schedule';
 import type { EventPicRequest, EventUsher } from '$core/entities/Event';
 import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
+import { logger } from '$src/lib/utils/logger';
 
 // Adapter
 // It is used to abstract the database implementation.

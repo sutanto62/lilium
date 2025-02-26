@@ -10,6 +10,9 @@ export interface Mass {
 	sequence: number | null;
 	church: string | null;
 	day: string | 'sunday';
+	time: string | null;
+	briefingTime: string | null;
+	active: number | 1;
 }
 
 export interface MassZone {

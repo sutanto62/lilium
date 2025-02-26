@@ -54,6 +54,7 @@ export const mass = sqliteTable('mass', {
 		.notNull()
 		.default('sunday'),
 	time: text('time'),
+	briefingTime: text('briefing_time'),
 	active: integer('active').notNull().default(1)
 });
 

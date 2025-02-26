@@ -10,17 +10,6 @@
 	$: ppg = mass.listPpg;
 	$: church = data.church;
 
-	$: briefingTime = mass.time
-		? new Date(`2000-01-01 ${mass.time}`).getTime() - 75 * 60 * 1000
-		: null;
-	$: formattedBriefingTime = briefingTime
-		? new Date(briefingTime).toLocaleTimeString('id-ID', {
-				hour: '2-digit',
-				minute: '2-digit',
-				hour12: false
-			})
-		: '';
-
 	async function downloadImage() {
 		const element = document.getElementById('print-content');
 		if (!element) return;
@@ -88,7 +77,8 @@
 			<h2 class="mb-2 font-bold">CATATAN:</h2>
 			<ol class="list-inside list-decimal">
 				<li>
-					Petugas TATIB dan PM wajib hadir {formattedBriefingTime} sebelum Misa untuk briefing
+					Petugas TATIB dan PM wajib hadir {mass.briefingTime ?? 'sesuai instruksi'} sebelum Misa untuk
+					briefing
 				</li>
 				<li>
 					Pakaian saat bertugas : (khusus Petugas TATIB lingkungan)

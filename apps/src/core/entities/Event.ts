@@ -93,6 +93,7 @@ export interface CetakJadwalResponse {
 	date: string | null;
 	weekday: string | null;
 	time: string | null;
+	briefingTime: string | null;
 	listUshers: CetakJadwalSection[];
 	listKolekte: CetakJadwalSection[];
 	listPpg: CetakJadwalSection[];

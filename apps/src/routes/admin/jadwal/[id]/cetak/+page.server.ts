@@ -1,8 +1,8 @@
-import { logger } from '$src/lib/utils/logger';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { EventService } from '$core/service/EventService';
 import { ChurchService } from '$core/service/ChurchService';
+
 export const load: PageServerLoad = async (events) => {
     const session = await events.locals.auth();
 

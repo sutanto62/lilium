@@ -12,7 +12,10 @@ export async function findMasses(db: ReturnType<typeof drizzle>, churchId: strin
 		name: mass.name,
 		code: mass.code,
 		day: mass.day,
-		sequence: mass.sequence
+		sequence: mass.sequence,
+		time: mass.time,
+		briefingTime: mass.briefingTime,
+		active: mass.active
 	}));
 }
 

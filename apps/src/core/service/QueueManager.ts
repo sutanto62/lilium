@@ -90,7 +90,7 @@ export class QueueManager {
 	}
 
 	/**
-	 * Assigns positions to unassigned ushers
+	 * Assigns positions to unassigned ushers using round robin algorithm
 	 * @param {EventUsher[]} unassignedUshers - Array of unassigned ushers
 	 * @param {number} assignedCount - Number of already assigned ushers
 	 * @private
@@ -98,7 +98,16 @@ export class QueueManager {
 	private assignPositions(unassignedUshers: EventUsher[], assignedCount: number): EventUsher[] {
 		logger.debug(`assigning ${unassignedUshers.length} ushers`);
 
-		const availablePositions = this.positions.slice(assignedCount);
+		const useAllPositions = true; // This could be made configurable via constructor/method
+
+		// Get available positions based on control flag
+		const availablePositions = useAllPositions
+			? this.positions // Use all positions
+			: this.positions.slice(assignedCount); // Only use empty positions
+
+		if (availablePositions.length === 0) {
+			throw new Error('Tidak ada titik tugas yang tersedia', { cause: 404 });
+		}
 
 		logger.debug(`found ${availablePositions.length} available positions`);
 

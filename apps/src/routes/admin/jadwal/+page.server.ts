@@ -36,19 +36,22 @@ export const load: PageServerLoad = async (events) => {
 
 			// Get mass details and positions
 			const massId = await repo.getEventById(event.id);
-			const massUshers = await churchService.getPositionsByMass(massId.mass);
-			const totalUshers = massUshers?.length ?? 0;
+			const requiredPositions = await churchService.getPositionsByMass(massId.mass);
+			const totalUshers = requiredPositions?.length ?? 0;
 
 			// Calculate usher statistics
 			const confirmedUshers = ushers?.length ?? 0;
 			const totalPpg = ushers.filter((usher) => usher.isPpg).length ?? 0;
 			const totalKolekte = ushers.filter((usher) => usher.isKolekte).length ?? 0;
 
+			// Keep progress between 0 and 100
+			const progress = Math.min((confirmedUshers / totalUshers) * 100, 100);
+
 			// Return event with additional usher count information
 			return {
 				...event,
 				usherCounts: {
-					progress: (confirmedUshers / totalUshers) * 100,
+					progress: progress,
 					totalUshers: totalUshers,
 					confirmedUshers,
 					totalPpg,

@@ -52,6 +52,7 @@ export class QueueManager {
 	 * @returns {Promise<void>}
 	 */
 	async processConfirmationQueue(): Promise<void> {
+		logger.debug(`processing queue of ${this.confirmationQueue.length} event(s)`);
 		this.assignedUshers = [];
 
 		for (const queue of this.confirmationQueue) {
@@ -89,23 +90,42 @@ export class QueueManager {
 	}
 
 	/**
-	 * Assigns positions to unassigned ushers
+	 * Assigns positions to unassigned ushers using round robin algorithm
 	 * @param {EventUsher[]} unassignedUshers - Array of unassigned ushers
 	 * @param {number} assignedCount - Number of already assigned ushers
 	 * @private
 	 */
 	private assignPositions(unassignedUshers: EventUsher[], assignedCount: number): EventUsher[] {
-		const availablePositions = this.positions.slice(assignedCount);
+		logger.debug(`assigning ${unassignedUshers.length} ushers`);
+
+		const useAllPositions = true; // This could be made configurable via constructor/method
+
+		// Get available positions based on control flag
+		const availablePositions = useAllPositions
+			? this.positions // Use all positions
+			: this.positions.slice(assignedCount); // Only use empty positions
+
+		if (availablePositions.length === 0) {
+			throw new Error('Tidak ada titik tugas yang tersedia', { cause: 404 });
+		}
+
+		logger.debug(`found ${availablePositions.length} available positions`);
+
 		const newAssignedUshers = unassignedUshers.map((usher, index) => {
-			if (index < availablePositions.length) {
-				return {
-					...usher,
-					position: availablePositions[index].id,
-					positionName: availablePositions[index].name
-				};
-			}
-			return usher;
+
+			const positionIndex = index % availablePositions.length;
+
+			logger.debug(`${usher.name} position index: ${availablePositions[positionIndex].name}`);
+
+			return {
+				...usher,
+				position: availablePositions[positionIndex].id,
+				positionName: availablePositions[positionIndex].name
+			};
 		});
+
+		logger.debug(`finished assigning ${newAssignedUshers.length} ushers to ${availablePositions.length} positions`);
+
 		return newAssignedUshers;
 	}
 

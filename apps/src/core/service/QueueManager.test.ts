@@ -3,7 +3,6 @@ import { QueueManager } from './QueueManager';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
-import { logger } from '$src/lib/utils/logger';
 
 describe('QueueManager', () => {
 	const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
@@ -54,10 +53,10 @@ describe('QueueManager', () => {
 		const event: ChurchEvent = createTestEvent();
 		const positions: ChurchPosition[] = createTestPositions();
 		const lingkungan: Lingkungan[] = createTestLingkungan();
-		const eventUshersA: EventUsher[] = createTestEventUsherA();
+		const eventUshers: EventUsher[] = createUshersLingkunganA();
 
 		// Mock repository methods
-		repoGetEventUshers.mockResolvedValue(eventUshersA);
+		repoGetEventUshers.mockResolvedValue(eventUshers);
 		repoMassPositions.mockResolvedValue(positions);
 
 		// Submit confirmation queue
@@ -92,8 +91,8 @@ describe('QueueManager', () => {
 		const event: ChurchEvent = createTestEvent();
 		const positions: ChurchPosition[] = createTestPositions();
 		const lingkungan: Lingkungan[] = createTestLingkungan();
-		const eventUshersA: EventUsher[] = createTestEventUsherA();
-		const eventUshersB: EventUsher[] = createTestEventUsherB();
+		const eventUshersA: EventUsher[] = createUshersLingkunganA();
+		const eventUshersB: EventUsher[] = createUshersLingkunganB();
 
 		// Submit confirmation queue
 		await manager.submitConfirmationQueue(event, lingkungan[0]);
@@ -120,7 +119,7 @@ describe('QueueManager', () => {
 	it('should throw error if no positions found', async () => {
 		const event: ChurchEvent = createTestEvent();
 		const lingkungan: Lingkungan[] = createTestLingkungan();
-		const eventUshersA: EventUsher[] = createTestEventUsherA();
+		const eventUshersA: EventUsher[] = createUshersLingkunganA();
 
 		// Mock repository methods
 		repoGetEventUshers.mockResolvedValue(eventUshersA);
@@ -133,6 +132,32 @@ describe('QueueManager', () => {
 		await expect(manager.processConfirmationQueue()).rejects.toThrowError(
 			expect.objectContaining({ cause: 404 })
 		);
+	});
+
+	it('should throw error if ushers are more than available positions', async () => {
+		const event: ChurchEvent = createTestEvent();
+		const positions: ChurchPosition[] = createTestPositions();
+		const lingkungan: Lingkungan[] = createTestLingkungan();
+		const eventUshersA: EventUsher[] = createUshersLingkunganA();
+		const eventUshersB: EventUsher[] = createUshersLingkunganB();
+		const eventUshersC: EventUsher[] = createUshersLingkunganC();
+
+		// Mock repository methods
+		const aggregatedUshers = [...eventUshersA, ...eventUshersB, ...eventUshersC];
+		repoGetEventUshers.mockResolvedValue(aggregatedUshers);
+		repoMassPositions.mockResolvedValue(positions);
+
+		// Submit confirmation queue
+		await manager.submitConfirmationQueue(event, lingkungan[0]);
+		await manager.processConfirmationQueue();
+
+		// Verify position assignments
+		expect(manager.ushers.every((usher) => usher.position !== null)).toBe(true);
+
+		// Check that all assigned ushers have positions
+		const assignedUshers = manager.ushers.filter((usher) => usher.position !== null);
+		expect(assignedUshers).toHaveLength(0);
+
 	});
 });
 
@@ -149,7 +174,45 @@ function createTestPositions(): ChurchPosition[] {
 	];
 }
 
-function createTestEventUsherB(): EventUsher[] {
+function createUshersLingkunganA(): EventUsher[] {
+	return [
+		{
+			id: '1',
+			event: '1',
+			name: 'A.1',
+			wilayah: '1',
+			lingkungan: '1A',
+			isPpg: true,
+			isKolekte: false,
+			position: null,
+			createdAt: 1
+		},
+		{
+			id: '2',
+			event: '1',
+			name: 'A.2',
+			wilayah: '1',
+			lingkungan: '1A',
+			isPpg: false,
+			isKolekte: true,
+			position: null,
+			createdAt: 1
+		},
+		{
+			id: '3',
+			event: '1',
+			name: 'A.3',
+			wilayah: '1',
+			lingkungan: '1A',
+			isPpg: true,
+			isKolekte: false,
+			position: null,
+			createdAt: 1
+		}
+	];
+}
+
+function createUshersLingkunganB(): EventUsher[] {
 	return [
 		{
 			id: '4',
@@ -209,48 +272,94 @@ function createTestEventUsherB(): EventUsher[] {
 	];
 }
 
-function createTestEventUsherA(): EventUsher[] {
+function createUshersLingkunganC(): EventUsher[] {
 	return [
 		{
-			id: '1',
+			id: '9',
 			event: '1',
-			name: 'A.1',
+			name: 'B.1',
 			wilayah: '1',
-			lingkungan: '1A',
+			lingkungan: '1C',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
-			createdAt: 1
+			createdAt: 2
 		},
 		{
-			id: '2',
+			id: '10',
 			event: '1',
-			name: 'A.2',
+			name: 'B.2',
 			wilayah: '1',
-			lingkungan: '1A',
+			lingkungan: '1C',
 			isPpg: false,
 			isKolekte: true,
 			position: null,
-			createdAt: 1
+			createdAt: 2
 		},
 		{
-			id: '3',
+			id: '11',
 			event: '1',
-			name: 'A.3',
+			name: 'B.3',
 			wilayah: '1',
-			lingkungan: '1A',
+			lingkungan: '1C',
 			isPpg: true,
 			isKolekte: false,
 			position: null,
-			createdAt: 1
+			createdAt: 2
+		},
+		{
+			id: '12',
+			event: '1',
+			name: 'B.4',
+			wilayah: '1',
+			lingkungan: '1C',
+			isPpg: false,
+			isKolekte: false,
+			position: null,
+			createdAt: 2
+		},
+		{
+			id: '13',
+			event: '1',
+			name: 'B.5',
+			wilayah: '1',
+			lingkungan: '1C',
+			isPpg: true,
+			isKolekte: true,
+			position: null,
+			createdAt: 2
+		},
+		{
+			id: '14',
+			event: '1',
+			name: 'B.6',
+			wilayah: '1',
+			lingkungan: '1C',
+			isPpg: true,
+			isKolekte: true,
+			position: null,
+			createdAt: 2
+		},
+		{
+			id: '15',
+			event: '1',
+			name: 'B.7',
+			wilayah: '1',
+			lingkungan: '1C',
+			isPpg: true,
+			isKolekte: true,
+			position: null,
+			createdAt: 2
 		}
 	];
 }
 
+
 function createTestLingkungan(): Lingkungan[] {
 	return [
 		{ id: '1A', name: '1A', wilayah: '1', sequence: 1, church: '1' },
-		{ id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1' }
+		{ id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1' },
+		{ id: '1C', name: '1C', wilayah: '1', sequence: 1, church: '1' },
 	];
 }
 

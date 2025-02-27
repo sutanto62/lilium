@@ -286,6 +286,8 @@ export async function findEventUshers(
 			)
 		);
 
+	logger.debug(`found ${result.length} event ushers`);
+
 	return result.map(
 		(row) =>
 			({

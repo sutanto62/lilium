@@ -27,6 +27,7 @@ export interface EventPicRequest {
 	zone: string;
 	user: string;
 }
+
 export interface EventListResponse {
 	events: Event[];
 }

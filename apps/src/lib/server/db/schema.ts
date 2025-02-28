@@ -11,14 +11,18 @@ export const user = sqliteTable('user', {
 	cid: text('cid')
 		.references(() => church.id, { onDelete: 'cascade' })
 		.notNull()
-		.default('1')
+		.default('1'),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const church = sqliteTable('church', {
 	id: text('id').primaryKey().unique().notNull(),
 	code: text('code').unique().notNull(),
 	name: text('name').notNull(),
-	parish: text('parish')
+	parish: text('parish'),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const church_zone = sqliteTable('church_zone', {
@@ -28,7 +32,9 @@ export const church_zone = sqliteTable('church_zone', {
 	code: text('code'),
 	description: text('description'),
 	sequence: integer('sequence'),
-	pic: text('name')
+	pic: text('name'),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const church_position = sqliteTable('church_position', {
@@ -39,7 +45,9 @@ export const church_position = sqliteTable('church_position', {
 	description: text('description'),
 	isPpg: integer('is_ppg').notNull().default(0),
 	sequence: integer('sequence'),
-	type: text('type', { enum: ['usher', 'prodiakon', 'peta'] }).notNull()
+	type: text('type', { enum: ['usher', 'prodiakon', 'peta'] }).notNull(),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const mass = sqliteTable('mass', {
@@ -55,7 +63,8 @@ export const mass = sqliteTable('mass', {
 		.default('sunday'),
 	time: text('time'),
 	briefingTime: text('briefing_time'),
-	active: integer('active').notNull().default(1)
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const mass_zone = sqliteTable('mass_zone', {
@@ -67,7 +76,9 @@ export const mass_zone = sqliteTable('mass_zone', {
 		.references(() => church_zone.id, { onDelete: 'cascade' })
 		.notNull(),
 	is_active: integer('is_active').notNull().default(1),
-	sequence: integer('sequence').default(0)
+	sequence: integer('sequence').default(0),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const wilayah = sqliteTable('wilayah', {
@@ -75,7 +86,9 @@ export const wilayah = sqliteTable('wilayah', {
 	code: text('code'),
 	name: text('name').notNull(),
 	sequence: integer('sequence').notNull(),
-	church: text('church_id').references(() => church.id, { onDelete: 'cascade' })
+	church: text('church_id').references(() => church.id, { onDelete: 'cascade' }),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const lingkungan = sqliteTable('lingkungan', {
@@ -83,7 +96,9 @@ export const lingkungan = sqliteTable('lingkungan', {
 	name: text('name').notNull(),
 	sequence: integer('sequence'),
 	wilayah: text('wilayah_id').references(() => wilayah.id, { onDelete: 'cascade' }),
-	church: text('church_id').references(() => church.id, { onDelete: 'cascade' })
+	church: text('church_id').references(() => church.id, { onDelete: 'cascade' }),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const event = sqliteTable('event', {
@@ -99,7 +114,8 @@ export const event = sqliteTable('event', {
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),
 	isComplete: integer('is_complete').notNull().default(0),
-	active: integer('active').notNull().default(1)
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 export const event_zone_pic = sqliteTable('event_zone_pic', {
@@ -112,7 +128,9 @@ export const event_zone_pic = sqliteTable('event_zone_pic', {
 		.notNull(),
 	pic: text('pic')
 		.references(() => user.id, { onDelete: 'cascade' })
-		.notNull()
+		.notNull(),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at')
 });
 
 // TODO: add created_at field - auto assignment position
@@ -128,5 +146,6 @@ export const event_usher = sqliteTable('event_usher', {
 	isPpg: integer('is_ppg'),
 	isKolekte: integer('is_kolekte'),
 	sequence: integer('sequence'),
+	active: integer('active').notNull().default(1),
 	createdAt: integer('created_at')
 });

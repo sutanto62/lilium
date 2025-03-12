@@ -109,6 +109,7 @@ export interface CetakJadwalSection {
 
 export interface CetakJadwalUsher {
 	position: string;
+	sequence: number;
 	name: string;
 	wilayah: string;
 	lingkungan: string;

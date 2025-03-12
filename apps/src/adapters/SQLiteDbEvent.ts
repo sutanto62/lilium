@@ -549,6 +549,7 @@ export async function findCetakJadwal(
 			lingkungan: lingkungan.name,
 			name: event_usher.name,
 			position: church_position.name,
+			sequence: church_position.sequence,
 			isPpg: event_usher.isPpg,
 			isKolekte: event_usher.isKolekte
 		})
@@ -557,6 +558,7 @@ export async function findCetakJadwal(
 		.leftJoin(lingkungan, eq(lingkungan.id, event_usher.lingkungan))
 		.leftJoin(church_position, eq(church_position.id, event_usher.position))
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
+		.orderBy(church_zone.sequence, church_position.sequence)
 		.where(eq(event_usher.event, eventId))
 
 	// Get event PIC
@@ -606,6 +608,7 @@ export async function findCetakJadwal(
 		// Add usher
 		const ushers = {
 			position: r.position || 'Posisi Kosong',
+			sequence: r.sequence || 0,
 			name: r.name || 'No Name',
 			wilayah: r.wilayah || 'Wilayah Kosong',
 			lingkungan: r.lingkungan || 'Lingkungan Kosong',
@@ -617,6 +620,13 @@ export async function findCetakJadwal(
 
 		return acc;
 	}, {} as CetakAccumulator);
+
+	// Sort rowsUshersData by zone and position
+	// Sort ushers within each zone by sequence
+	for (const zone in rowsUshersData) {
+		rowsUshersData[zone].ushers.sort((a, b) => a.sequence - b.sequence);
+	}
+	logger.debug(JSON.stringify(rowsUshersData, null, 2));
 
 	const rowsUshers = Object.values(rowsUshersData);
 
@@ -640,6 +650,7 @@ export async function findCetakJadwal(
 		// Add usher
 		const ushers = {
 			position: r.position || 'Posisi Kosong',
+			sequence: r.sequence || 0,
 			name: r.name || 'No Name',
 			wilayah: r.wilayah || 'Wilayah Kosong',
 			lingkungan: r.lingkungan || 'Lingkungan Kosong',
@@ -682,6 +693,7 @@ export async function findCetakJadwal(
 		// Add usher
 		const ushers = {
 			position: r.position || 'Posisi Kosong',
+			sequence: r.sequence || 0,
 			name: r.name || 'No Name',
 			wilayah: r.wilayah || 'Wilayah Kosong',
 			lingkungan: r.lingkungan || 'Lingkungan Kosong',
@@ -701,6 +713,18 @@ export async function findCetakJadwal(
 		date: '',
 		weekday: ''
 	};
+
+	// Sort listUshers by zone and position
+	rowsUshers.sort((a, b) => {
+		// First sort by zone
+		if (a.zone < b.zone) return -1;
+		if (a.zone > b.zone) return 1;
+
+		// If zones are equal, sort by position within ushers array
+		const aFirstPosition = a.ushers[0]?.position || '';
+		const bFirstPosition = b.ushers[0]?.position || '';
+		return aFirstPosition.localeCompare(bFirstPosition);
+	});
 
 	return {
 		...jadwal,

@@ -3,6 +3,7 @@ import { QueueManager } from './QueueManager';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
 
 describe('QueueManager', () => {
 	const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
@@ -127,14 +128,12 @@ describe('QueueManager', () => {
 
 		// Submit confirmation queue
 		await manager.submitConfirmationQueue(event, lingkungan[0]);
-
-		// Process queue
-		await expect(manager.processConfirmationQueue()).rejects.toThrowError(
+		await expect(manager.processConfirmationQueue()).rejects.toThrow(
 			expect.objectContaining({ cause: 404 })
 		);
 	});
 
-	it('should throw error if ushers are more than available positions', async () => {
+	it('should assign ushers with PPG position correctly', async () => {
 		const event: ChurchEvent = createTestEvent();
 		const positions: ChurchPosition[] = createTestPositions();
 		const lingkungan: Lingkungan[] = createTestLingkungan();
@@ -142,21 +141,23 @@ describe('QueueManager', () => {
 		const eventUshersB: EventUsher[] = createUshersLingkunganB();
 		const eventUshersC: EventUsher[] = createUshersLingkunganC();
 
-		// Mock repository methods
+		// Mock repository
 		const aggregatedUshers = [...eventUshersA, ...eventUshersB, ...eventUshersC];
 		repoGetEventUshers.mockResolvedValue(aggregatedUshers);
 		repoMassPositions.mockResolvedValue(positions);
 
-		// Submit confirmation queue
+		// Submit confirmation
 		await manager.submitConfirmationQueue(event, lingkungan[0]);
 		await manager.processConfirmationQueue();
 
 		// Verify position assignments
-		expect(manager.ushers.every((usher) => usher.position !== null)).toBe(true);
-
-		// Check that all assigned ushers have positions
-		const assignedUshers = manager.ushers.filter((usher) => usher.position !== null);
-		expect(assignedUshers).toHaveLength(0);
+		for (const usher of manager.assignedUshers) {
+			const usherIsPpg = usher.isPpg;
+			const positionIsPpg = positions.find(position => position.id === usher.position)?.isPpg;
+			if (usherIsPpg) {
+				expect(positionIsPpg).toBe(true);
+			}
+		}
 
 	});
 });
@@ -169,8 +170,8 @@ function createTestPositions(): ChurchPosition[] {
 		{ id: '4', church: '1', name: 'P4', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: false },
 		{ id: '5', church: '1', name: 'P5', code: '5', description: '5', sequence: 5, type: 'usher', isPpg: false },
 		{ id: '6', church: '1', name: 'P6', code: '6', description: '6', sequence: 6, type: 'usher', isPpg: false },
-		{ id: '7', church: '1', name: 'P7', code: '7', description: '7', sequence: 7, type: 'usher', isPpg: false },
-		{ id: '8', church: '1', name: 'P8', code: '8', description: '8', sequence: 8, type: 'usher', isPpg: false }
+		{ id: '7', church: '1', name: 'P7', code: '7', description: '7', sequence: 7, type: 'usher', isPpg: true },
+		{ id: '8', church: '1', name: 'P8', code: '8', description: '8', sequence: 8, type: 'usher', isPpg: true }
 	];
 }
 

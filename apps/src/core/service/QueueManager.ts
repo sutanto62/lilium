@@ -109,22 +109,41 @@ export class QueueManager {
 			throw new Error('Tidak ada titik tugas yang tersedia', { cause: 404 });
 		}
 
-		logger.debug(`found ${availablePositions.length} available positions`);
+		// logger.debug(`found ${availablePositions.length} available positions`);
 
-		const newAssignedUshers = unassignedUshers.map((usher, index) => {
+		// Split ushers into PPG and non-PPG groups
+		const ppgUshers = unassignedUshers.filter(usher => usher.isPpg);
+		const nonPpgUshers = unassignedUshers.filter(usher => !usher.isPpg);
 
-			const positionIndex = index % availablePositions.length;
+		// Split positions into PPG and non-PPG
+		const ppgPositions = availablePositions.filter(pos => pos.isPpg);
+		const nonPpgPositions = availablePositions.filter(pos => !pos.isPpg);
 
-			logger.debug(`${usher.name} position index: ${availablePositions[positionIndex].name}`);
-
+		// Assign PPG ushers to PPG positions
+		const assignedPpgUshers = ppgUshers.map((usher, index) => {
+			const positionIndex = index % ppgPositions.length;
+			// logger.debug(`PPG ${usher.name} position index: ${ppgPositions[positionIndex].name}`);
 			return {
 				...usher,
-				position: availablePositions[positionIndex].id,
-				positionName: availablePositions[positionIndex].name
+				position: ppgPositions[positionIndex].id,
+				positionName: ppgPositions[positionIndex].name
 			};
 		});
 
-		logger.debug(`finished assigning ${newAssignedUshers.length} ushers to ${availablePositions.length} positions`);
+		// Assign non-PPG ushers to non-PPG positions
+		const assignedNonPpgUshers = nonPpgUshers.map((usher, index) => {
+			const positionIndex = index % nonPpgPositions.length;
+			// logger.debug(`Non-PPG ${usher.name} position index: ${nonPpgPositions[positionIndex].name}`);
+			return {
+				...usher,
+				position: nonPpgPositions[positionIndex].id,
+				positionName: nonPpgPositions[positionIndex].name
+			};
+		});
+
+		const newAssignedUshers = [...assignedPpgUshers, ...assignedNonPpgUshers];
+
+		logger.debug(`assigned ${newAssignedUshers.length} ushers to ${availablePositions.length} positions`);
 
 		return newAssignedUshers;
 	}

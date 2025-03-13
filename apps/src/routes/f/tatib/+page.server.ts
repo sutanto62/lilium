@@ -3,7 +3,7 @@ import { fail, error } from '@sveltejs/kit';
 import { repo } from '$lib/server/db';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { calculateEventDate } from '$lib/utils/dateUtils';
+import { calculateEventDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { logger } from '$src/lib/utils/logger';
@@ -113,6 +113,7 @@ export const actions = {
 				church: churchId,
 				mass: massId,
 				date: eventDate,
+				weekNumber: getWeekNumber(eventDate),
 				createdAt: 0,
 				isComplete: 0,
 				active: 1

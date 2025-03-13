@@ -5,6 +5,7 @@ export interface Event {
 	church: string;
 	mass: string;
 	date: string;
+	weekNumber: number | null;
 	createdAt: number;
 	isComplete: number; // 100% assigned ushers
 	active: number;

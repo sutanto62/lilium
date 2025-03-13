@@ -43,6 +43,13 @@
       "when": 1740709674712,
       "tag": "0005_past_callisto",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1741832775778,
+      "tag": "0006_black_shinobi_shaw",
+      "breakpoints": true
     }
   ]
 }

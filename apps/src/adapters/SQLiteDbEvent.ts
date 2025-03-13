@@ -25,6 +25,7 @@ import {
 import { eq, and } from 'drizzle-orm';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { logger } from '$src/lib/utils/logger';
+import { getWeekNumber } from '$src/lib/utils/dateUtils';
 
 export async function createEvent(
 	db: ReturnType<typeof drizzle>,
@@ -39,6 +40,7 @@ export async function createEvent(
 			church_id: churchId,
 			mass_id: massId,
 			date: date,
+			week_number: getWeekNumber(date),
 			created_at: new Date().getTime(),
 			isComplete: 0,
 			active: 1
@@ -48,6 +50,7 @@ export async function createEvent(
 			church: event.church_id,
 			mass: event.mass_id,
 			date: event.date,
+			weekNumber: event.week_number,
 			createdAt: event.created_at,
 			isComplete: event.isComplete,
 			active: event.active
@@ -135,6 +138,7 @@ export async function createEventPic(
 
 //     await Promise.all(updates);
 // }
+
 export async function updateEventUshers(
 	db: ReturnType<typeof drizzle>,
 	ushers: EventUsher[]
@@ -160,6 +164,7 @@ export async function findEventByChurch(
 			church: church.id,
 			mass: mass.id,
 			date: event.date,
+			weekNumber: event.week_number,
 			createdAt: event.created_at
 		})
 		.from(event)
@@ -201,6 +206,7 @@ export async function findEventById(
 			church: event.church_id,
 			mass: event.mass_id,
 			date: event.date,
+			weekNumber: event.week_number,
 			createdAt: event.created_at,
 			isComplete: event.isComplete,
 			active: event.active
@@ -248,6 +254,7 @@ export async function findEvents(
 			church: church.name,
 			mass: mass.name,
 			date: event.date,
+			weekNumber: event.week_number,
 			createdAt: event.created_at,
 			isComplete: event.isComplete
 		})
@@ -264,6 +271,7 @@ export async function findEvents(
 				church: row.church,
 				mass: row.mass,
 				date: row.date,
+				weekNumber: row.weekNumber,
 				createdAt: row.createdAt,
 				isComplete: row.isComplete
 			}) as ChurchEvent

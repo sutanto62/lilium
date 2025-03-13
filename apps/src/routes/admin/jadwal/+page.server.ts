@@ -3,6 +3,8 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { repo } from '$src/lib/server/db';
 import { redirect } from '@sveltejs/kit';
+import { logger } from '$src/lib/utils/logger';
+import { getWeekNumber, formatDate } from '$src/lib/utils/dateUtils';
 
 /**
  * Page server load function for the jadwal (schedule) page.
@@ -29,7 +31,7 @@ export const load: PageServerLoad = async (events) => {
 	]);
 
 	// Process each event to include detailed data
-	const eventsDetailed = await Promise.all(
+	const eventsDetail = await Promise.all(
 		massEvents.map(async (event) => {
 			// Fetch ushers for the event
 			const ushers = await eventService.getEventUshers(event.id);
@@ -61,9 +63,22 @@ export const load: PageServerLoad = async (events) => {
 		})
 	);
 
+	// Filter events into this week and past events based on week number
+	const currentWeek = getWeekNumber(new Date().toISOString());
+	const thisWeekEvents = eventsDetail.filter(event => event.weekNumber === currentWeek);
+	const pastEvents = eventsDetail.filter(event => (event.weekNumber ?? 0) < currentWeek);
+
+	const activityItems = pastEvents.map(event => ({
+		title: `<a href="/admin/jadwal/${event.id}" class="font-semibold text-primary-600 dark:text-primary-500 hover:underline">${event.mass}</a>`,
+		date: formatDate(event.date),
+		src: '',
+		alt: ''
+	}));
+
 	// Return masses and processed events
 	return {
 		masses,
-		events: eventsDetailed
+		currentWeek: thisWeekEvents,
+		pastWeek: activityItems
 	};
 };

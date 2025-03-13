@@ -8,9 +8,12 @@ describe('calculateEventDate', () => {
 			id: 'E1',
 			name: 'Event 1',
 			church: 'Church 1',
+			time: '10:00',
+			briefingTime: '08:45',
 			sequence: 1,
 			code: 'E1',
-			day: 'saturday'
+			day: 'sunday',
+			active: 1
 		};
 		const result = calculateEventDate(createdAt, mass);
 		expect(result).toBe('2024-09-14');
@@ -22,9 +25,12 @@ describe('calculateEventDate', () => {
 			id: 'E1',
 			name: 'Event 1',
 			church: 'Church 1',
+			time: '10:00',
+			briefingTime: '08:45',
 			sequence: 1,
 			code: 'E1',
-			day: 'saturday'
+			day: 'sunday',
+			active: 1
 		};
 		const result = calculateEventDate(createdAt, mass);
 		expect(result).toBe('2024-09-14');
@@ -36,9 +42,12 @@ describe('calculateEventDate', () => {
 			id: 'E1',
 			name: 'Event 1',
 			church: 'Church 1',
+			time: '10:00',
+			briefingTime: '08:45',
 			sequence: 1,
 			code: 'E1',
-			day: 'sunday'
+			day: 'sunday',
+			active: 1
 		};
 		const result = calculateEventDate(createdAt, mass);
 		expect(result).toBe('2024-09-15');
@@ -50,9 +59,12 @@ describe('calculateEventDate', () => {
 			id: 'E1',
 			name: 'Event 1',
 			church: 'Church 1',
+			time: '10:00',
+			briefingTime: '08:45',
 			sequence: 1,
 			code: 'E1',
-			day: 'sunday'
+			day: 'sunday',
+			active: 1
 		};
 		const result = calculateEventDate(createdAt, mass);
 		expect(result).toBe('2024-09-15');

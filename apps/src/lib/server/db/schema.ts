@@ -110,6 +110,7 @@ export const event = sqliteTable('event', {
 		.references(() => mass.id, { onDelete: 'cascade' })
 		.notNull(),
 	date: text('date').notNull(),
+	week_number: integer('week_number'),
 	created_at: integer('created_at')
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),

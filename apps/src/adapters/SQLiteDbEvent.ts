@@ -499,6 +499,33 @@ export async function findCetakJadwal(
 	eventId: string
 ): Promise<CetakJadwalResponse> {
 	// Get mass event
+	const massEvent = await fetchEventDetails(db, eventId);
+
+	if (!massEvent) {
+		return createEmptyCetakJadwalResponse();
+	}
+
+	// Get event ushers with their positions and zones
+	const massEventUsher = await fetchEventUshers(db, eventId);
+
+	// Get event PIC
+	const massEventPic = await fetchEventPics(db, eventId);
+
+	// Process data into required format
+	const rowsUshers = processUshersByZone(massEventUsher, massEventPic);
+	const rowsKolekte = processSpecialUshers(massEventUsher.filter(usher => usher.isKolekte === 1), 'Menghitung uang kolekte');
+	const rowsPpg = processSpecialUshers(massEventUsher.filter(usher => usher.isPpg === 1), 'Menghitung uang amplop PPG');
+
+	return {
+		...massEvent,
+		listUshers: rowsUshers,
+		listPpg: rowsPpg,
+		listKolekte: rowsKolekte
+	};
+}
+
+// Helper functions
+async function fetchEventDetails(db: ReturnType<typeof drizzle>, eventId: string) {
 	const massEvent = await db
 		.select({
 			id: event.id,
@@ -515,33 +542,36 @@ export async function findCetakJadwal(
 		.limit(1);
 
 	if (massEvent.length === 0) {
-		return {
-			church: null,
-			mass: null,
-			date: null,
-			weekday: null,
-			time: null,
-			briefingTime: null,
-			listUshers: [],
-			listKolekte: [],
-			listPpg: []
-		};
+		return null;
 	}
 
-	// Get weekday from date
+	// Add weekday to massEvent
 	const eventDate = new Date(massEvent[0].date);
 	const weekdays = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 	const weekday = weekdays[eventDate.getDay()];
 
-	// Add weekday to massEvent
-	const jadwalEvent = {
+	return {
 		...massEvent[0],
 		weekday
 	};
+}
 
+function createEmptyCetakJadwalResponse(): CetakJadwalResponse {
+	return {
+		church: null,
+		mass: null,
+		date: null,
+		weekday: null,
+		time: null,
+		briefingTime: null,
+		listUshers: [],
+		listKolekte: [],
+		listPpg: []
+	};
+}
 
-	// Get event ushers
-	const massEventUsher = await db
+async function fetchEventUshers(db: ReturnType<typeof drizzle>, eventId: string) {
+	return await db
 		.select({
 			id: church_zone.id,
 			zone: church_zone.name,
@@ -559,10 +589,11 @@ export async function findCetakJadwal(
 		.leftJoin(church_position, eq(church_position.id, event_usher.position))
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
 		.orderBy(church_zone.sequence, church_position.sequence)
-		.where(eq(event_usher.event, eventId))
+		.where(eq(event_usher.event, eventId));
+}
 
-	// Get event PIC
-	const massEventPic = await db
+async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
+	return await db
 		.select({
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
@@ -573,15 +604,15 @@ export async function findCetakJadwal(
 		.leftJoin(user, eq(user.id, event_zone_pic.pic))
 		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
 		.where(eq(event_zone_pic.event, eventId));
+}
 
+function processUshersByZone(ushers: any[], pics: any[]): CetakJadwalSection[] {
 	// Define the type for our accumulator (reducer)
 	interface CetakAccumulator {
 		[key: string]: CetakJadwalSection;
 	}
 
-	// Ushers
-	// TODO: Refactor
-	const rowsUshersData = massEventUsher.reduce((acc: CetakAccumulator, r) => {
+	const rowsUshersData = ushers.reduce((acc: CetakAccumulator, r) => {
 		const zone = r.zone || 'Non Zona';
 
 		if (!acc[zone]) {
@@ -594,8 +625,8 @@ export async function findCetakJadwal(
 		}
 
 		// Add pic
-		if (massEventPic.length > 0) {
-			acc[zone].pic = massEventPic
+		if (pics.length > 0 && !acc[zone].pic) {
+			acc[zone].pic = pics
 				.filter((pic) => pic.zone === zone)
 				.map((pic) => pic.pic)
 				.filter((pic): pic is string => pic !== null)
@@ -603,133 +634,50 @@ export async function findCetakJadwal(
 		}
 
 		// Count ushers
-		acc[zone].rowSpan++
+		acc[zone].rowSpan++;
 
 		// Add usher
-		const ushers = {
-			position: r.position || 'Posisi Kosong',
-			sequence: r.sequence || 0,
-			name: r.name || 'No Name',
-			wilayah: r.wilayah || 'Wilayah Kosong',
-			lingkungan: r.lingkungan || 'Lingkungan Kosong',
-			kolekte: r.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
-			ppg: r.isPpg === 1 ? 'PPG' : 'Non PPG'
-		}
-
-		acc[zone].ushers.push(ushers);
+		acc[zone].ushers.push(createUsherEntry(r));
 
 		return acc;
 	}, {} as CetakAccumulator);
 
-	// Sort rowsUshersData by zone and position
-	// Sort ushers within each zone by sequence
-	for (const zone in rowsUshersData) {
-		rowsUshersData[zone].ushers.sort((a, b) => a.sequence - b.sequence);
+	return Object.values(rowsUshersData);
+
+	// Sort by zone and position
+	// return Object.values(rowsUshersData).sort((a, b) => {
+	// 	if (a.zone < b.zone) return -1;
+	// 	if (a.zone > b.zone) return 1;
+
+	// 	const aFirstPosition = a.ushers[0]?.position || '';
+	// 	const bFirstPosition = b.ushers[0]?.position || '';
+	// 	return aFirstPosition.localeCompare(bFirstPosition);
+	// });
+}
+
+function processSpecialUshers(ushers: any[], zoneName: string): CetakJadwalSection[] {
+	if (ushers.length === 0) {
+		return [];
 	}
-	logger.debug(JSON.stringify(rowsUshersData, null, 2));
 
-	const rowsUshers = Object.values(rowsUshersData);
-
-	// Kolekte
-	const listKolekte = massEventUsher.filter((usher) => usher.isKolekte === 1);
-	const rowsKolekteData = listKolekte.reduce((acc: CetakAccumulator, r) => {
-		const zone = 'Menghitung uang kolekte';
-
-		if (!acc[zone]) {
-			acc[zone] = {
-				zone: zone,
-				pic: '',
-				rowSpan: 0,
-				ushers: []
-			};
-		}
-
-		// Count ushers
-		acc[zone].rowSpan++
-
-		// Add usher
-		const ushers = {
-			position: r.position || 'Posisi Kosong',
-			sequence: r.sequence || 0,
-			name: r.name || 'No Name',
-			wilayah: r.wilayah || 'Wilayah Kosong',
-			lingkungan: r.lingkungan || 'Lingkungan Kosong',
-			kolekte: r.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
-			ppg: r.isPpg === 1 ? 'PPG' : 'Non PPG'
-		}
-		acc[zone].ushers.push(ushers);
-
-		return acc;
-	}, {} as CetakAccumulator);
-
-	const rowsKolekte = Object.values(rowsKolekteData);
-
-	// List PPG
-	const listPpg = massEventUsher.filter((usher) => usher.isPpg === 1);
-	const rowsPpgData = listPpg.reduce((acc: CetakAccumulator, r) => {
-		const zone = "Menghitung uang amplop PPG";
-
-		if (!acc[zone]) {
-			acc[zone] = {
-				zone: zone,
-				pic: '',
-				rowSpan: 0,
-				ushers: []
-			};
-		}
-
-		// Add pic
-		// if (massEventPic.length > 0) {
-		// 	acc[zone].pic = massEventPic
-		// 		.filter((pic) => pic.zone === zone)
-		// 		.map((pic) => pic.pic)
-		// 		.filter((pic): pic is string => pic !== null)
-		// 		.join(', ');
-		// }
-
-		// Count ushers
-		acc[zone].rowSpan++
-
-		// Add usher
-		const ushers = {
-			position: r.position || 'Posisi Kosong',
-			sequence: r.sequence || 0,
-			name: r.name || 'No Name',
-			wilayah: r.wilayah || 'Wilayah Kosong',
-			lingkungan: r.lingkungan || 'Lingkungan Kosong',
-			kolekte: r.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
-			ppg: r.isPpg === 1 ? 'PPG' : 'Non PPG'
-		}
-		acc[zone].ushers.push(ushers);
-
-		return acc;
-	}, {} as CetakAccumulator);
-
-	const rowsPpg = Object.values(rowsPpgData);
-
-	const jadwal = jadwalEvent || {
-		church: '',
-		mass: '',
-		date: '',
-		weekday: ''
+	const section: CetakJadwalSection = {
+		zone: zoneName,
+		pic: '',
+		rowSpan: ushers.length,
+		ushers: ushers.map(createUsherEntry)
 	};
 
-	// Sort listUshers by zone and position
-	rowsUshers.sort((a, b) => {
-		// First sort by zone
-		if (a.zone < b.zone) return -1;
-		if (a.zone > b.zone) return 1;
+	return [section];
+}
 
-		// If zones are equal, sort by position within ushers array
-		const aFirstPosition = a.ushers[0]?.position || '';
-		const bFirstPosition = b.ushers[0]?.position || '';
-		return aFirstPosition.localeCompare(bFirstPosition);
-	});
-
+function createUsherEntry(usher: any) {
 	return {
-		...jadwal,
-		listUshers: rowsUshers,
-		listKolekte: rowsKolekte,
-		listPpg: rowsPpg
+		position: usher.position || 'Posisi Kosong',
+		sequence: usher.sequence || 0,
+		name: usher.name || 'No Name',
+		wilayah: usher.wilayah || 'Wilayah Kosong',
+		lingkungan: usher.lingkungan || 'Lingkungan Kosong',
+		kolekte: usher.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
+		ppg: usher.isPpg === 1 ? 'PPG' : 'Non PPG'
 	};
 }

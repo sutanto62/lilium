@@ -4,6 +4,7 @@ import { EventService } from '$core/service/EventService';
 import { logger } from '$src/lib/utils/logger';
 import { ChurchService } from '$core/service/ChurchService';
 import { AuthService } from '$core/service/AuthService';
+import { captureEvent } from '$src/lib/utils/analytic';
 
 export const load: PageServerLoad = async (events) => {
 	const session = await events.locals.auth();
@@ -25,6 +26,8 @@ export const load: PageServerLoad = async (events) => {
 	// Get users for PIC
 	const authService = new AuthService(churchId);
 	const [users] = await Promise.all([authService.getUsers()]);
+
+	await captureEvent(events, 'jadwal_detail_page_view');
 
 	return {
 		jadwalDetail,

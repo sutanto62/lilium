@@ -9,6 +9,7 @@ import { EventService } from '$core/service/EventService';
 import { logger } from '$src/lib/utils/logger';
 import { QueueManager } from '$core/service/QueueManager';
 import type { Church } from '$core/entities/Schedule';
+import { captureEvent } from '$src/lib/utils/analytic';
 
 let churchService: ChurchService;
 let eventService: EventService;
@@ -40,6 +41,8 @@ export const load: PageServerLoad = async (events) => {
 			churchService.getWilayahs(),
 			churchService.getLingkungans()
 		]);
+
+		await captureEvent(events, 'form_tatib_page_view');
 
 		return { church, masses, wilayahs, lingkungans, success: false, assignedUshers: [] };
 	} catch (err) {

@@ -5,6 +5,7 @@ import { repo } from '$src/lib/server/db';
 import { redirect } from '@sveltejs/kit';
 import { logger } from '$src/lib/utils/logger';
 import { getWeekNumber, formatDate } from '$src/lib/utils/dateUtils';
+import { captureEvent } from '$src/lib/utils/analytic';
 
 /**
  * Page server load function for the jadwal (schedule) page.
@@ -74,6 +75,8 @@ export const load: PageServerLoad = async (events) => {
 		src: '',
 		alt: ''
 	}));
+
+	await captureEvent(events, 'jadwal_page_view');
 
 	// Return masses and processed events
 	return {

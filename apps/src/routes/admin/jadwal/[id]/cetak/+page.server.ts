@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { EventService } from '$core/service/EventService';
 import { ChurchService } from '$core/service/ChurchService';
+import { captureEvent } from '$src/lib/utils/analytic';
 
 export const load: PageServerLoad = async (events) => {
     const session = await events.locals.auth();
@@ -18,6 +19,8 @@ export const load: PageServerLoad = async (events) => {
 
     const eventService = new EventService(churchId);
     const [jadwalDetail] = await Promise.all([eventService.getCetakJadwal(eventId)]);
+
+    await captureEvent(events, 'jadwal_cetak_page_view');
 
     return { church, jadwalDetail };
 };

@@ -2,6 +2,8 @@ import type { Church } from '$core/entities/Schedule';
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { repo } from '$src/lib/server/db';
+import posthog from 'posthog-js';
+import { browser } from '$app/environment';
 
 export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 	// Define church at cookie for app to use
@@ -17,6 +19,18 @@ export const load: LayoutServerLoad = async ({ locals, cookies }) => {
 			sameSite: 'strict',
 			maxAge: 60 * 60 * 24 * 30 // 30 days
 		});
+	}
+
+	if (browser) {
+		posthog.init(
+			import.meta.env.VITE_POSTHOG_KEY,
+			{
+				api_host: 'https://us.i.posthog.com',
+				person_profiles: 'always', // or 'always' to create profiles for anonymous users as well
+				capture_pageview: false, // disable pageview capture for server-side
+				capture_pageleave: false // disable pageleave capture for server-side
+			}
+		)
 	}
 
 	return {

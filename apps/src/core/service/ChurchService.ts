@@ -8,6 +8,7 @@ import type {
 } from '$core/entities/Schedule';
 import type { Event } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
 
 /**
  * ChurchService is a class responsible for managing church-related data,
@@ -57,6 +58,7 @@ export class ChurchService {
 	 */
 	private async fetchZones(): Promise<void> {
 		this.zones = await repo.getZones(this.churchId);
+		logger.debug(`Fetched ${this.zones.length} zones for church ${this.churchId}`);
 	}
 
 	/**
@@ -64,7 +66,9 @@ export class ChurchService {
 	 */
 	private async fetchMasses(): Promise<void> {
 		this.masses = await repo.getMasses(this.churchId);
+		logger.debug(`Fetched ${this.masses.length} masses for church ${this.churchId}`);
 	}
+
 	/**
 	 * Retrieves the list of masses for the church, initializing if necessary.
 	 * @returns A promise that resolves to an array of Mass objects.
@@ -97,8 +101,8 @@ export class ChurchService {
 	 * Retrieves the list of events for the church from the repository.
 	 * @returns A promise that resolves to an array of Event objects.
 	 */
-	async getEvents(): Promise<Event[]> {
-		this.events = await repo.getEvents(this.churchId);
+	async getEvents(limit?: number): Promise<Event[]> {
+		this.events = await repo.getEvents(this.churchId, limit);
 		return this.events;
 	}
 

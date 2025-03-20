@@ -15,7 +15,6 @@
 		description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
 		buttonHref="/admin/jadwal"
 		buttonText="Kelola"
-		isAdmin={true}
 	/>
 	<!-- <FeatureCard
 			icon={UserCircleSolid}

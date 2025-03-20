@@ -46,7 +46,7 @@ export interface ScheduleRepository {
 	createEventPic: (pic: EventPicRequest) => Promise<boolean>;
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
-	getEvents(churchId: string): Promise<ChurchEvent[]>;
+	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
 	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
 	deactivateEvent(eventId: string): Promise<boolean>;

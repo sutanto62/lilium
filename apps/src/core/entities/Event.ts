@@ -3,6 +3,7 @@ import type UshersList from "$src/routes/f/tatib/UshersList.svelte";
 export interface Event {
 	id: string;
 	church: string;
+	churchCode?: string | null;
 	mass: string;
 	date: string;
 	weekNumber: number | null;

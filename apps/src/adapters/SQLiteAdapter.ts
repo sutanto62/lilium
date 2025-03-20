@@ -59,7 +59,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getPositionsByMass = (churchId: string, massId: string) =>
 		findPositionByMass(this.db, churchId, massId);
 	getEventById = (id: string) => findEventById(this.db, id);
-	getEvents = (churchId: string) => findEvents(this.db, churchId);
+	getEvents = (churchId: string, limit?: number) => findEvents(this.db, churchId, limit);
 	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
 	findJadwalDetail = (eventId: string) => findJadwalDetail(this.db, eventId);

@@ -57,16 +57,6 @@
 			} catch (error) {
 				console.error('Failed to copy text: ', error);
 			}
-
-			// const range = document.createRange();
-			// range.selectNodeContents(element); // Select the contents of the element
-			// const selection = window.getSelection();
-			// selection?.removeAllRanges(); // Clear any existing selections
-			// selection?.addRange(range); // Add the new range
-
-			// // Use execCommand to copy the selected content with formatting
-			// document.execCommand('copy');
-			// selection?.removeAllRanges(); // Clear the selection after copying
 		}
 	}
 </script>

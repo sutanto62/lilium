@@ -1,10 +1,11 @@
 <script lang="ts">
 	import {
-		Activity,
-		ActivityItem,
+		Avatar,
 		Breadcrumb,
 		BreadcrumbItem,
+		Card,
 		Heading,
+		Listgroup,
 		P,
 		Timeline
 	} from 'flowbite-svelte';
@@ -13,7 +14,7 @@
 	export let data;
 
 	$: events = data.currentWeek;
-	$: activities = data.pastWeek;
+	$: pastEvents = data.pastWeek;
 </script>
 
 <svelte:head>
@@ -26,7 +27,7 @@
 	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
 </Breadcrumb>
 
-<div class="flex flex-col gap-4 lg:flex-row">
+<div class="flex flex-col gap-8 lg:flex-row">
 	<div class="w-full lg:w-4/6">
 		<Heading tag="h2" class="mb-2 text-2xl tracking-tight text-gray-900 dark:text-white">
 			Minggu ini
@@ -53,13 +54,29 @@
 	</div>
 
 	<div class="w-full lg:w-2/6">
-		{#if activities.length > 0}
-			<Heading tag="h2" class="mb-2 text-2xl tracking-tight text-gray-900 dark:text-white">
-				Minggu lalu
-			</Heading>
-			<Activity>
-				<ActivityItem {activities} />
-			</Activity>
+		{#if pastEvents.length > 0}
+			<Card padding="lg" size="md">
+				<div class="mb-4 flex items-center justify-between">
+					<h5 class="text-xl font-bold leading-none text-gray-900 dark:text-white">Sebelumnya</h5>
+					<!-- TODO: past events page
+					<a
+						href="/"
+						class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500"
+					>Lihat semua</a>
+					 -->
+				</div>
+				<Listgroup items={pastEvents} let:item class="dark:bg-transparent! border-0">
+					<div class="flex items-center space-x-4 rtl:space-x-reverse">
+						<Avatar border class="ring-gray-400 dark:ring-gray-300">{item.churchCode ?? ''}</Avatar>
+						<div class="min-w-0 flex-1">
+							{@html item.link}
+							<p class="truncate text-sm text-gray-500 dark:text-gray-400">
+								{item.date} ({item.progress}%)
+							</p>
+						</div>
+					</div>
+				</Listgroup>
+			</Card>
 		{/if}
 	</div>
 </div>

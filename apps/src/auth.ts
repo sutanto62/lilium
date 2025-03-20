@@ -4,6 +4,9 @@ import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
 import type { Provider } from '@auth/sveltekit/providers';
 import { repo } from './lib/server/db';
 import { logger } from './lib/utils/logger';
+import { identifyUser } from './lib/utils/analytic';
+import { PostHog } from 'posthog-node';
+import posthog from 'posthog-js';
 
 const providers: Provider[] = [
 	MicrosoftEntraID({
@@ -28,6 +31,27 @@ export const providerMap = providers.map((provider) => {
 
 export type UserRole = 'admin' | 'user' | 'visitor';
 
+/**
+ * Authentication configuration and handlers for the application.
+ * 
+ * This module sets up authentication using SvelteKit Auth with multiple providers:
+ * - Microsoft Entra ID (Azure AD)
+ * - Google OAuth
+ * 
+ * It handles:
+ * - Provider configuration and initialization
+ * - JWT token management and validation
+ * - User role assignment and verification
+ * - Session management
+ * - Unregistered user handling
+ * 
+ * The authentication flow:
+ * 1. User signs in via provider
+ * 2. JWT callback validates user and checks registration status
+ * 3. Session is created with user details and role
+ * 4. Unregistered users are flagged and limited to visitor role
+ */
+
 export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	trustHost: true,
 	providers: providers,
@@ -46,7 +70,6 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				if (!dbUser) {
 					logger.debug(`unregistered user ${user.email} detected`);
 					// Return token with unregistered flag
-					logger.debug(`returning unregistered user token`);
 					return {
 						...token,
 						cid: '',
@@ -58,7 +81,16 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
+
+				identifyUser(user.email ?? 'anonymous', {
+					email: user.email,
+					name: user.name,
+					role: dbUser?.role ?? 'user',
+					cid: import.meta.env.VITE_CHURCH_ID,
+					registered: 'y'
+				});
 			}
+
 			return token;
 		},
 		session({ session, token }) {

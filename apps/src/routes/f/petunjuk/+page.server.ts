@@ -1,7 +1,17 @@
 import type { PageServerLoad } from '../../$types';
-import { captureEvent } from '$src/lib/utils/analytic';
+import { handlePageLoad } from '$src/lib/server/pageHandler';
 
-export const load: PageServerLoad = async (events) => {
-    await captureEvent(events, 'petunjuk_page_view');
+/**
+ * Page server load function for the petunjuk (instructions) page.
+ * 
+ * This function:
+ * 1. Gets the current user session
+ * 2. Captures analytics event for page view
+ * 3. Returns empty object as no additional data is needed
+ * 
+ * @returns {Promise<{}>} Empty object as no additional data is needed
+ */
+export const load: PageServerLoad = async (event) => {
+    await handlePageLoad(event, 'petunjuk');
     return {};
 };

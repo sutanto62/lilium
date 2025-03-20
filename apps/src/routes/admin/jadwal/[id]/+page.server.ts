@@ -1,20 +1,22 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions, RequestEvent } from './$types';
-import { EventService } from '$core/service/EventService';
 import { logger } from '$src/lib/utils/logger';
+import { handlePageLoad } from '$src/lib/server/pageHandler';
+
+// Services
 import { ChurchService } from '$core/service/ChurchService';
 import { AuthService } from '$core/service/AuthService';
-import { captureEvent } from '$src/lib/utils/analytic';
+import { EventService } from '$core/service/EventService';
 
-export const load: PageServerLoad = async (events) => {
-	const session = await events.locals.auth();
+export const load: PageServerLoad = async (event) => {
+	const { session } = await handlePageLoad(event, 'jadwal_detail');
 
 	if (!session) {
 		throw redirect(302, '/signin');
 	}
 
 	const churchId = session.user?.cid ?? '';
-	const eventId = events.params.id;
+	const eventId = event.params.id;
 
 	const eventService = new EventService(churchId);
 	const [jadwalDetail] = await Promise.all([eventService.getJadwalDetail(eventId)]);
@@ -27,7 +29,7 @@ export const load: PageServerLoad = async (events) => {
 	const authService = new AuthService(churchId);
 	const [users] = await Promise.all([authService.getUsers()]);
 
-	await captureEvent(events, 'jadwal_detail_page_view');
+	// await captureEvent(events, 'jadwal_detail_page_view');
 
 	return {
 		jadwalDetail,

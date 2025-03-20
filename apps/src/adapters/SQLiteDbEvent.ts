@@ -246,34 +246,40 @@ export async function findEventByIdResponse(
 // FIXME: return empty array to avoid null error
 export async function findEvents(
 	db: ReturnType<typeof drizzle>,
-	churchId: string
+	churchId: string,
+	limit?: number
 ): Promise<ChurchEvent[]> {
+	const limitValue = limit ?? 10;
+
 	const result = await db
 		.select({
 			id: event.id,
 			church: church.name,
+			churchCode: church.code,
 			mass: mass.name,
 			date: event.date,
 			weekNumber: event.week_number,
 			createdAt: event.created_at,
-			isComplete: event.isComplete
+			isComplete: event.isComplete,
 		})
 		.from(event)
 		.where(and(eq(event.church_id, churchId), eq(event.active, 1)))
 		.leftJoin(church, eq(church.id, event.church_id))
 		.leftJoin(mass, eq(mass.id, event.mass_id))
-		.orderBy(event.date);
+		.orderBy(event.date)
+		.limit(limitValue);
 
 	return result.map(
 		(row) =>
 			({
 				id: row.id,
 				church: row.church,
+				churchCode: row.churchCode,
 				mass: row.mass,
 				date: row.date,
 				weekNumber: row.weekNumber,
 				createdAt: row.createdAt,
-				isComplete: row.isComplete
+				isComplete: row.isComplete,
 			}) as ChurchEvent
 	);
 }

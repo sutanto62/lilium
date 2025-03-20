@@ -9,7 +9,9 @@ import { EventService } from '$core/service/EventService';
 import { logger } from '$src/lib/utils/logger';
 import { QueueManager } from '$core/service/QueueManager';
 import type { Church } from '$core/entities/Schedule';
-import { captureEvent } from '$src/lib/utils/analytic';
+import { captureEventClient, captureEventServer, initPostHog } from '$src/lib/utils/analytic';
+import { handlePageLoad } from '$src/lib/server/pageHandler';
+import posthog from 'posthog-js';
 
 let churchService: ChurchService;
 let eventService: EventService;
@@ -25,8 +27,9 @@ const queueManager = QueueManager.getInstance();
  *
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
-export const load: PageServerLoad = async (events) => {
-	const churchId = events.cookies.get('cid') as string | '';
+export const load: PageServerLoad = async (event) => {
+	const { session } = await handlePageLoad(event, 'form_tatib');
+	const churchId = event.cookies.get('cid') as string | '';
 
 	let church: Church | null = null;
 	church = await repo.findChurchById(churchId);
@@ -42,9 +45,16 @@ export const load: PageServerLoad = async (events) => {
 			churchService.getLingkungans()
 		]);
 
-		await captureEvent(events, 'form_tatib_page_view');
+		captureEventServer(session?.user?.email ?? 'visitor', 'form_tatib_page_view');
 
-		return { church, masses, wilayahs, lingkungans, success: false, assignedUshers: [] };
+		return {
+			church,
+			masses,
+			wilayahs,
+			lingkungans,
+			success: false,
+			assignedUshers: [],
+		};
 	} catch (err) {
 		logger.error('Error fetching data:', err);
 		throw error(500, 'Gagal memuat jadwal misa, wilayah, dan lingkungan');
@@ -152,6 +162,8 @@ export const actions = {
 				if (err instanceof Error)
 					return fail(404, { error: err.message });
 			}
+
+			captureEventClient('cayadi sutanto', 'tatib_submitted');
 
 			// Return ushers position to client
 			return { success: true, json: { ushers: queueManager.assignedUshers } };

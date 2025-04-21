@@ -1,5 +1,6 @@
 import type { Mass } from '$core/entities/Schedule';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { logger } from './logger';
 
 /**
  * Calculates the next event date based on the created date and mass day.

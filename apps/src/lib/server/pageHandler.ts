@@ -1,5 +1,4 @@
 import type { RequestEvent } from '@sveltejs/kit';
-import { captureEventServer } from '$lib/utils/analytic';
 import { logger } from '$lib/utils/logger';
 
 /**
@@ -12,7 +11,6 @@ import { logger } from '$lib/utils/logger';
 export async function handlePageLoad(event: RequestEvent, pageId: string) {
     try {
         const session = await event.locals.auth();
-        await captureEventServer(session?.user?.email ?? 'visitor', `${pageId}_page_view`);
 
         return {
             session,

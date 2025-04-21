@@ -4,9 +4,8 @@ import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
 import type { Provider } from '@auth/sveltekit/providers';
 import { repo } from './lib/server/db';
 import { logger } from './lib/utils/logger';
-import { identifyUser } from './lib/utils/analytic';
-import { PostHog } from 'posthog-node';
 import posthog from 'posthog-js';
+import { identifyUser } from './lib/utils/analytic';
 
 const providers: Provider[] = [
 	MicrosoftEntraID({
@@ -82,13 +81,21 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
 
-				identifyUser(user.email ?? 'anonymous', {
-					email: user.email,
-					name: user.name,
-					role: dbUser?.role ?? 'user',
-					cid: import.meta.env.VITE_CHURCH_ID,
-					registered: 'y'
-				});
+				// posthog.identify(user.email ?? 'visitor', {
+				// 	email: user.email,
+				// 	name: user.name,
+				// 	role: token.role, 
+				// 	cid: token.cid,
+				// 	registered: 'y'
+				// });
+
+				// identifyUser(user.email ?? 'visitor', {
+				// 	email: user.email,
+				// 	name: user.name,
+				// 	role: token.role, 
+				// 	cid: token.cid,
+				// 	registered: 'y'
+				// });
 			}
 
 			return token;

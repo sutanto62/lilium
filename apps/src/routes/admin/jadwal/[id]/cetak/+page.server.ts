@@ -2,7 +2,6 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { EventService } from '$core/service/EventService';
 import { ChurchService } from '$core/service/ChurchService';
-import { captureEventServer } from '$src/lib/utils/analytic';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 
 export const load: PageServerLoad = async (event) => {

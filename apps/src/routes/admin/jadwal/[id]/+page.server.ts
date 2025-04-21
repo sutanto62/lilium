@@ -29,8 +29,6 @@ export const load: PageServerLoad = async (event) => {
 	const authService = new AuthService(churchId);
 	const [users] = await Promise.all([authService.getUsers()]);
 
-	// await captureEvent(events, 'jadwal_detail_page_view');
-
 	return {
 		jadwalDetail,
 		users,

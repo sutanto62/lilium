@@ -1,5 +1,3 @@
-import type { ServerLoadEvent } from '@sveltejs/kit';
-// import { PostHog } from 'posthog-node';
 import posthog from 'posthog-js';
 import { browser } from '$app/environment';
 import { PostHog } from 'posthog-node';
@@ -40,7 +38,7 @@ export function initPostHog() {
  * @param eventName - Name of the event to capture
  * @param properties - Additional properties for the event
  */
-export const captureEventServer = async (identityId: string, eventName: string, properties?: Record<string, any>) => {
+export const capture = async (identityId: string, eventName: string, properties?: Record<string, any>) => {
 
     const posthog = new PostHog(import.meta.env.VITE_POSTHOG_KEY, { host: import.meta.env.VITE_POSTHOG_HOST });
     posthog.capture({
@@ -74,12 +72,11 @@ export const captureEventClient = async (identityId: string, eventName: string, 
  * @param properties - Object containing user properties like email, role, etc.
  */
 export const identifyUser = async (userId: string, properties: Record<string, any>) => {
-    const posthog = new PostHog(import.meta.env.VITE_POSTHOG_KEY, { host: import.meta.env.VITE_POSTHOG_HOST });
-    posthog.identify({
+    const posthogInstance = new PostHog(import.meta.env.VITE_POSTHOG_KEY, { host: import.meta.env.VITE_POSTHOG_HOST });
+    posthogInstance.identify({
         distinctId: userId,
         properties
     });
     logger.debug(`identified posthoguser ${userId} with properties ${JSON.stringify(properties)}`);
-    await posthog.shutdown();
+    await posthogInstance.shutdown();
 }
-

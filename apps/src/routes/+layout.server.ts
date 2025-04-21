@@ -2,7 +2,6 @@ import type { Church } from '$core/entities/Schedule';
 import type { LayoutServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { repo } from '$src/lib/server/db';
-import { initPostHog } from '$src/lib/utils/analytic';
 
 export const load: LayoutServerLoad = async (event) => {
 	// Define church at cookie for app to use
@@ -24,7 +23,7 @@ export const load: LayoutServerLoad = async (event) => {
 		});
 	}
 
-	initPostHog();
+	// initPostHog();
 
 	return {
 		church: churchConfigured,

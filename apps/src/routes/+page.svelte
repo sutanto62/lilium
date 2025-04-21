@@ -1,18 +1,28 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import NavigationAdmin from '$components/NavigationAdmin.svelte';
-	import { Section, HeroHeader, FeatureDefault } from 'flowbite-svelte-blocks';
+	import { Section, FeatureDefault } from 'flowbite-svelte-blocks';
 	import {
 		QuestionCircleSolid,
 		ClipboardListSolid,
-		UserCircleSolid,
 		CalendarMonthSolid
 	} from 'flowbite-svelte-icons';
 	import FeatureCard from '$components/FeatureCard.svelte';
 	import { P, Heading } from 'flowbite-svelte';
+	import { onMount } from 'svelte';
+	import posthog from 'posthog-js';
 
 	// Props
 	export let data: PageData;
+
+	// Ensure posthog run in client side
+	onMount(() => {
+		if (data.session?.user) {
+			console.log(data.session.user);
+			posthog.identify(data.session.user.email ?? '');
+		}
+	});
+
 </script>
 
 <NavigationAdmin />
@@ -38,7 +48,6 @@
 					description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
 					buttonHref="/admin/jadwal"
 					buttonText="Kelola"
-					isAdmin={true}
 				/>
 				<!-- <FeatureCard
 					icon={UserCircleSolid}

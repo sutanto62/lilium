@@ -12,7 +12,7 @@ describe('calculateEventDate', () => {
 			briefingTime: '08:45',
 			sequence: 1,
 			code: 'E1',
-			day: 'sunday',
+			day: 'saturday',
 			active: 1
 		};
 		const result = calculateEventDate(createdAt, mass);
@@ -29,7 +29,7 @@ describe('calculateEventDate', () => {
 			briefingTime: '08:45',
 			sequence: 1,
 			code: 'E1',
-			day: 'sunday',
+			day: 'saturday',
 			active: 1
 		};
 		const result = calculateEventDate(createdAt, mass);

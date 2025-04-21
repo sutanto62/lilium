@@ -1,6 +1,5 @@
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
-import { captureEventServer, initPostHog } from '$lib/utils/analytic';
 
 export const load: LayoutServerLoad = async (event) => {
 	const session = await event.locals.auth();
@@ -14,10 +13,6 @@ export const load: LayoutServerLoad = async (event) => {
 	if (session.user?.unregistered) {
 		throw redirect(302, '/');
 	}
-
-	// initPostHog();
-
-	// await captureEvent(event, 'admin_page_view');
 
 	return { session };
 };

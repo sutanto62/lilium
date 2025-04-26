@@ -58,12 +58,6 @@
 			<Card padding="lg" size="md">
 				<div class="mb-4 flex items-center justify-between">
 					<h5 class="text-xl font-bold leading-none text-gray-900 dark:text-white">Sebelumnya</h5>
-					<!-- TODO: past events page
-					<a
-						href="/"
-						class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500"
-					>Lihat semua</a>
-					 -->
 				</div>
 				<Listgroup items={pastEvents} let:item class="dark:bg-transparent! border-0">
 					<div class="flex items-center space-x-4 rtl:space-x-reverse">

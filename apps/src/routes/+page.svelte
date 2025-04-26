@@ -18,7 +18,6 @@
 	// Ensure posthog run in client side
 	onMount(() => {
 		if (data.session?.user) {
-			console.log(data.session.user);
 			posthog.identify(data.session.user.email ?? '');
 		}
 	});

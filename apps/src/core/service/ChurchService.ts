@@ -9,6 +9,7 @@ import type {
 import type { Event } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
+import { maskUuid } from '$src/lib/utils/maskUtils';
 
 /**
  * ChurchService is a class responsible for managing church-related data,
@@ -58,7 +59,7 @@ export class ChurchService {
 	 */
 	private async fetchZones(): Promise<void> {
 		this.zones = await repo.getZones(this.churchId);
-		logger.debug(`Fetched ${this.zones.length} zones for church ${this.churchId}`);
+		logger.debug(`${this.zones.length} zones fetched for church ${maskUuid(this.churchId)}`);
 	}
 
 	/**
@@ -66,7 +67,7 @@ export class ChurchService {
 	 */
 	private async fetchMasses(): Promise<void> {
 		this.masses = await repo.getMasses(this.churchId);
-		logger.debug(`Fetched ${this.masses.length} masses for church ${this.churchId}`);
+		logger.debug(`${this.masses.length} masses fetched for church ${maskUuid(this.churchId)}`);
 	}
 
 	/**

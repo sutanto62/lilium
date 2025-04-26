@@ -2,11 +2,22 @@ import type { PageServerLoad } from './$types';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { repo } from '$src/lib/server/db';
-import { redirect } from '@sveltejs/kit';
+import { redirect, error } from '@sveltejs/kit';
 import { logger } from '$src/lib/utils/logger';
 import { getWeekNumber, formatDate } from '$src/lib/utils/dateUtils';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import type { Event } from '$core/entities/Event';
+import type { Mass } from '$core/entities/Schedule';
+
+interface EventWithUsherCounts extends Event {
+	usherCounts: {
+		progress: number;
+		totalUshers: number;
+		confirmedUshers: number;
+		totalPpg: number;
+		totalKolekte: number;
+	};
+}
 
 /**
  * Page server load function for the jadwal (schedule) page.
@@ -17,12 +28,18 @@ export const load: PageServerLoad = async (event) => {
 	const { session } = await handlePageLoad(event, 'jadwal');
 
 	if (!session) {
+		logger.info(`Redirecting to signin page`);
 		throw redirect(302, '/signin');
 	}
 
-	const churchId = session.user?.cid ?? '';
-	let masses: any[] = [];
-	let eventsDetail: any[] = [];  // TODO: not so type safety, Event has no ushersCounts
+	const churchId = session.user?.cid;
+	if (!churchId) {
+		logger.error('No church ID found in session');
+		throw error(500, 'Invalid session data');
+	}
+
+	let masses: Mass[] = [];
+	let eventsDetail: EventWithUsherCounts[] = [];
 
 	// Initialize services
 	const churchService = new ChurchService(churchId);
@@ -44,8 +61,13 @@ export const load: PageServerLoad = async (event) => {
 				const ushers = await eventService.getEventUshers(event.id);
 
 				// Get mass details and positions
-				const massId = await repo.getEventById(event.id);
-				const requiredPositions = await churchService.getPositionsByMass(massId.mass);
+				const massDetails = await repo.getEventById(event.id);
+				if (!massDetails) {
+					logger.error(`No mass details found for event ${event.id}`);
+					throw error(500, 'Failed to fetch mass details');
+				}
+
+				const requiredPositions = await churchService.getPositionsByMass(massDetails.mass);
 				const totalUshers = requiredPositions?.length ?? 0;
 
 				// Calculate usher statistics
@@ -60,8 +82,8 @@ export const load: PageServerLoad = async (event) => {
 				return {
 					...event,
 					usherCounts: {
-						progress: progress,
-						totalUshers: totalUshers,
+						progress,
+						totalUshers,
 						confirmedUshers,
 						totalPpg,
 						totalKolekte
@@ -69,8 +91,9 @@ export const load: PageServerLoad = async (event) => {
 				};
 			})
 		);
-	} catch (error) {
-		logger.error('Error fetching masses and events:', error);
+	} catch (err) {
+		logger.error('Error fetching masses and events:', err);
+		throw error(500, 'Failed to fetch schedule data');
 	}
 
 	// Filter events into this week and past events based on week number

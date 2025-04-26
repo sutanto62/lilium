@@ -6,6 +6,7 @@ import { repo } from './lib/server/db';
 import { logger } from './lib/utils/logger';
 import posthog from 'posthog-js';
 import { identifyUser } from './lib/utils/analytic';
+import { maskEmail } from './lib/utils/maskUtils';
 
 const providers: Provider[] = [
 	MicrosoftEntraID({
@@ -60,14 +61,12 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	},
 	callbacks: {
 		async jwt({ token, user, account }) {
-			// logger.debug(`jwt callback: ${JSON.stringify(token)}`);
 			if (user && account) {
-				logger.debug(`validating user ${user.email} and account ${account.provider}`);
 				// Check if the user exists in the database
 				const dbUser = await repo.getUserByEmail(user.email ?? '');
 
 				if (!dbUser) {
-					logger.debug(`unregistered user ${user.email} detected`);
+					logger.debug(`unregistered ${account.provider} ${maskEmail(user.email)} user`)
 					// Return token with unregistered flag
 					return {
 						...token,
@@ -80,22 +79,7 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
-
-				// posthog.identify(user.email ?? 'visitor', {
-				// 	email: user.email,
-				// 	name: user.name,
-				// 	role: token.role, 
-				// 	cid: token.cid,
-				// 	registered: 'y'
-				// });
-
-				// identifyUser(user.email ?? 'visitor', {
-				// 	email: user.email,
-				// 	name: user.name,
-				// 	role: token.role, 
-				// 	cid: token.cid,
-				// 	registered: 'y'
-				// });
+				logger.debug(`registered ${account.provider} ${maskEmail(user.email)} user`);
 			}
 
 			return token;
@@ -141,6 +125,7 @@ export function hasRole(session: { user?: { role?: string } } | null, requiredRo
 
 export function requireRole(session: { user?: { role?: string } } | null, requiredRole: UserRole): void {
 	if (!hasRole(session, requiredRole)) {
+		logger.error(`Insufficient permissions. Required role: ${requiredRole}`);
 		throw new Error(`Insufficient permissions. Required role: ${requiredRole}`);
 	}
 }

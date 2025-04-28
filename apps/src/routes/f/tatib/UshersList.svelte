@@ -112,7 +112,7 @@
 	<caption class="text-left text-lg font-semibold">
 		Petugas
 		<p class="mt-1 text-sm font-normal">
-			Mohon isi petugas sesuai dengan persyaratan (8 orang dengan 2 PPG dan 3 Kolekte)
+			Mohon isi petugas sesuai dengan persyaratan (8 orang dan 3 Kolekte)
 		</p>
 	</caption>
 	<Button color="alternative" size="xs" on:click={addUsher}>

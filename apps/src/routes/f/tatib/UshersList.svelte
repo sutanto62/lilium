@@ -92,7 +92,7 @@
 
 	$: numberOfPpg = ushers.filter((p) => p.isPpg).length;
 	$: numberOfKolekte = ushers.filter((p) => p.isKolekte).length;
-	$: isSubmitable = numberOfPpg >= 2 && numberOfKolekte >= 3 && progress >= (6 / maxUshers) * 100;
+	$: isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && progress >= (6 / maxUshers) * 100;
 
 	// Reset
 	function reset() {

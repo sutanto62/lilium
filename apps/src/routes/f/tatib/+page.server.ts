@@ -26,7 +26,7 @@ const queueManager = QueueManager.getInstance();
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
 export const load: PageServerLoad = async (event) => {
-	const churchId = event.cookies.get('cid') as string | '';
+	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 
 	let church: Church | null = null;
 	church = await repo.findChurchById(churchId);
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 export const actions = {
 	default: async ({ request, cookies }) => {
 		logger.info('Ushers confirmation is starting')
-		const churchId = cookies.get('cid') as string | '';
+		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' }); // check session cookie
 		}

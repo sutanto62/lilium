@@ -104,6 +104,7 @@ export class ChurchService {
 	 */
 	async getEvents(limit?: number): Promise<Event[]> {
 		this.events = await repo.getEvents(this.churchId, limit);
+		logger.debug(`${this.events.length} events fetched for church ${maskUuid(this.churchId)} ${limit ? `with limit ${limit}` : ''}`);
 		return this.events;
 	}
 

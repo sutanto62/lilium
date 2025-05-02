@@ -249,9 +249,7 @@ export async function findEvents(
 	churchId: string,
 	limit?: number
 ): Promise<ChurchEvent[]> {
-	const limitValue = limit ?? 10;
-
-	const result = await db
+	const query = db
 		.select({
 			id: event.id,
 			church: church.name,
@@ -266,8 +264,13 @@ export async function findEvents(
 		.where(and(eq(event.church_id, churchId), eq(event.active, 1)))
 		.leftJoin(church, eq(church.id, event.church_id))
 		.leftJoin(mass, eq(mass.id, event.mass_id))
-		.orderBy(event.date)
-		.limit(limitValue);
+		.orderBy(event.date);
+
+	if (limit !== undefined) {
+		query.limit(limit);
+	}
+
+	const result = await query;
 
 	return result.map(
 		(row) =>

@@ -54,6 +54,7 @@ export function getWeekNumber(date?: string): number {
 	const eventDate = date ? new Date(date) : new Date();
 	const startOfYear = new Date(eventDate.getFullYear(), 0, 1);
 	const days = Math.floor((eventDate.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-	const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
+	const adjustedDay = (startOfYear.getDay() + 6) % 7;
+	const weekNumber = Math.ceil((days + adjustedDay + 1) / 7);
 	return weekNumber;
 }

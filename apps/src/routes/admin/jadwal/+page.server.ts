@@ -8,6 +8,8 @@ import { getWeekNumber, formatDate } from '$src/lib/utils/dateUtils';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import type { Event } from '$core/entities/Event';
 import type { Mass } from '$core/entities/Schedule';
+import { maskUuid } from '$src/lib/utils/maskUtils';
+import { mass } from '$src/lib/server/db/schema';
 
 interface EventWithUsherCounts extends Event {
 	usherCounts: {
@@ -47,9 +49,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// Fetch masses and events concurrently
 	try {
+		logger.debug(`Fetching masses and events for church ${maskUuid(churchId)}`);
 		const [fetchedMasses, massEvents] = await Promise.all([
 			churchService.getMasses(),
-			churchService.getEvents(10)
+			churchService.getEvents()
 		]);
 
 		masses = fetchedMasses;

@@ -48,7 +48,7 @@
 
 		<Timeline>
 			{#each events as event}
-				<JadwalCard {event} usherCounts={event.usherCounts} color="primary" fullCard />
+				<JadwalCard {event} usherCounts={event.usherCounts} color="primary"/>
 			{/each}
 		</Timeline>
 	</div>

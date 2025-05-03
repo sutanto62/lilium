@@ -3,6 +3,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [sveltekit()],
+	optimizeDeps: {
+		exclude: ['@auth/drizzle-adapter', '@auth/sveltekit', 'drizzle-orm']
+	},
 	test: {
 		globals: true,
 		environment: 'jsdom',

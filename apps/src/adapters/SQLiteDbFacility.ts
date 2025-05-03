@@ -1,8 +1,7 @@
-import type { drizzle } from 'drizzle-orm/better-sqlite3';
-import { church, church_zone, church_position, mass_zone, event } from '$src/lib/server/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
 import type { Church, ChurchPosition, ChurchZone } from '$core/entities/Schedule';
-import { logger } from '$src/lib/utils/logger';
+import { church, church_position, church_zone, event, mass_zone } from '$src/lib/server/db/schema';
+import { and, eq, inArray } from 'drizzle-orm';
+import type { drizzle } from 'drizzle-orm/libsql';
 
 export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Church[]> {
 	return await db.select().from(church).orderBy(church.code);

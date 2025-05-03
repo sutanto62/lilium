@@ -24,6 +24,14 @@ clean:
 	@npm cache clean --force 2>/dev/null || true
 	@echo "✅ Clean completed!"
 
+clean-cache:
+	@echo "🧹 Cleaning cache..."
+	@rm -rf ./node_modules/.cache 2>/dev/null || true
+	@rm -rf ./node_modules/.vite 2>/dev/null || true
+	@rm -rf ./.svelte-kit/cache 2>/dev/null || true
+	@rm -rf ./.svelte-kit/tmp 2>/dev/null || true
+	@echo "✅ Cache cleaned!"
+
 db-create:
 	@echo "⏳ Creating database..."
 	@echo "UUID_PATH: $(UUID_PATH)"

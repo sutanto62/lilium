@@ -1,15 +1,14 @@
-import type { Actions, PageServerLoad } from './$types';
-import { fail, error } from '@sveltejs/kit';
-import { repo } from '$lib/server/db';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
-import { featureFlags } from '$lib/utils/FeatureFlag';
-import { calculateEventDate, getWeekNumber } from '$lib/utils/dateUtils';
+import type { Church } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
-import { logger } from '$src/lib/utils/logger';
 import { QueueManager } from '$core/service/QueueManager';
-import type { Church } from '$core/entities/Schedule';
-import { handlePageLoad } from '$src/lib/server/pageHandler';
+import { repo } from '$lib/server/db';
+import { featureFlags } from '$lib/utils/FeatureFlag';
+import { calculateEventDate, getWeekNumber } from '$lib/utils/dateUtils';
+import { logger } from '$src/lib/utils/logger';
+import { error, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
 let churchService: ChurchService;
 let eventService: EventService;

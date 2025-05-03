@@ -1,16 +1,15 @@
 <script lang="ts">
-	import type { ActionData, PageData } from './$types';
-	import { Button, Alert } from 'flowbite-svelte';
-	import { FloppyDiskSolid, ClipboardCleanSolid } from 'flowbite-svelte-icons';
+	import { Alert, Button } from 'flowbite-svelte';
+	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
-
+	import type { ActionData, PageData } from './$types';
 	// Utils
 	import { featureFlags } from '$lib/utils/FeatureFlag';
 
 	// Components
+	import Regional from '$components/Regional.svelte';
 	import type { Usher } from '$core/entities/Schedule';
 	import UshersList from './UshersList.svelte';
-	import Regional from '$components/Regional.svelte';
 
 	// Props
 	export let data: PageData;
@@ -28,12 +27,10 @@
 			sequence: 0
 		}
 	];
-	let currentDay: number;
 
-	// Show/hide form
-	$: isFeatureEnabled = featureFlags.isEnabled('no_saturday_sunday');
-	$: isWeekend = [0, 5, 6].includes(currentDay);
-	$: showForm = isFeatureEnabled ? !isWeekend : true;
+	// Display form only on weekdays
+	let currentDay: number;
+	$: showForm = [1, 2, 3, 4].includes(currentDay) || !featureFlags.isEnabled('no_saturday_sunday');
 
 	// Disabled submit button
 	let isUshersValid: boolean = false;

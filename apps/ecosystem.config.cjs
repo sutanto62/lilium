@@ -7,7 +7,7 @@ module.exports = {
     node_args: '-r dotenv/config', // svelte not automatically loading .env file
     env: {
       NODE_ENV: 'staging',
-      DOTENV_CONFIG_PATH: '.env.staging',
+      PORT: 3001,
     },
     watch: false, // Disabled watch in production for better performance
     max_memory_restart: '1536M', // Set to 75% of total memory (2GB)
@@ -37,7 +37,7 @@ module.exports = {
     node_args: '-r dotenv/config',
     env: {
       NODE_ENV: 'production',
-      DOTENV_CONFIG_PATH: '.env.production'
+      PORT: 7001,
     },
     watch: false,
     max_memory_restart: '1536M',

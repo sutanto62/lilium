@@ -1,8 +1,7 @@
-import { user } from '$lib/server/db/schema';
 import type { User } from '$core/entities/Authentication';
+import { user } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
-import type { drizzle } from 'drizzle-orm/better-sqlite3';
-import { logger } from '$src/lib/utils/logger';
+import type { drizzle } from 'drizzle-orm/libsql';
 
 export async function findUserByEmail(
 	db: ReturnType<typeof drizzle>,

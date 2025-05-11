@@ -1,11 +1,9 @@
 import { SvelteKitAuth } from '@auth/sveltekit';
+import type { Provider } from '@auth/sveltekit/providers';
 import Google from '@auth/sveltekit/providers/google';
 import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
-import type { Provider } from '@auth/sveltekit/providers';
 import { repo } from './lib/server/db';
 import { logger } from './lib/utils/logger';
-import posthog from 'posthog-js';
-import { identifyUser } from './lib/utils/analytic';
 import { maskEmail } from './lib/utils/maskUtils';
 
 const providers: Provider[] = [
@@ -55,7 +53,7 @@ export type UserRole = 'admin' | 'user' | 'visitor';
 export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	trustHost: true,
 	providers: providers,
-	secret: import.meta.env.AUTH_SECRET,
+	secret: import.meta.env.VITE_AUTH_SECRET,
 	pages: {
 		signIn: '/signin'
 	},

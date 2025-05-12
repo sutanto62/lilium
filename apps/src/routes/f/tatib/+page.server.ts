@@ -1,11 +1,11 @@
-import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
+import type { EventUsher } from '$core/entities/Event';
 import type { Church } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { calculateEventDate, getWeekNumber } from '$lib/utils/dateUtils';
+import { getWeekNumber } from '$lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -33,19 +33,32 @@ export const load: PageServerLoad = async (event) => {
 		throw error(404, 'Gereja belum terdaftar');
 	}
 	churchService = new ChurchService(churchId);
+	eventService = new EventService(churchId);
+
+	let weekNumber = getWeekNumber();
+
+	// if (process.env.NODE_ENV === 'development') {
+	// 	weekNumber = 20;
+	// }
 
 	try {
-		const [masses, wilayahs, lingkungans] = await Promise.all([
-			churchService.getMasses(),
+		const [wilayahs, lingkungans, events] = await Promise.all([
 			churchService.getWilayahs(),
-			churchService.getLingkungans()
+			churchService.getLingkungans(),
+			eventService.getEventsByWeekNumber(weekNumber),
 		]);
+
+		// Return unique events date sort ascending
+		const eventsDate = events.length
+			? [...new Set(events.map(event => event.date))]
+			: [];
 
 		return {
 			church,
-			masses,
 			wilayahs,
 			lingkungans,
+			events,
+			eventsDate: eventsDate,
 			success: false,
 			assignedUshers: [],
 		};
@@ -58,14 +71,16 @@ export const load: PageServerLoad = async (event) => {
 export const actions = {
 	default: async ({ request, cookies }) => {
 		logger.info('event ushers confirmation is starting')
+
 		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' }); // check session cookie
 		}
+		const eventService = new EventService(churchId);
 
 		const submittedAt = new Date();
 		const formData = await request.formData();
-		const massId = formData.get('massId') as string;
+		const eventId = formData.get('eventId') as string;
 		const wilayahId = formData.get('wilayahId') as string;
 		const lingkunganId = formData.get('lingkunganId') as string;
 		const ushersString = formData.get('ushers') as string;
@@ -77,14 +92,19 @@ export const actions = {
 		}
 
 		// Validate mandatory input 
-		if (!massId || !wilayahId || !lingkunganId || !ushersString) {
+		if ((!eventId) || !wilayahId || !lingkunganId || !ushersString) {
 			return fail(400, { error: 'Mohon lengkapi semua isian.' });
 		}
 
 		try {
-			const [selectedMass, massZonePositions] = await Promise.all([
-				repo.getMassById(massId),
-				repo.getPositionsByMass(churchId, massId)
+			// Get the mass ID from the event
+			const confirmedEvent = await eventService.getEventById(eventId)
+
+			// TODO: change to service
+			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([
+				repo.getMassById(confirmedEvent.mass),
+				repo.getLingkunganById(lingkunganId),
+				repo.getPositionsByMass(churchId, confirmedEvent.mass)
 			]);
 
 			// Validate mass ushers position
@@ -92,8 +112,6 @@ export const actions = {
 				logger.warn(`mass zone position not found: ${selectedMass?.name}.`)
 				return fail(404, { error: `Misa ${selectedMass?.name} belum memiliki titik tugas.` })
 			}
-
-			const selectedLingkungan = await repo.getLingkunganById(lingkunganId);
 
 			if (!selectedMass) {
 				logger.warn(`mass not found.`)
@@ -106,7 +124,6 @@ export const actions = {
 			}
 
 			// Validate ushers
-			const eventDate = calculateEventDate(submittedAt, selectedMass);
 			let ushersArray: EventUsher[];
 			try {
 				ushersArray = JSON.parse(ushersString);
@@ -115,24 +132,9 @@ export const actions = {
 				return fail(400, { error: 'Gagal parsing data petugas' });
 			}
 
-			const newEvent: ChurchEvent = {
-				id: '',
-				church: churchId,
-				mass: massId,
-				date: eventDate,
-				weekNumber: getWeekNumber(eventDate),
-				createdAt: 0,
-				isComplete: 0,
-				active: 1
-			};
-
-			// Insert event ushers (create event if not exists)
-			eventService = new EventService(churchId);
-			const createdEvent = await eventService.confirmEvent(newEvent);
-
 			// Insert ushers into event
 			const createdUshers = await eventService.insertEventUshers(
-				createdEvent.id,
+				confirmedEvent.id,
 				ushersArray,
 				wilayahId,
 				lingkunganId
@@ -148,9 +150,9 @@ export const actions = {
 
 			// Update ushers with position
 			try {
-				await queueManager.submitConfirmationQueue(createdEvent, selectedLingkungan);
+				await queueManager.submitConfirmationQueue(confirmedEvent, selectedLingkungan);
 				await queueManager.processQueue();
-				await queueManager.reset();
+				queueManager.reset();
 			} catch (err) {
 				logger.warn('failed processing queue:', err);
 				if (err instanceof Error)

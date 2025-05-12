@@ -4,7 +4,6 @@ import Google from '@auth/sveltekit/providers/google';
 import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
 import { repo } from './lib/server/db';
 import { logger } from './lib/utils/logger';
-import { maskEmail } from './lib/utils/maskUtils';
 
 const providers: Provider[] = [
 	MicrosoftEntraID({
@@ -64,7 +63,6 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				const dbUser = await repo.getUserByEmail(user.email ?? '');
 
 				if (!dbUser) {
-					logger.debug(`unregistered ${account.provider} ${maskEmail(user.email)} user`)
 					// Return token with unregistered flag
 					return {
 						...token,
@@ -77,7 +75,6 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
-				logger.debug(`registered ${account.provider} ${maskEmail(user.email)} user`);
 			}
 
 			return token;

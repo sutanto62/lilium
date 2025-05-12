@@ -77,6 +77,5 @@ export const identifyUser = async (userId: string, properties: Record<string, an
         distinctId: userId,
         properties
     });
-    logger.debug(`identified posthoguser ${userId} with properties ${JSON.stringify(properties)}`);
     await posthogInstance.shutdown();
 }

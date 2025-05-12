@@ -1,23 +1,42 @@
 <script lang="ts">
-	import { Breadcrumb, BreadcrumbItem, Heading, P, Timeline } from 'flowbite-svelte';
-	export let data;
+	import { goto } from '$app/navigation';
+	import { Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
+	import { FloppyDiskSolid } from 'flowbite-svelte-icons';
 
-	$: masses = data.masses;
+	export let data;
+	export let form;
+
+	$: events = data.events;
+	$: success = form?.success;
+	$: error = form?.error;
+
+	async function handleSubmit() {
+		try {
+			await fetch('?/createEvent', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: new URLSearchParams()
+			});
+			alert('Jadwal misa berhasil dibuat');
+			goto('/admin/misa', { invalidateAll: true });
+		} catch (err) {
+			alert('Gagal membuat jadwal misa');
+		}
+	}
 </script>
 
-${masses.length}
-
-<Breadcrumb class="mb-4	">
+<Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/admin" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/misa">Misa</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="w-full">
-	{#if masses.length === 0}
+	{#if events.length === 0}
 		<div
 			class="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800"
 		>
-			;
 			<p class="mb-2 text-lg font-medium text-gray-900 dark:text-white">
 				Petugas Tatib masih kosong.
 			</p>
@@ -26,9 +45,18 @@ ${masses.length}
 			</p>
 		</div>
 	{/if}
-	{#each masses as mass}
+
+	<div class="mb-4">
+		<form on:submit|preventDefault={handleSubmit}>
+			<Button type="submit" id="save-button" color="primary">
+				<FloppyDiskSolid class="mr-2" />Tambah Jadwal Misa
+			</Button>
+		</form>
+	</div>
+
+	{#each events as event}
 		<div>
-			<p>{mass.name}</p>
+			<p>{event.weekNumber}/{event.date}: {event.code}, {event.description}</p>
 		</div>
 	{/each}
 </div>

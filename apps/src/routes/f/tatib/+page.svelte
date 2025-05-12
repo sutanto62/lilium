@@ -16,7 +16,7 @@
 	export let form: ActionData;
 
 	// Data
-	let selectedMassId: string | null = null;
+	let selectedEventId: string | null = null;
 	let selectedWilayahId: string | null = null;
 	let selectedLingkunganId: string | null = null;
 	let ushers: Usher[] = [
@@ -34,10 +34,9 @@
 
 	// Disabled submit button
 	let isUshersValid: boolean = false;
-	// $: isSubmitDisable = false;
 	$: isSubmitDisable =
 		!isUshersValid ||
-		selectedMassId == null ||
+		selectedEventId == null ||
 		selectedWilayahId == null ||
 		selectedLingkunganId == null;
 
@@ -95,10 +94,10 @@
 {/if}
 
 {#if showForm}
-	<h1 class="mb-6 text-xl font-semibold">{data.church.name} Konfirmasi Petugas Tata Tertib</h1>
+	<h1 class="mb-6 text-xl font-semibold">Konfirmasi Petugas Tata Tertib</h1>
 	<form method="POST" class="mb-6">
 		<input type="hidden" name="churchId" value={data.church.id} />
-		<input type="hidden" name="massId" value={selectedMassId || ''} />
+		<input type="hidden" name="eventId" value={selectedEventId || ''} />
 		<input type="hidden" name="wilayahId" value={selectedWilayahId || ''} />
 		<input type="hidden" name="lingkunganId" value={selectedLingkunganId || ''} />
 		<input type="hidden" name="ushers" value={JSON.stringify(ushers)} />
@@ -106,10 +105,11 @@
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 			<section class="rounded-lg border bg-white p-6 md:col-span-1">
 				<Regional
-					masses={data.masses}
+					eventsDate={data.eventsDate}
+					events={data.events}
 					wilayahs={data.wilayahs}
 					lingkungans={data.lingkungans}
-					bind:selectedMassId
+					bind:selectedEventId
 					bind:selectedWilayahId
 					bind:selectedLingkunganId
 				/>

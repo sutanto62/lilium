@@ -9,6 +9,14 @@ export interface Event {
 	createdAt: number;
 	isComplete: number; // 100% assigned ushers
 	active: number;
+	type?: EventType | null;
+	code?: string | null;
+	description?: string | null;
+}
+
+export enum EventType {
+	MASS = 'mass',
+	FEAST = 'feast'
 }
 
 export interface EventUsher {

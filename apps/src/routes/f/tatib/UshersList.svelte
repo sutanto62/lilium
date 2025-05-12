@@ -3,24 +3,24 @@
 </script>
 
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import {
 		Alert,
+		Button,
+		Checkbox,
+		Input,
 		Progressbar,
 		Table,
+		TableBody,
+		TableBodyCell,
+		TableBodyRow,
 		TableHead,
 		TableHeadCell,
-		TableBody,
-		TableBodyRow,
-		TableBodyCell,
-		Input,
-		Checkbox,
-		Toggle,
-		Button
+		Toggle
 	} from 'flowbite-svelte';
+	import { onMount } from 'svelte';
 
-	import { UserAddSolid } from 'flowbite-svelte-icons';
 	import type { Usher } from '$core/entities/Schedule';
+	import { UserAddSolid } from 'flowbite-svelte-icons';
 
 	// Props
 	export let isSubmitable: boolean = false;
@@ -108,7 +108,9 @@
 	}
 </script>
 
-<div class="flex items-center justify-between gap-4 px-0 pb-4">
+<div
+	class="sticky top-0 z-10 flex items-center justify-between gap-4 bg-white px-0 pb-4 dark:bg-gray-800"
+>
 	<caption class="text-left text-lg font-semibold">
 		Petugas
 		<p class="mt-1 text-sm font-normal">
@@ -207,6 +209,8 @@
 	</TableBody>
 </Table>
 
-<div class="flex justify-end gap-4 px-0 py-4">
+<div
+	class="sticky bottom-0 z-10 flex justify-end gap-4 border-t border-gray-200 bg-white px-0 py-4 dark:border-gray-700 dark:bg-gray-800"
+>
 	<Button id="reset-button" color="alternative" size="xs" on:click={reset}>Reset</Button>
 </div>

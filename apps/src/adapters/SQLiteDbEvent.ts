@@ -1,12 +1,13 @@
-import type {
-	CetakJadwalResponse,
-	CetakJadwalSection,
-	Event as ChurchEvent,
-	EventPicRequest,
-	EventUsher,
-	JadwalDetailResponse,
-	JadwalDetailZone,
-	UsherByEvent
+import {
+	EventType,
+	type CetakJadwalResponse,
+	type CetakJadwalSection,
+	type Event as ChurchEvent,
+	type EventPicRequest,
+	type EventUsher,
+	type JadwalDetailResponse,
+	type JadwalDetailZone,
+	type UsherByEvent
 } from '$core/entities/Event';
 import {
 	church,
@@ -20,29 +21,28 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function createEvent(
 	db: ReturnType<typeof drizzle>,
-	churchId: string,
-	massId: string,
-	date: string
+	newEvent: ChurchEvent
 ): Promise<ChurchEvent> {
 	return await db
 		.insert(event)
 		.values({
-			id: uuidv4(),
-			church_id: churchId,
-			mass_id: massId,
-			date: date,
-			week_number: getWeekNumber(date),
-			created_at: new Date().getTime(),
+			id: newEvent.id,
+			church_id: newEvent.church,
+			mass_id: newEvent.mass,
+			date: newEvent.date,
+			week_number: newEvent.weekNumber,
+			created_at: newEvent.createdAt,
 			isComplete: 0,
-			active: 1
+			active: 1,
+			code: newEvent.code,
+			description: newEvent.description
 		})
 		.returning({
 			id: event.id,
@@ -52,7 +52,8 @@ export async function createEvent(
 			weekNumber: event.week_number,
 			createdAt: event.created_at,
 			isComplete: event.isComplete,
-			active: event.active
+			active: event.active,
+			code: event.code,
 		})
 		.then((result: ChurchEvent[]) => result[0])
 		.catch((error: Error) => {
@@ -206,12 +207,16 @@ export async function findEventById(
 			weekNumber: event.week_number,
 			createdAt: event.created_at,
 			isComplete: event.isComplete,
-			active: event.active
+			active: event.active,
+			type: event.type,
+			code: event.code,
+			description: event.description
 		})
 		.from(event)
 		.where(and(eq(event.id, id), eq(event.active, 1)))
 		.limit(1);
-	return query[0];
+
+	return query[0] as ChurchEvent;
 }
 
 export async function findEventByIdResponse(
@@ -233,7 +238,10 @@ export async function findEventByIdResponse(
 				church: row.church?.name,
 				mass: row.mass?.name,
 				date: row.event.date,
-				createdAt: row.event.created_at
+				createdAt: row.event.created_at,
+				isComplete: row.event.isComplete,
+				active: 1,
+				code: row.event.code,
 			}) as ChurchEvent
 	);
 
@@ -256,6 +264,9 @@ export async function findEvents(
 			weekNumber: event.week_number,
 			createdAt: event.created_at,
 			isComplete: event.isComplete,
+			type: event.type,
+			code: event.code,
+			description: event.description
 		})
 		.from(event)
 		.where(and(eq(event.church_id, churchId), eq(event.active, 1)))
@@ -280,6 +291,72 @@ export async function findEvents(
 				weekNumber: row.weekNumber,
 				createdAt: row.createdAt,
 				isComplete: row.isComplete,
+				type: row.type || EventType.MASS as EventType,
+				code: row.code,
+				description: row.description,
+				active: 1
+			}) as ChurchEvent
+	);
+}
+
+
+export async function findEventsByWeekNumber(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	weekNumbers: number[],
+	limit?: number
+): Promise<ChurchEvent[]> {
+	const today = new Date();
+	const query = db
+		.select({
+			id: event.id,
+			church: church.name,
+			churchCode: church.code,
+			mass: mass.name,
+			date: event.date,
+			weekNumber: event.week_number,
+			createdAt: event.created_at,
+			isComplete: event.isComplete,
+			type: event.type,
+			code: event.code,
+			description: event.description,
+		})
+		.from(event)
+		.where(
+			and(eq(event.church_id, churchId),
+				inArray(event.week_number, weekNumbers),
+				eq(event.active, 1),
+				gt(event.date, today.toISOString().split('T')[0])
+			))
+		.leftJoin(church, eq(church.id, event.church_id))
+		.leftJoin(mass, eq(mass.id, event.mass_id))
+		.orderBy(event.date);
+
+	if (limit !== undefined) {
+		query.limit(limit);
+	}
+
+	const result = await query;
+
+	if (!result?.length) {
+		return [];
+	}
+
+	return result.map(
+		(row) =>
+			({
+				id: row.id,
+				church: row.church,
+				churchCode: row.churchCode,
+				mass: row.mass,
+				date: row.date,
+				weekNumber: row.weekNumber,
+				createdAt: row.createdAt,
+				isComplete: row.isComplete,
+				type: row.type || EventType.MASS as EventType,
+				code: row.code,
+				description: row.description,
+				active: 1
 			}) as ChurchEvent
 	);
 }
@@ -751,4 +828,58 @@ export async function findEventUshersPosition(
 		.orderBy(church_position.sequence);
 
 	return query.map(row => row.position).filter((pos): pos is string => pos !== null);
+}
+
+export async function findEventsByDateRange(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	startDate: string,
+	endDate: string
+): Promise<ChurchEvent[]> {
+	const query = db
+		.select({
+			id: event.id,
+			church: church.name,
+			churchCode: church.code,
+			mass: mass.name,
+			date: event.date,
+			weekNumber: event.week_number,
+			createdAt: event.created_at,
+			isComplete: event.isComplete,
+			type: event.type,
+			code: event.code,
+			description: event.description
+		})
+		.from(event)
+		.where(
+			and(
+				eq(event.church_id, churchId),
+				eq(event.active, 1),
+				gte(event.date, startDate),
+				lte(event.date, endDate)
+			)
+		)
+		.leftJoin(church, eq(church.id, event.church_id))
+		.leftJoin(mass, eq(mass.id, event.mass_id))
+		.orderBy(event.date);
+
+	const result = await query;
+
+	return result.map(
+		(row) =>
+			({
+				id: row.id,
+				church: row.church,
+				churchCode: row.churchCode,
+				mass: row.mass,
+				date: row.date,
+				weekNumber: row.weekNumber,
+				createdAt: row.createdAt,
+				isComplete: row.isComplete,
+				type: row.type || EventType.MASS as EventType,
+				code: row.code,
+				description: row.description,
+				active: 1
+			}) as ChurchEvent
+	);
 }

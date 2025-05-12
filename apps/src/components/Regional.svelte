@@ -1,15 +1,27 @@
 <script lang="ts">
+	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import type { Lingkungan, Wilayah } from '$core/entities/Schedule';
 	import { Label, Select } from 'flowbite-svelte';
-
-	import type { Mass, Wilayah, Lingkungan } from '$core/entities/Schedule';
+	import { onMount } from 'svelte';
 
 	// Props
-	export let masses: Mass[];
+	export let events: ChurchEvent[];
+	export let eventsDate: string[];
 	export let wilayahs: Wilayah[];
 	export let lingkungans: Lingkungan[];
-	export let selectedMassId: string | null = null;
+
+	export let selectedEventId: string | null = null;
 	export let selectedWilayahId: string | null = null;
 	export let selectedLingkunganId: string | null = null;
+
+	// Local variables
+	let currentDate: string;
+	let selectedEventDate: string | null = null;
+
+	// Filter events by selected date
+	$: filteredEvents = selectedEventDate
+		? events.filter((events) => events.date === selectedEventDate)
+		: [];
 
 	// Filter lingkungan based on selected wilayah
 	$: filteredLingkungans = selectedWilayahId
@@ -21,15 +33,9 @@
 		selectedLingkunganId = null;
 	}
 
-	// Reset selectedWilayah and selectedLingkungan when selectedEvent changes
-	$: if (selectedMassId !== null) {
-		selectedWilayahId = null;
-		selectedLingkunganId = null;
-	}
-
-	import { onMount } from 'svelte';
-
-	let currentDate: string;
+	// $: if (selectedEventDate) {
+	// 	selectedEventId = events.find((event) => event.date === selectedEventDate)?.id || null;
+	// }
 
 	onMount(() => {
 		const now = new Date();
@@ -45,34 +51,57 @@
 <div class="mb-6 grid gap-6 md:grid-cols-1">
 	<caption class="text-left text-lg font-semibold">
 		Pilih Jadwal
-		<p class="mt-1 text-sm font-normal">{currentDate}</p>
+		<p class="mt-1 text-sm font-normal">Hari ini: {currentDate}</p>
 	</caption>
+
 	<Label class="text-md font-normal">
-		Jadwal Misa
+		Tanggal
 		<Select
 			class="mt-2"
-			id="select-event"
-			items={masses.map((e) => ({ value: e.id, name: `${e.code} - ${e.name}` }))}
-			bind:value={selectedMassId}
-		/>
-	</Label>
-	<Label class="text-md font-normal">
-		Wilayah
-		<Select
-			class="mt-2"
-			id="select-wilayah"
-			items={wilayahs.map((e) => ({ value: e.id, name: e.name }))}
-			bind:value={selectedWilayahId}
+			id="select-date"
+			items={eventsDate.map((date) => ({
+				value: date,
+				name: new Date(date).toLocaleDateString('id-ID', {
+					weekday: 'long',
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric'
+				})
+			}))}
+			bind:value={selectedEventDate}
+			placeholder="Pilih tanggal tugas"
 		/>
 	</Label>
 
 	<Label class="text-md font-normal">
-		Lingkungan
+		Misa
 		<Select
-			class="mt-2"
-			id="select-lingkungan"
-			items={filteredLingkungans.map((e) => ({ value: e.id, name: e.name }))}
-			bind:value={selectedLingkunganId}
+			class="mt-0"
+			id="select-feast"
+			items={filteredEvents.map((e) => ({ value: e.id, name: `${e.code} - ${e.description}` }))}
+			bind:value={selectedEventId}
 		/>
 	</Label>
+
+	{#if events && events.length > 0}
+		<Label class="text-md font-normal">
+			Wilayah
+			<Select
+				class="mt-2"
+				id="select-wilayah"
+				items={wilayahs.map((e) => ({ value: e.id, name: e.name }))}
+				bind:value={selectedWilayahId}
+			/>
+		</Label>
+
+		<Label class="text-md font-normal">
+			Lingkungan
+			<Select
+				class="mt-2"
+				id="select-lingkungan"
+				items={filteredLingkungans.map((e) => ({ value: e.id, name: e.name }))}
+				bind:value={selectedLingkunganId}
+			/>
+		</Label>
+	{/if}
 </div>

@@ -1,7 +1,7 @@
-import type { drizzle } from 'drizzle-orm/better-sqlite3';
+import type { Lingkungan } from '$core/entities/Schedule';
 import { lingkungan, wilayah } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
-import type { Lingkungan } from '$core/entities/Schedule';
+import type { drizzle } from 'drizzle-orm/libsql';
 
 export async function findWilayahs(db: ReturnType<typeof drizzle>, churchId: string) {
 	return await db

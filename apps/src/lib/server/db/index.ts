@@ -1,28 +1,30 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as dotenv from 'dotenv';
-dotenv.config();
-import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
 import { SQLiteAdapter } from '$adapters/SQLiteAdapter';
+import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
+import { logger } from '$src/lib/utils/logger';
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
 
 function createDatabase(): ScheduleRepository {
 	const databaseUrl = import.meta.env.VITE_DATABASE_URL;
-	if (!databaseUrl) throw new Error('Database URL variableß is not set');
+	const authToken = import.meta.env.VITE_DATABASE_AUTH_TOKEN;
 
-	let database: ReturnType<typeof drizzle>;
+	if (!databaseUrl) throw new Error('Database URL variable is not set');
 
-	if (
-		databaseUrl.startsWith('/') ||
-		databaseUrl.startsWith('../') ||
-		databaseUrl.startsWith('')
-	) {
-		const sqlite = new Database(databaseUrl);
-		database = drizzle(sqlite);
+	try {
+		// For local SQLite file, use file: prefix
+		const url = databaseUrl.startsWith('file:') ? databaseUrl : `file:${databaseUrl}`;
+
+		const client = createClient({
+			url,
+			authToken: authToken
+		});
+
+		const database = drizzle(client);
+		logger.info(`database connected`)
 		return new SQLiteAdapter(database);
-	} else if (databaseUrl.startsWith('postgres://') || databaseUrl.startsWith('postgresql://')) {
-		throw new Error('Postgres is not supported yet');
-	} else {
-		throw new Error('Unsupported database type or invalid database URL');
+	} catch (err) {
+		logger.error(`Failed to open database: ${err}`);
+		throw err;
 	}
 }
 

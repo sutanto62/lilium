@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import '$src/app.css';
 	import posthog from 'posthog-js';
-	import { browser } from '$app/environment';
-	import { beforeNavigate, afterNavigate } from '$app/navigation';
 
 	if (browser) {
 		beforeNavigate(() => posthog.capture('$pageleave'));
@@ -11,8 +11,11 @@
 </script>
 
 <svelte:head>
-	<title>LIS Alam Sutera</title>
-	<meta name="description" content="LIS" />
+	<title>Lilium Inter Spinas | Solusi layanan kegiatan gereja</title>
+	<meta
+		name="description"
+		content="Mempermudah umat untuk ikut serta berkegiatan menggereja, penjadwalan kegiatan, konfirmasi tugas."
+	/>
 </svelte:head>
 
 <div class="container h-screen max-w-full px-0 py-0" id="main">

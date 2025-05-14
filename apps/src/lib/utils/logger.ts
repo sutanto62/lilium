@@ -1,5 +1,4 @@
-import { browser } from '$app/environment';
-import { dev } from '$app/environment';
+import { browser, dev } from '$app/environment';
 
 // Browser-safe logger
 const browserLogger = {

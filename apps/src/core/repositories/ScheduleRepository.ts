@@ -1,24 +1,24 @@
-import {
-	mass,
-	event,
-} from '$lib/server/db/schema';
+import type { User } from '$core/entities/Authentication';
 import type {
-	Church,
-	ChurchZone,
-	Lingkungan,
-	Wilayah,
-	ChurchPosition,
-	Mass,
-} from '$core/entities/Schedule';
-import type {
+	CetakJadwalResponse,
 	Event as ChurchEvent,
 	EventPicRequest,
 	EventUsher,
 	JadwalDetailResponse,
-	CetakJadwalResponse,
 	UsherByEvent
 } from '$core/entities/Event';
-import type { User } from '$core/entities/Authentication';
+import type {
+	Church,
+	ChurchPosition,
+	ChurchZone,
+	Lingkungan,
+	Mass,
+	Wilayah,
+} from '$core/entities/Schedule';
+import {
+	event,
+	mass,
+} from '$lib/server/db/schema';
 
 // Port
 /*
@@ -46,6 +46,7 @@ export interface ScheduleRepository {
 	createEventPic: (pic: EventPicRequest) => Promise<boolean>;
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
+	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
 	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
 	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
@@ -53,8 +54,9 @@ export interface ScheduleRepository {
 	listUshers(eventId: string): Promise<UsherByEvent[]>; // formatted response
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
 	findEventById(id: string): Promise<ChurchEvent>; // formatted response
-	editEventUshers(ushers: EventUsher[]): Promise<void>;
+	editEventUshers(ushers: EventUsher[]): Promise<{ success: boolean; updatedCount: number }>;
 	findCetakJadwal(eventId: string): Promise<CetakJadwalResponse>;
+
 	// Facility
 	getChurches(): Promise<Church[]>;
 	findChurchById(id: string): Promise<Church>;

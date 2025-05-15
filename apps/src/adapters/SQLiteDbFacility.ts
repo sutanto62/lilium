@@ -93,6 +93,27 @@ export async function findPositionByChurch(
 	}));
 }
 
+// TODO: add params to detect feature flag is ppg?
+/**
+ * Finds positions available for a specific mass at a church
+ * 
+ * Queries the church_position table joined with church_zone and mass_zone
+ * to get all positions configured for a given mass at a church.
+ * Results are ordered by zone and position sequences.
+ *
+ * @param db - The SQLite database connection
+ * @param churchId - ID of the church to find positions for
+ * @param massId - ID of the mass to find positions for
+ * @returns Promise resolving to array of ChurchPosition objects containing:
+ *  - id: Unique ID of the position
+ *  - church: Church ID this position belongs to
+ *  - name: Name of the position
+ *  - code: Position code
+ *  - description: Position description
+ *  - isPpg: Boolean indicating if position is PPG
+ *  - sequence: Sort order sequence number
+ *  - type: Position type
+ */
 export async function findPositionByMass(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,

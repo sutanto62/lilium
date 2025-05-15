@@ -1,14 +1,14 @@
-import { v4 as uuidv4 } from 'uuid';
-import { repo } from '$src/lib/server/db';
 import type {
-	Event as ChurchEvent,
-	EventUsher,
-	UsherByEvent,
-	JadwalDetailResponse,
 	CetakJadwalResponse,
-	EventPicRequest
+	Event as ChurchEvent,
+	EventPicRequest,
+	EventUsher,
+	JadwalDetailResponse,
+	UsherByEvent
 } from '$core/entities/Event';
+import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 export class EventService {
 	churchId: string;
@@ -28,8 +28,17 @@ export class EventService {
 		return this.getEventUshers(eventId);
 	}
 
+	// return formated responses
 	async getEventUshers(eventId: string): Promise<UsherByEvent[]> {
 		return await repo.listUshers(eventId);
+	}
+
+	async getUshersByEvent(eventId: string): Promise<EventUsher[]> {
+		return await repo.getEventUshers(eventId);
+	}
+
+	async getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]> {
+		return await repo.getEventUshersPosition(eventId, isPpg);
 	}
 
 	async getJadwalDetail(eventId: string): Promise<JadwalDetailResponse> {
@@ -40,6 +49,15 @@ export class EventService {
 		return await repo.deactivateEvent(eventId);
 	}
 
+	/**
+	 * Confirms or creates a new church event.
+	 * 
+	 * This method first checks if an event already exists for the given church, mass and date.
+	 * If it exists, returns the existing event. Otherwise creates a new event.
+	 * 
+	 * @param event - The event details containing church ID, mass ID and date
+	 * @returns Promise<ChurchEvent> - The existing or newly created event
+	 */
 	async confirmEvent(event: ChurchEvent): Promise<ChurchEvent> {
 		const createdEvent = await repo.getEventByChurch(event.church, event.mass, event.date);
 

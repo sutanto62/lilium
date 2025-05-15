@@ -23,7 +23,7 @@ import {
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -127,7 +127,6 @@ export async function createEventPic(
 	}
 
 	await db.insert(event_zone_pic).values(picValues);
-	logger.debug(`Created event zone pic ${JSON.stringify(picValues)}`);
 	return true;
 }
 
@@ -144,15 +143,25 @@ export async function createEventPic(
 
 export async function updateEventUshers(
 	db: ReturnType<typeof drizzle>,
-	ushers: EventUsher[]
-): Promise<void> {
-	const updates = ushers.map((usher) => {
+	eventUshers: EventUsher[]
+): Promise<{ success: boolean; updatedCount: number }> {
+	if (!eventUshers?.length) {
+		return { success: true, updatedCount: 0 };
+	}
+
+	const updates = eventUshers.map((item) => {
 		return db
 			.update(event_usher)
-			.set({ position: usher.position })
-			.where(eq(event_usher.id, usher.id));
+			.set({ position: item.position, })
+			.where(eq(event_usher.id, item.id));
 	});
-	await Promise.all(updates);
+
+	try {
+		await Promise.all(updates);
+		return { success: true, updatedCount: eventUshers.length };
+	} catch (error) {
+		throw new Error('Failed to update event ushers');
+	}
 }
 
 export async function findEventByChurch(
@@ -290,6 +299,27 @@ export async function findEvents(
 	);
 }
 
+/**
+ * Finds ushers assigned to a specific event
+ * 
+ * Queries the event_usher table to get all ushers for a given event ID.
+ * Can optionally filter by lingkungan ID.
+ * 
+ * @param db - The SQLite database connection
+ * @param eventId - ID of the event to find ushers for
+ * @param lingkunganId - Optional lingkungan ID to filter by
+ * @param date - Optional date parameter (currently unused)
+ * @returns Promise resolving to array of EventUsher objects containing:
+ *  - id: Unique ID of the usher record
+ *  - event: Event ID this usher is assigned to
+ *  - name: Name of the usher
+ *  - wilayah: Wilayah (region) ID the usher belongs to
+ *  - lingkungan: Lingkungan (community) ID the usher belongs to
+ *  - position: Position ID assigned to this usher
+ *  - isPpg: Boolean indicating if usher is PPG
+ *  - isKolekte: Boolean indicating if usher handles collections
+ *  - createdAt: Timestamp when record was created
+ */
 export async function findEventUshers(
 	db: ReturnType<typeof drizzle>,
 	eventId: string,
@@ -305,8 +335,6 @@ export async function findEventUshers(
 				lingkunganId ? eq(event_usher.lingkungan, lingkunganId) : undefined
 			)
 		);
-
-	logger.debug(`found ${result.length} event ushers`);
 
 	return result.map(
 		(row) =>
@@ -700,4 +728,44 @@ function createUsherEntry(usher: any) {
 		kolekte: usher.isKolekte === 1 ? 'Kolekte' : 'Non Kolekte',
 		ppg: usher.isPpg === 1 ? 'PPG' : 'Non PPG'
 	};
+}
+
+export async function findEventUshersPosition(
+	db: ReturnType<typeof drizzle>,
+	eventId: string,
+	isPpg: boolean): Promise<string[]> {
+
+	// SELECT
+	// 	m.code,
+	// 	m.name,
+	// 	l.name,
+	// 	eu.name,
+	// 	eu.position_id,
+	// 	cp.name
+	// FROM "event_usher" eu
+	// LEFT JOIN "event" e ON e.id = eu.event_id
+	// LEFT JOIN "mass" m ON m.id = e.mass_id
+	// LEFT JOIN "lingkungan" l ON l.id = eu.lingkungan
+	// LEFT JOIN "church_position" cp ON cp.id = eu.position_id
+	// WHERE 
+	// 	eu.event_id = 'e0cfeccf-4819-408f-b4bb-a181816fcc5e'
+	// 	AND eu.is_kolekte = 1
+	// ORDER BY cp."sequence"
+	// ;
+
+	const query = await db.select({
+		position: event_usher.position
+	})
+		.from(event_usher)
+		.leftJoin(church_position, eq(church_position.id, event_usher.position))
+		.where(and(
+			eq(event_usher.event, eventId),
+			eq(event_usher.active, 1),
+			eq(church_position.active, 1),
+			isNotNull(event_usher.position),
+			isPpg ? eq(event_usher.isPpg, 1) : undefined
+		))
+		.orderBy(church_position.sequence);
+
+	return query.map(row => row.position).filter((pos): pos is string => pos !== null);
 }

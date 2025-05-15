@@ -11,6 +11,7 @@ import {
 	findEventByIdResponse,
 	findEvents,
 	findEventUshers,
+	findEventUshersPosition,
 	findJadwalDetail,
 	findUshersByEvent,
 	softDeleteEvent,
@@ -61,6 +62,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getEvents = (churchId: string, limit?: number) => findEvents(this.db, churchId, limit);
 	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
+	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
+		findEventUshersPosition(this.db, eventId, isPpg);
 	findJadwalDetail = (eventId: string) => findJadwalDetail(this.db, eventId);
 	deactivateEvent = (eventId: string) => softDeleteEvent(this.db, eventId);
 
@@ -74,7 +77,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 		lingkunganId: string
 	) => createEventUsher(this.db, eventId, ushers, wilayahId, lingkunganId);
 	listUshers = (eventId: string) => findUshersByEvent(this.db, eventId);
-	editEventUshers = (ushers: EventUsher[]) => updateEventUshers(this.db, ushers);
+	editEventUshers = (eventUshers: EventUsher[]) => updateEventUshers(this.db, eventUshers);
 	findEvent = (churchId: string, massId?: string, date?: string) =>
 		findEvent(this.db, churchId, massId, date);
 	findEventById = (id: string) => findEventByIdResponse(this.db, id);
@@ -96,3 +99,4 @@ export class SQLiteAdapter implements ScheduleRepository {
 	// Report
 	// findUshersByEvent = (eventId: string, date: string) => findUshersByEvent(this.db, eventId, date)dd
 }
+

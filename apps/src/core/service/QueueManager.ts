@@ -1,7 +1,9 @@
-import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
+import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
+import { featureFlags } from '$src/lib/utils/FeatureFlag';
 import { logger } from '$src/lib/utils/logger';
+import { EventService } from './EventService';
 
 export interface ConfirmationQueue {
 	event: ChurchEvent;
@@ -17,14 +19,23 @@ export interface ConfirmationQueue {
 export class QueueManager {
 	private static instance: QueueManager;
 	/** Array of existing ushers */
-	public ushers: EventUsher[] = [];
+	public eventUshers: EventUsher[] = [];
 	/** Array of available positions */
-	public positions: ChurchPosition[] = [];
+	public massZonePositions: ChurchPosition[] = [];
 	/** Queue of confirmation requests */
 	public confirmationQueue: ConfirmationQueue[] = []; // TODO: make sure to include past unprocessed queue events
 	public assignedUshers: (EventUsher & { positionName?: string })[] = [];
+	/** Last assigned position index for non-PPG positions */
+	private nextIndexNonPpg: number = 0;
+	/** Last assigned position index for PPG positions */
+	private lastIndexPpg: number = 0;
+	/** Event service instance */
+	private eventService: EventService;
 
-	private constructor() { }
+	private constructor() {
+		const churchId = import.meta.env.VITE_CHURCH_ID;
+		this.eventService = new EventService(churchId);
+	}
 
 	/**
 	 * Gets the singleton instance of QueueManager
@@ -39,6 +50,7 @@ export class QueueManager {
 
 	/**
 	 * Submits a new confirmation queue
+	 * 
 	 * @param {ChurchEvent} event - The church event
 	 * @param {Lingkungan} lingkungan - The lingkungan (community) submitting the queue
 	 * @returns {Promise<void>}
@@ -48,109 +60,169 @@ export class QueueManager {
 	}
 
 	/**
-	 * Processes the confirmation queue
+	 * Processes the confirmation queue by assigning positions to unassigned ushers
+	 * 
+	 * For each queued event:
+	 * 1. Gets all ushers and available positions for the event
+	 * 2. Separates assigned and unassigned ushers
+	 * 3. Assigns positions to unassigned ushers using round-robin algorithm
+	 * 4. Updates the ushers in the database with their new positions
+	 * 5. Removes the processed queue item
+	 * 
+	 * @throws {Error} If no positions are found for the mass
 	 * @returns {Promise<void>}
 	 */
-	async processConfirmationQueue(): Promise<void> {
-		logger.debug(`processing queue of ${this.confirmationQueue.length} event(s)`);
+	async processQueue(): Promise<void> {
+
+		logger.debug(`processing queue ${this.confirmationQueue.length} event(s)`);
 		this.assignedUshers = [];
 
-		for (const queue of this.confirmationQueue) {
-			this.ushers = await repo.getEventUshers(queue.event.id); // Get all ushers for the event (including past unprocessed events)
+		for (const batch of this.confirmationQueue) {
 
-			this.positions = await repo.getPositionsByMass(queue.event.church, queue.event.mass);
+			// 1. Get mass zone positions by event. Consider VITE_FEATURE_PPG
+			this.massZonePositions = await repo.getPositionsByMass(batch.event.church, batch.event.mass);
+			const isPpgEnabled = featureFlags.isEnabled('ppg');
+			const eventPositions = isPpgEnabled
+				? this.massZonePositions
+				: this.massZonePositions.filter(pos => !pos.isPpg);
+			this.massZonePositions = eventPositions;
+			logger.debug(`found mass zone positions: ${this.massZonePositions.map(pos => pos.id)}`)
 
-			// Break 
-			if (this.positions.length === 0) {
-				throw new Error(`Gagal menemukan titik tugas untuk ${queue.event.mass}`, { cause: 404 })
+			if (this.massZonePositions.length === 0) {
+				throw new Error(`Gagal menemukan titik tugas untuk ${batch.event.mass}`, { cause: 404 })
 			}
 
-			// Count assigned ushers
-			const assignedUshers = this.ushers.filter((usher) => usher.position !== null);
+			// 2. Get event ushers for the event (including past unprocessed events)
+			this.eventUshers = await repo.getEventUshers(batch.event.id);
+			logger.debug(`found event ushers positions: ${this.eventUshers.map(pos => pos.position)}, null positions: ${this.eventUshers.filter(u => u.position === null).map(u => u.name)}`);
 
-			const unassignedUshers = this.ushers.filter((usher) => usher.position === null);
+			// 3. Define next index 
+			const eupLatestPositionId = this.latestPositionId(this.eventUshers.map(usher => usher.position || ''));
+			logger.debug(`event usher latest position id: ${eupLatestPositionId}`);
+			this.nextIndexNonPpg = this.nextPositionIndex(eupLatestPositionId || '', this.massZonePositions.map(position => position.id));
+			logger.debug(`next index non ppg ${this.nextIndexNonPpg}`);
 
-			// Assign positions to unassigned ushers
-			const newAssignedUshers = this.assignPositions(unassignedUshers, assignedUshers.length);
-
-			// Update the ushers array
-			this.ushers = [...assignedUshers, ...newAssignedUshers];
+			// 4. Distribute position to ushers 
+			const assignedUshers = this.eventUshers.filter((usher) => usher.position !== null);
+			const unassignedUshers = this.eventUshers.filter((usher) => usher.position === null);
+			const newAssignedUshers = await this.distributePositions(
+				unassignedUshers,
+				batch.event.id,
+				this.nextIndexNonPpg
+			);
+			logger.debug(`completed distributing position to ${newAssignedUshers.length} event ushers`);
 
 			// Update event_ushers in the repository
-			await repo.editEventUshers(this.ushers);
+			this.eventUshers = [...assignedUshers, ...newAssignedUshers];
+			if (this.eventUshers.length > 0) {
+				const result = await repo.editEventUshers(this.eventUshers);
+				logger.debug(`succeed updating ${result.updatedCount} event ushers`);
+			}
 
 			// Remove the processed queue item
 			this.confirmationQueue.shift();
-
 			this.assignedUshers = [...this.assignedUshers, ...newAssignedUshers];
+			logger.debug(`removed queue item`);
 		}
-
-		// make sure to reset the queue after processing
-		this.reset();
 	}
 
 	/**
 	 * Assigns positions to unassigned ushers using round robin algorithm
+	 * 
+	 * Return newly assigned ushers
+	 * 
 	 * @param {EventUsher[]} unassignedUshers - Array of unassigned ushers
+	 * @param {string} eventId - The event ID
 	 * @param {number} assignedCount - Number of already assigned ushers
+	 * @param {ChurchPosition[]} availablePositions - Array of available positions
 	 * @private
 	 */
-	private assignPositions(unassignedUshers: EventUsher[], assignedCount: number): EventUsher[] {
-		logger.debug(`assigning ${unassignedUshers.length} ushers`);
+	private async distributePositions(
+		unassignedUshers: EventUsher[],
+		eventId: string,
+		nextIndex: number
+	): Promise<EventUsher[]> {
+		logger.debug(`distributing positions`);
 
-		const useAllPositions = true; // This could be made configurable via constructor/method
+		// Map each usher to a position, cycling through available positions
+		const assignedUshers = unassignedUshers.map((usher) => {
+			// Get position at current index, cycling back to start if needed
+			const position = this.massZonePositions[nextIndex % this.massZonePositions.length];
+			nextIndex += 1;
 
-		// Get available positions based on control flag
-		const availablePositions = useAllPositions
-			? this.positions // Use all positions
-			: this.positions.slice(assignedCount); // Only use empty positions
-
-		if (availablePositions.length === 0) {
-			throw new Error('Tidak ada titik tugas yang tersedia', { cause: 404 });
-		}
-
-		// logger.debug(`found ${availablePositions.length} available positions`);
-
-		// Split ushers into PPG and non-PPG groups
-		const ppgUshers = unassignedUshers.filter(usher => usher.isPpg);
-		const nonPpgUshers = unassignedUshers.filter(usher => !usher.isPpg);
-
-		// Split positions into PPG and non-PPG
-		const ppgPositions = availablePositions.filter(pos => pos.isPpg);
-		const nonPpgPositions = availablePositions.filter(pos => !pos.isPpg);
-
-		// Assign PPG ushers to PPG positions
-		const assignedPpgUshers = ppgUshers.map((usher, index) => {
-			const positionIndex = index % ppgPositions.length;
-			// logger.debug(`PPG ${usher.name} position index: ${ppgPositions[positionIndex].name}`);
 			return {
 				...usher,
-				position: ppgPositions[positionIndex].id,
-				positionName: ppgPositions[positionIndex].name
+				event: eventId,
+				position: position.id,
+				positionName: position.name
 			};
 		});
 
-		// Assign non-PPG ushers to non-PPG positions
-		const assignedNonPpgUshers = nonPpgUshers.map((usher, index) => {
-			const positionIndex = index % nonPpgPositions.length;
-			// logger.debug(`Non-PPG ${usher.name} position index: ${nonPpgPositions[positionIndex].name}`);
-			return {
-				...usher,
-				position: nonPpgPositions[positionIndex].id,
-				positionName: nonPpgPositions[positionIndex].name
-			};
-		});
-
-		const newAssignedUshers = [...assignedPpgUshers, ...assignedNonPpgUshers];
-
-		logger.debug(`assigned ${newAssignedUshers.length} ushers to ${availablePositions.length} positions`);
-
-		return newAssignedUshers;
+		logger.debug(`distributed position: ${assignedUshers.map(usher => usher.position)}`);
+		return assignedUshers;
 	}
 
-	private reset(): void {
-		this.ushers = [];
-		this.positions = [];
+	public reset(): void {
+		this.eventUshers = [];
+		this.massZonePositions = [];
 		this.confirmationQueue = [];
+		this.nextIndexNonPpg = 0;
+		this.lastIndexPpg = 0;
+	}
+
+	private latestPositionId(arr: string[]): string | null {
+		// If array is empty, return null
+		if (arr.length === 0) return null;
+
+		// Create a Map to store unique IDs and their occurrences
+		const idOccurrences = new Map<string, number>();
+
+		// Count occurrences of each non-empty ID
+		arr.forEach(id => {
+			if (id && id.trim() !== "") {
+				idOccurrences.set(id, (idOccurrences.get(id) || 0) + 1);
+			}
+		});
+
+		// Detect empty positions in arr
+		const emptyPositions = arr.filter(id => !id || id.trim() === "").length;
+
+		// Find the first ID that appears only once
+		if (emptyPositions) {
+			// Partial positions have been assigned 
+			for (let i = arr.length - 1; i >= 0; i--) {
+				const id = arr[i];
+				if (!id || id.trim() === "") continue;
+				if (idOccurrences.get(id) === 1) {
+					logger.debug(`returned last unique ID before first empty-positions`);
+					return id;
+				}
+			}
+		} else {
+			// All positions have been assigend
+			for (const id of arr) {
+				if (id && id.trim() !== "" && idOccurrences.get(id) === 1) {
+					logger.debug(`returned first unique ID`);
+					return id;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	private nextPositionIndex(latestPositionId: string, massZonePositions: string[]): number {
+		// If no latest position, start from beginning
+		if (!latestPositionId) return 0;
+
+		// Find current index
+		const currentIndex = massZonePositions.findIndex(position => position === latestPositionId);
+
+		// If position not found, start from beginning
+		if (currentIndex === -1) return 0;
+
+		// Calculate next index with loop back
+		const nextIndex = (currentIndex + 1) % massZonePositions.length;
+		return nextIndex;
 	}
 }

@@ -57,7 +57,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions = {
 	default: async ({ request, cookies }) => {
-		logger.info('Ushers confirmation is starting')
+		logger.info('event ushers confirmation is starting')
 		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' }); // check session cookie
@@ -72,7 +72,7 @@ export const actions = {
 
 		// Validate to reject entry if submittedAt weekday is Sunday, Friday, and Saturday
 		if (featureFlags.isEnabled('no_saturday_sunday') && [0, 5, 6].includes(submittedAt.getDay())) {
-			logger.warn(`Lingkungan ${lingkunganId} tried to confirm at closed window.`)
+			logger.warn(`lingkungan ${lingkunganId} tried to confirm at closed window.`)
 			return fail(400, { error: 'Batas konfirmasi tugas Senin s.d. Kamis' });
 		}
 
@@ -82,26 +82,26 @@ export const actions = {
 		}
 
 		try {
-			const [selectedMass, positions] = await Promise.all([
+			const [selectedMass, massZonePositions] = await Promise.all([
 				repo.getMassById(massId),
 				repo.getPositionsByMass(churchId, massId)
 			]);
 
 			// Validate mass ushers position
-			if (positions.length === 0) {
-				logger.warn(`Mass ${selectedMass?.name} has no usher position configured yet.`)
+			if (massZonePositions.length === 0) {
+				logger.warn(`mass zone position not found: ${selectedMass?.name}.`)
 				return fail(404, { error: `Misa ${selectedMass?.name} belum memiliki titik tugas.` })
 			}
 
 			const selectedLingkungan = await repo.getLingkunganById(lingkunganId);
 
 			if (!selectedMass) {
-				logger.warn(`Mass not found.`)
+				logger.warn(`mass not found.`)
 				return fail(404, { error: `Misa tidak ditemukan` });
 			}
 
 			if (!selectedLingkungan) {
-				logger.warn(`Lingkungan not found`)
+				logger.warn(`lingkungan not found`)
 				return fail(404, { error: 'Lingkungan tidak ditemukan' });
 			}
 
@@ -111,7 +111,7 @@ export const actions = {
 			try {
 				ushersArray = JSON.parse(ushersString);
 			} catch (err) {
-				logger.warn(`Failed to parse ushers list`)
+				logger.warn(`failed to parse ushers list`)
 				return fail(400, { error: 'Gagal parsing data petugas' });
 			}
 
@@ -140,19 +140,19 @@ export const actions = {
 
 			// Validate double input by lingkungan
 			if (!createdUshers) {
-				logger.warn(`Lingkungan ${lingkunganId} double input`)
+				logger.warn(`invalid lngkungan ${lingkunganId} input`)
 				return fail(400, {
 					error: 'Lingkungan sudah melakukan konfirmasi tugas'
 				});
 			}
 
 			// Update ushers with position
-			await queueManager.submitConfirmationQueue(createdEvent, selectedLingkungan);
-
 			try {
-				await queueManager.processConfirmationQueue();
+				await queueManager.submitConfirmationQueue(createdEvent, selectedLingkungan);
+				await queueManager.processQueue();
+				await queueManager.reset();
 			} catch (err) {
-				logger.warn('Error processing queue:', err);
+				logger.warn('failed processing queue:', err);
 				if (err instanceof Error)
 					return fail(404, { error: err.message });
 			}
@@ -160,7 +160,7 @@ export const actions = {
 			// Return ushers position to client
 			return { success: true, json: { ushers: queueManager.assignedUshers } };
 		} catch (err) {
-			logger.warn('Error creating event:', err);
+			logger.warn('failed creating event:', err);
 			return fail(404, { error: err });
 		}
 	}

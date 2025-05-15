@@ -4,7 +4,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
 	plugins: [sveltekit()],
 	optimizeDeps: {
-		exclude: ['@auth/drizzle-adapter', '@auth/sveltekit', 'drizzle-orm']
+		exclude: ['@auth/drizzle-adapter', '@auth/sveltekit', 'drizzle-orm', 'chunk-J2OGTVLC']
 	},
 	test: {
 		globals: true,

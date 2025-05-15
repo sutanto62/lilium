@@ -107,8 +107,8 @@ export class EventService {
 		}
 	}
 
-	async insertEventPic(pic: EventPicRequest): Promise<boolean> {
-		return await repo.createEventPic(pic);
+	async insertEventPic(request: EventPicRequest): Promise<boolean> {
+		return await repo.createEventPic(request);
 	}
 
 	async getCetakJadwal(eventId: string): Promise<CetakJadwalResponse> {

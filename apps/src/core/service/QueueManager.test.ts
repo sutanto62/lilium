@@ -4,198 +4,198 @@ import { repo } from '$src/lib/server/db';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueueManager } from './QueueManager';
 
-// describe('QueueManager', () => {
-//     const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
-//     const repoMassPositions = vi.spyOn(repo, 'getPositionsByMass');
-//     const manager = QueueManager.getInstance();
+describe('QueueManager', () => {
+    const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
+    const repoMassPositions = vi.spyOn(repo, 'getPositionsByMass');
+    const manager = QueueManager.getInstance();
 
-//     afterEach(() => {
-//         manager.confirmationQueue = [];
-//         vi.resetAllMocks();
-//     });
+    afterEach(() => {
+        manager.confirmationQueue = [];
+        vi.resetAllMocks();
+    });
 
-//     it('should submit confirmation queue', async () => {
-//         const event: ChurchEvent = createTestEvent();
-//         const lingkungan: Lingkungan[] = createTestLingkungan();
+    it('should submit confirmation queue', async () => {
+        const event: ChurchEvent = createTestEvent();
+        const lingkungan: Lingkungan[] = createTestLingkungan();
 
-//         // 1st Lingkungan submit their ushers
-//         await manager.submitConfirmationQueue(event, lingkungan[0]);
-//         expect(manager.confirmationQueue).toHaveLength(1);
+        // 1st Lingkungan submit their ushers
+        await manager.submitConfirmationQueue(event, lingkungan[0]);
+        expect(manager.confirmationQueue).toHaveLength(1);
 
-//         // 2nd Lingkungan submit their ushers (createdAt)
-//         await manager.submitConfirmationQueue(event, lingkungan[1]);
-//         expect(manager.confirmationQueue).toHaveLength(2);
-//     });
+        // 2nd Lingkungan submit their ushers (createdAt)
+        await manager.submitConfirmationQueue(event, lingkungan[1]);
+        expect(manager.confirmationQueue).toHaveLength(2);
+    });
 
-//     /*
-//     Lingkungan submit 6 ushers for saturday mass event. System will check existing
-//     ushers by event and default positions required by mass. The default positions
-//     will be substracted with the existing ushers. Remaining positions will be assigned
-//     to submitted ushers.
+    /*
+    Lingkungan submit 6 ushers for saturday mass event. System will check existing
+    ushers by event and default positions required by mass. The default positions
+    will be substracted with the existing ushers. Remaining positions will be assigned
+    to submitted ushers.
 
-//     Steps:
-//     1. Submit event and ushers to queue manager
-//     1.1. Check existing ushers by event and default positions by mass
-//     1.2. Count ushers with position
-//     1.3. Get ushers without position
-//     1.4. Get available positions (default positions - positon from existing ushers)
-//     1.5. Assign available positions to ushers without position
-//     1.6. Update ushers position
-//     1.7. Remove the processed queue item
+    Steps:
+    1. Submit event and ushers to queue manager
+    1.1. Check existing ushers by event and default positions by mass
+    1.2. Count ushers with position
+    1.3. Get ushers without position
+    1.4. Get available positions (default positions - positon from existing ushers)
+    1.5. Assign available positions to ushers without position
+    1.6. Update ushers position
+    1.7. Remove the processed queue item
 
-//     Note for testing:
-//     1. Use mocking to replace repository modules.
-//     2. Nested object should be tested one by one? need to check on this
-//     3. Event and Event Ushers must be called by separate repository method.
-//     */
+    Note for testing:
+    1. Use mocking to replace repository modules.
+    2. Nested object should be tested one by one? need to check on this
+    3. Event and Event Ushers must be called by separate repository method.
+    */
 
-//     it('should assign positions to new confirmation queue', async () => {
-//         const event: ChurchEvent = createTestEvent();
-//         const positions: ChurchPosition[] = createTestPositions();
-//         const lingkungan: Lingkungan[] = createTestLingkungan();
-//         const eventUshers: EventUsher[] = createUshersLingkunganA();
+    it('should assign positions to new confirmation queue', async () => {
+        const event: ChurchEvent = createTestEvent();
+        const positions: ChurchPosition[] = createTestPositions();
+        const lingkungan: Lingkungan[] = createTestLingkungan();
+        const eventUshers: EventUsher[] = createUshersLingkunganA();
 
-//         // Mock repository methods
-//         repoGetEventUshers.mockResolvedValue(eventUshers);
-//         repoMassPositions.mockResolvedValue(positions);
+        // Mock repository methods
+        repoGetEventUshers.mockResolvedValue(eventUshers);
+        repoMassPositions.mockResolvedValue(positions);
 
-//         // Submit confirmation queue
-//         await manager.submitConfirmationQueue(event, lingkungan[0]);
-//         // const unassignedUshers = eventUshersA.filter(usher => usher.position === null);
-//         // expect(unassignedUshers).toHaveLength(3);
+        // Submit confirmation queue
+        await manager.submitConfirmationQueue(event, lingkungan[0]);
+        // const unassignedUshers = eventUshersA.filter(usher => usher.position === null);
+        // expect(unassignedUshers).toHaveLength(3);
 
-//         // Process queue
-//         await manager.processQueue();
-//         // expect(manager.positions).toHaveLength(8);
-//         // expect(manager.ushers).toHaveLength(3);
+        // Process queue
+        await manager.processQueue();
+        // expect(manager.positions).toHaveLength(8);
+        // expect(manager.ushers).toHaveLength(3);
 
-//         // Verify position assignments
-//         expect(manager.eventUshers.every((usher) => usher.position !== null)).toBe(true);
+        // Verify position assignments
+        expect(manager.eventUshers.every((usher) => usher.position !== null)).toBe(true);
 
-//         // Check that all assigned ushers have positions
-//         const assignedUshers = manager.eventUshers.filter((usher) => usher.position !== null);
-//         expect(assignedUshers).toHaveLength(0);
+        // Check that all assigned ushers have positions
+        const assignedUshers = manager.eventUshers.filter((usher) => usher.position !== null);
+        expect(assignedUshers).toHaveLength(0);
 
-//         const assignedUshersPosition = assignedUshers.map((usher) => usher.position);
-//         expect(assignedUshersPosition).toEqual([]); // Position ID
+        const assignedUshersPosition = assignedUshers.map((usher) => usher.position);
+        expect(assignedUshersPosition).toEqual([]); // Position ID
 
-//         // Verify queue state after processing
-//         expect(manager.confirmationQueue).toHaveLength(0);
+        // Verify queue state after processing
+        expect(manager.confirmationQueue).toHaveLength(0);
 
-//         // Verify repository method calls
-//         expect(repoGetEventUshers).toHaveBeenCalledTimes(1);
-//         expect(repoMassPositions).toHaveBeenCalledTimes(1);
-//     });
+        // Verify repository method calls
+        expect(repoGetEventUshers).toHaveBeenCalledTimes(1);
+        expect(repoMassPositions).toHaveBeenCalledTimes(1);
+    });
 
-//     it('should process multiple confirmation queue', async () => {
-//         const event: ChurchEvent = createTestEvent();
-//         const positions: ChurchPosition[] = createTestPositions();
-//         const lingkungan: Lingkungan[] = createTestLingkungan();
-//         const eventUshersA: EventUsher[] = createUshersLingkunganA();
-//         const eventUshersB: EventUsher[] = createUshersLingkunganB();
+    it('should process multiple confirmation queue', async () => {
+        const event: ChurchEvent = createTestEvent();
+        const positions: ChurchPosition[] = createTestPositions();
+        const lingkungan: Lingkungan[] = createTestLingkungan();
+        const eventUshersA: EventUsher[] = createUshersLingkunganA();
+        const eventUshersB: EventUsher[] = createUshersLingkunganB();
 
-//         // Submit confirmation queue
-//         await manager.submitConfirmationQueue(event, lingkungan[0]);
-//         await manager.submitConfirmationQueue(event, lingkungan[1]);
-//         expect(manager.confirmationQueue).toHaveLength(2);
+        // Submit confirmation queue
+        await manager.submitConfirmationQueue(event, lingkungan[0]);
+        await manager.submitConfirmationQueue(event, lingkungan[1]);
+        expect(manager.confirmationQueue).toHaveLength(2);
 
-//         // Mock repository methods
-//         const aggregatedUshers = [...eventUshersA, ...eventUshersB];
-//         repoGetEventUshers.mockResolvedValue(aggregatedUshers);
-//         repoMassPositions.mockResolvedValue(positions);
+        // Mock repository methods
+        const aggregatedUshers = [...eventUshersA, ...eventUshersB];
+        repoGetEventUshers.mockResolvedValue(aggregatedUshers);
+        repoMassPositions.mockResolvedValue(positions);
 
-//         // Process queue
-//         await manager.processQueue();
+        // Process queue
+        await manager.processQueue();
 
-//         // Verify position assignments
-//         expect(manager.eventUshers.every((usher) => usher.position !== null)).toBe(true);
+        // Verify position assignments
+        expect(manager.eventUshers.every((usher) => usher.position !== null)).toBe(true);
 
-//         // Verify position assignments
-//         // expect(manager.ushers.every(usher => usher.position !== null)).toBe(true);
+        // Verify position assignments
+        // expect(manager.ushers.every(usher => usher.position !== null)).toBe(true);
 
-//         // Check that all assigned ushers have positions
-//     });
+        // Check that all assigned ushers have positions
+    });
 
-//     it('should throw error if no positions found', async () => {
-//         const event: ChurchEvent = createTestEvent();
-//         const lingkungan: Lingkungan[] = createTestLingkungan();
-//         const eventUshersA: EventUsher[] = createUshersLingkunganA();
+    it('should throw error if no positions found', async () => {
+        const event: ChurchEvent = createTestEvent();
+        const lingkungan: Lingkungan[] = createTestLingkungan();
+        const eventUshersA: EventUsher[] = createUshersLingkunganA();
 
-//         // Mock repository methods
-//         repoGetEventUshers.mockResolvedValue(eventUshersA);
-//         repoMassPositions.mockResolvedValue([]);
+        // Mock repository methods
+        repoGetEventUshers.mockResolvedValue(eventUshersA);
+        repoMassPositions.mockResolvedValue([]);
 
-//         // Submit confirmation queue
-//         await manager.submitConfirmationQueue(event, lingkungan[0]);
-//         await expect(manager.processQueue()).rejects.toThrow(
-//             expect.objectContaining({ cause: 404 })
-//         );
-//     });
+        // Submit confirmation queue
+        await manager.submitConfirmationQueue(event, lingkungan[0]);
+        await expect(manager.processQueue()).rejects.toThrow(
+            expect.objectContaining({ cause: 404 })
+        );
+    });
 
-//     it('should assign ushers with PPG position correctly', async () => {
-//         const event: ChurchEvent = createTestEvent();
-//         const positions: ChurchPosition[] = createTestPositions();
-//         const lingkungan: Lingkungan[] = createTestLingkungan();
-//         const eventUshersA: EventUsher[] = createUshersLingkunganA();
-//         const eventUshersB: EventUsher[] = createUshersLingkunganB();
-//         const eventUshersC: EventUsher[] = createUshersLingkunganC();
+    it('should assign ushers with PPG position correctly', async () => {
+        const event: ChurchEvent = createTestEvent();
+        const positions: ChurchPosition[] = createTestPositions();
+        const lingkungan: Lingkungan[] = createTestLingkungan();
+        const eventUshersA: EventUsher[] = createUshersLingkunganA();
+        const eventUshersB: EventUsher[] = createUshersLingkunganB();
+        const eventUshersC: EventUsher[] = createUshersLingkunganC();
 
-//         // Mock repository
-//         const aggregatedUshers = [...eventUshersA, ...eventUshersB, ...eventUshersC];
-//         repoGetEventUshers.mockResolvedValue(aggregatedUshers);
-//         repoMassPositions.mockResolvedValue(positions);
+        // Mock repository
+        const aggregatedUshers = [...eventUshersA, ...eventUshersB, ...eventUshersC];
+        repoGetEventUshers.mockResolvedValue(aggregatedUshers);
+        repoMassPositions.mockResolvedValue(positions);
 
-//         // Submit confirmation
-//         await manager.submitConfirmationQueue(event, lingkungan[0]);
-//         await manager.processQueue();
+        // Submit confirmation
+        await manager.submitConfirmationQueue(event, lingkungan[0]);
+        await manager.processQueue();
 
-//         // Verify position assignments
-//         for (const usher of manager.assignedUshers) {
-//             const usherIsPpg = usher.isPpg;
-//             const positionIsPpg = positions.find(position => position.id === usher.position)?.isPpg;
-//             if (usherIsPpg) {
-//                 expect(positionIsPpg).toBe(true);
-//             }
-//         }
+        // Verify position assignments
+        for (const usher of manager.assignedUshers) {
+            const usherIsPpg = usher.isPpg;
+            const positionIsPpg = positions.find(position => position.id === usher.position)?.isPpg;
+            if (usherIsPpg) {
+                expect(positionIsPpg).toBe(true);
+            }
+        }
 
-//     });
-// });
+    });
+});
 
-// describe('findLowestUniqueNumber', () => {
-//     // Make the private method accessible for testing
-//     const manager = QueueManager.getInstance();
-//     const findLowestUniqueNumber = (arr: string[]) => {
-//         return (manager as any).findLowestUniqueNumber(arr);
-//     };
+describe('findLowestUniqueNumber', () => {
+    // Make the private method accessible for testing
+    const manager = QueueManager.getInstance();
+    const findLowestUniqueNumber = (arr: string[]) => {
+        return (manager as any).findLowestUniqueNumber(arr);
+    };
 
-//     it('should return null for empty array', () => {
-//         expect(findLowestUniqueNumber([])).toBeNull();
-//     });
+    it('should return null for empty array', () => {
+        expect(findLowestUniqueNumber([])).toBeNull();
+    });
 
-//     it('should return the only element in single-element array', () => {
-//         expect(findLowestUniqueNumber(['1'])).toBe('1');
-//     });
+    it('should return the only element in single-element array', () => {
+        expect(findLowestUniqueNumber(['1'])).toBe('1');
+    });
 
-//     it('should return null when all elements are duplicates', () => {
-//         expect(findLowestUniqueNumber(['1', '1', '1'])).toBeNull();
-//     });
+    it('should return null when all elements are duplicates', () => {
+        expect(findLowestUniqueNumber(['1', '1', '1'])).toBeNull();
+    });
 
-//     it('should find the first unique number in array with duplicates', () => {
-//         expect(findLowestUniqueNumber(['1', '2', '2', '3', '3'])).toBe('1');
-//     });
+    it('should find the first unique number in array with duplicates', () => {
+        expect(findLowestUniqueNumber(['1', '2', '2', '3', '3'])).toBe('1');
+    });
 
-//     it('should find unique number in middle of array', () => {
-//         expect(findLowestUniqueNumber(['1', '1', '2', '3', '3'])).toBe('2');
-//     });
+    it('should find unique number in middle of array', () => {
+        expect(findLowestUniqueNumber(['1', '1', '2', '3', '3'])).toBe('2');
+    });
 
-//     it('should find unique number at end of array', () => {
-//         expect(findLowestUniqueNumber(['1', '1', '2', '2', '3'])).toBe('3');
-//     });
+    it('should find unique number at end of array', () => {
+        expect(findLowestUniqueNumber(['1', '1', '2', '2', '3'])).toBe('3');
+    });
 
-//     it('should handle multiple unique numbers and return the first one', () => {
-//         expect(findLowestUniqueNumber(['1', '2', '3', '4', '5'])).toBe('1');
-//     });
-// });
+    it('should handle multiple unique numbers and return the first one', () => {
+        expect(findLowestUniqueNumber(['1', '2', '3', '4', '5'])).toBe('1');
+    });
+});
 
 describe('processQueue', () => {
     const manager = QueueManager.getInstance();
@@ -209,302 +209,6 @@ describe('processQueue', () => {
         manager.massZonePositions = [];
         manager.assignedUshers = [];
         vi.resetAllMocks();
-    });
-
-    // Test 1: Empty queue
-    it('should do nothing when queue is empty', async () => {
-        // Arrange
-        expect(manager.confirmationQueue).toHaveLength(0);
-
-        // Act
-        await manager.processQueue();
-
-        // Assert
-        expect(manager.confirmationQueue).toHaveLength(0);
-        expect(manager.eventUshers).toHaveLength(0);
-        expect(repoGetEventUshers).not.toHaveBeenCalled();
-        expect(repoMassPositions).not.toHaveBeenCalled();
-        expect(repoEditEventUshers).not.toHaveBeenCalled();
-    });
-
-    // Test 2: Single queue item with no ushers
-    it('should process queue item with no ushers', async () => {
-        // Arrange
-        const event = createTestEvent();
-        const lingkungan = createTestLingkungan()[0];
-        const positions = createTestPositions();
-
-        repoGetEventUshers.mockResolvedValue([]);
-        repoMassPositions.mockResolvedValue(positions);
-        repoEditEventUshers.mockResolvedValue(undefined);
-
-        await manager.submitConfirmationQueue(event, lingkungan);
-        expect(manager.confirmationQueue).toHaveLength(1);
-
-        // Act
-        await manager.processQueue();
-
-        // Assert
-        expect(manager.confirmationQueue).toHaveLength(0);
-        expect(manager.eventUshers).toHaveLength(0);
-        expect(repoGetEventUshers).toHaveBeenCalledWith(event.id);
-        expect(repoMassPositions).toHaveBeenCalledWith(event.church, event.mass);
-        expect(repoEditEventUshers).not.toHaveBeenCalled();
-    });
-
-    // Test 3: Single queue item with three ushers, two having null positions
-    it('should assign positions to 9 ushers with 8 having null positions', async () => {
-        // Arrange
-        const event = createTestEvent();
-        const lingkungan = createTestLingkungan()[0];
-        const positions = createTestPositions();
-        const ushers = [
-            {
-                id: '1',
-                event: '1',
-                name: 'Test Usher 1',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: '1',  // Already has position
-                createdAt: 1
-            },
-            {
-                id: '2',
-                event: '1',
-                name: 'Test Usher 2',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,  // Needs position
-                createdAt: 1
-            },
-            {
-                id: '3',
-                event: '1',
-                name: 'Test Usher 3',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,  // Needs position
-                createdAt: 1
-            },
-            {
-                id: '4',
-                event: '1',
-                name: 'Test Usher 4',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '5',
-                event: '1',
-                name: 'Test Usher 5',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '6',
-                event: '1',
-                name: 'Test Usher 6',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '7',
-                event: '1',
-                name: 'Test Usher 7',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '8',
-                event: '1',
-                name: 'Test Usher 8',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '9',
-                event: '1',
-                name: 'Test Usher 9',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            }
-        ];
-
-        repoGetEventUshers.mockResolvedValue(ushers);
-        repoMassPositions.mockResolvedValue(positions);
-        repoEditEventUshers.mockResolvedValue(undefined);
-
-        await manager.submitConfirmationQueue(event, lingkungan);
-        expect(manager.confirmationQueue).toHaveLength(1);
-
-        // Act
-        await manager.processQueue();
-
-        // Assert
-        expect(manager.confirmationQueue).toHaveLength(0);
-
-        // Verify usher counts
-        expect(manager.eventUshers).toHaveLength(9);
-        expect(manager.assignedUshers).toHaveLength(8); // Only the newly assigned ones
-
-        // Verify all ushers have positions assigned
-        expect(manager.eventUshers.every(usher => usher.position !== null)).toBe(true);
-
-        // Verify the first usher kept their original position
-        expect(manager.eventUshers[0].position).toBe('1');
-
-        // Verify the other two ushers got new positions
-        expect(manager.eventUshers[1].position).not.toBeNull();
-        expect(manager.eventUshers[2].position).not.toBeNull();
-
-        // Verify repository calls
-        expect(repoGetEventUshers).toHaveBeenCalledWith(event.id);
-        expect(repoMassPositions).toHaveBeenCalledWith(event.church, event.mass);
-        expect(repoEditEventUshers).toHaveBeenCalledWith(manager.eventUshers);
-    });
-
-    // Test 4: Error handling - no positions available
-    it('should throw error when no positions are available', async () => {
-        // Arrange
-        const event = createTestEvent();
-        const lingkungan = createTestLingkungan()[0];
-        const ushers = [{
-            id: '1',
-            event: '1',
-            name: 'Test Usher',
-            wilayah: '1',
-            lingkungan: '1A',
-            isPpg: false,
-            isKolekte: false,
-            position: null,
-            createdAt: 1
-        }];
-
-        repoGetEventUshers.mockResolvedValue(ushers);
-        repoMassPositions.mockResolvedValue([]);
-
-        await manager.submitConfirmationQueue(event, lingkungan);
-
-        // Act & Assert
-        await expect(manager.processQueue()).rejects.toThrow(
-            expect.objectContaining({ cause: 404 })
-        );
-        expect(manager.confirmationQueue).toHaveLength(1);
-        expect(manager.eventUshers).toHaveLength(0);
-    });
-
-    // Test 5: PPG usher assignment
-    it('should assign PPG usher to PPG position', async () => {
-        // Arrange
-        const event = createTestEvent();
-        const lingkungan = createTestLingkungan()[0];
-        const positions = createTestPositions();
-        const ushers = [{
-            id: '1',
-            event: '1',
-            name: 'Test PPG Usher',
-            wilayah: '1',
-            lingkungan: '1A',
-            isPpg: true,
-            isKolekte: false,
-            position: null,
-            createdAt: 1
-        }];
-
-        repoGetEventUshers.mockResolvedValue(ushers);
-        repoMassPositions.mockResolvedValue(positions);
-        repoEditEventUshers.mockResolvedValue(undefined);
-
-        await manager.submitConfirmationQueue(event, lingkungan);
-
-        // Act
-        await manager.processQueue();
-
-        // Assert
-        expect(manager.eventUshers).toHaveLength(1);
-        const assignedPosition = positions.find(pos => pos.id === manager.eventUshers[0].position);
-        expect(assignedPosition?.isPpg).toBe(true);
-    });
-
-    // Test 6: Multiple queue items
-    it('should process multiple queue items in order', async () => {
-        // Arrange
-        const event = createTestEvent();
-        const lingkunganA = createTestLingkungan()[0];
-        const lingkunganB = createTestLingkungan()[1];
-        const positions = createTestPositions();
-        const ushersA = [{
-            id: '1',
-            event: '1',
-            name: 'Usher A',
-            wilayah: '1',
-            lingkungan: '1A',
-            isPpg: false,
-            isKolekte: false,
-            position: null,
-            createdAt: 1
-        }];
-        const ushersB = [{
-            id: '2',
-            event: '1',
-            name: 'Usher B',
-            wilayah: '1',
-            lingkungan: '1B',
-            isPpg: false,
-            isKolekte: false,
-            position: null,
-            createdAt: 2
-        }];
-
-        repoGetEventUshers
-            .mockResolvedValueOnce(ushersA)
-            .mockResolvedValueOnce([...ushersA, ...ushersB]);
-        repoMassPositions.mockResolvedValue(positions);
-        repoEditEventUshers.mockResolvedValue(undefined);
-
-        await manager.submitConfirmationQueue(event, lingkunganA);
-        await manager.submitConfirmationQueue(event, lingkunganB);
-
-        // Act
-        await manager.processQueue();
-
-        // Assert
-        expect(manager.confirmationQueue).toHaveLength(0);
-        expect(manager.eventUshers).toHaveLength(2);
-        expect(manager.eventUshers.every(usher => usher.position !== null)).toBe(true);
-        expect(repoGetEventUshers).toHaveBeenCalledTimes(2);
-        expect(repoMassPositions).toHaveBeenCalledTimes(2);
-        expect(repoEditEventUshers).toHaveBeenCalledTimes(2);
     });
 
     // Test 3B: Multiple queue items with ushers from different lingkungan
@@ -627,7 +331,7 @@ describe('processQueue', () => {
             .mockResolvedValueOnce(ushersBatch1) // First call for first batch
             .mockResolvedValueOnce([...ushersBatch1, ...ushersBatch2]); // Second call includes both batches
         repoMassPositions.mockResolvedValue(positions);
-        repoEditEventUshers.mockResolvedValue(undefined);
+        repoEditEventUshers.mockResolvedValue({ success: true, updatedCount: 5 });
 
         // Submit and process first batch
         await manager.submitConfirmationQueue(event, lingkungan1);
@@ -654,6 +358,72 @@ describe('processQueue', () => {
         expect(repoGetEventUshers).toHaveBeenCalledTimes(2);
         expect(repoMassPositions).toHaveBeenCalledTimes(2);
         expect(repoEditEventUshers).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('latestPositionId', () => {
+    const manager = QueueManager.getInstance();
+    const latestPositionId = (arr: string[]) => (manager as any).latestPositionId(arr);
+
+    it('should return null for empty array', () => {
+        expect(latestPositionId([])).toBeNull();
+    });
+
+    it('should return null for array with only empty strings', () => {
+        expect(latestPositionId(['', '', ''])).toBeNull();
+    });
+
+    it('should return null for array with only whitespace strings', () => {
+        expect(latestPositionId([' ', '  ', '\t'])).toBeNull();
+    });
+
+    it('should return the last unique ID in array with empty-positions', () => {
+        const arr = [
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            'badbda7a-5973-4068-ae69-98a3f225ca47',
+            'f253dd3e-8faa-48ae-8077-418560aa57c8',
+            '',
+            ''
+        ];
+        expect(latestPositionId(arr)).toBe('f253dd3e-8faa-48ae-8077-418560aa57c8');
+    });
+
+    it('should return the first unique ID in array', () => {
+        const arr = [
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            'badbda7a-5973-4068-ae69-98a3f225ca47',
+            'f253dd3e-8faa-48ae-8077-418560aa57c8'
+        ];
+        expect(latestPositionId(arr)).toBe('badbda7a-5973-4068-ae69-98a3f225ca47');
+    });
+
+    it('should return null when all IDs appear multiple times', () => {
+        const arr = [
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            'badbda7a-5973-4068-ae69-98a3f225ca47',
+            'badbda7a-5973-4068-ae69-98a3f225ca47'
+        ];
+        expect(latestPositionId(arr)).toBeNull();
+    });
+
+    it('should handle mixed empty and non-empty strings', () => {
+        const arr = [
+            '',
+            '5abe24eb-6982-46c8-8324-8937033749e7',
+            ' ',
+            'badbda7a-5973-4068-ae69-98a3f225ca47',
+            '\t',
+            'f253dd3e-8faa-48ae-8077-418560aa57c8'
+        ];
+        expect(latestPositionId(arr)).toBe('f253dd3e-8faa-48ae-8077-418560aa57c8');
+    });
+
+    it('should handle array with single unique ID', () => {
+        const arr = ['5abe24eb-6982-46c8-8324-8937033749e7'];
+        expect(latestPositionId(arr)).toBe('5abe24eb-6982-46c8-8324-8937033749e7');
     });
 });
 

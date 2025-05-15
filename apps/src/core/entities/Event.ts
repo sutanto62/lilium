@@ -1,4 +1,3 @@
-import type UshersList from "$src/routes/f/tatib/UshersList.svelte";
 
 export interface Event {
 	id: string;
@@ -27,7 +26,7 @@ export interface EventUsher {
 export interface EventPicRequest {
 	event: string;
 	zone: string;
-	user: string;
+	name: string;
 }
 
 export interface EventListResponse {

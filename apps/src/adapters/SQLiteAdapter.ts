@@ -69,7 +69,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	insertEvent = (churchId: string, massId: string, date: string) =>
 		createEvent(this.db, churchId, massId, date);
-	createEventPic = (pic: EventPicRequest) => createEventPic(this.db, pic);
+	createEventPic = (request: EventPicRequest) => createEventPic(this.db, request);
 	insertEventUshers = (
 		eventId: string,
 		ushers: EventUsher[],

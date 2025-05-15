@@ -1,32 +1,31 @@
 <script lang="ts">
 	import {
+		Button,
+		Input,
+		Label,
+		Modal,
+		Select,
 		Table,
+		TableBody,
+		TableBodyCell,
+		TableBodyRow,
 		TableHead,
 		TableHeadCell,
-		TableBody,
-		TableBodyRow,
-		TableBodyCell,
-		Tooltip,
-		Modal,
-		Label,
-		Select,
-		Button
+		Tooltip
 	} from 'flowbite-svelte';
 
-	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 	import JadwalKonfirmasiDetail from '$components/jadwal/JadwalKonfirmasiDetail.svelte';
-	import type { User } from '$core/entities/Authentication';
 	import type { ChurchZone } from '$core/entities/Schedule';
+	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 
 	export let rows;
 	export let openRow;
 	export let toggleRow;
+	export let zones: ChurchZone[];
 
 	let defaultModal = false;
-	export let users: User[];
-	export let zones: ChurchZone[];
 	let selectedZoneId: string | null = null;
-	let selectedUserId: string | null = null;
+	let eventZonePic: string | null = null;
 </script>
 
 <Table>
@@ -124,14 +123,13 @@
 			</div>
 			<div>
 				<Label for="pic" class="mb-2">PIC Peta</Label>
-				<Select
+				<Input
+					type="text"
 					id="pic"
 					name="pic"
-					class="mt-2"
-					items={users.map((e) => ({ value: e.id ?? '', name: e.name ?? '' }))}
-					bind:value={selectedUserId}
-					placeholder="Pilih Petugas"
+					placeholder="Tulis nama. Gunakan koma bila lebih dari 1"
 					required
+					bind:value={eventZonePic}
 				/>
 			</div>
 		</div>

@@ -1,11 +1,11 @@
-import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad, Actions, RequestEvent } from './$types';
-import { logger } from '$src/lib/utils/logger';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
+import { logger } from '$src/lib/utils/logger';
+import { error, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 // Services
-import { ChurchService } from '$core/service/ChurchService';
 import { AuthService } from '$core/service/AuthService';
+import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 
 export const load: PageServerLoad = async (event) => {
@@ -27,11 +27,9 @@ export const load: PageServerLoad = async (event) => {
 
 	// Get users for PIC
 	const authService = new AuthService(churchId);
-	const [users] = await Promise.all([authService.getUsers()]);
 
 	return {
 		jadwalDetail,
-		users,
 		zones
 	};
 };
@@ -67,16 +65,16 @@ export const actions: Actions = {
 		}
 
 		const formData = await event.request.formData();
+		logger.debug(`formData ${JSON.stringify(formData)}`);
 		const submittedPic = {
 			event: eventId,
 			zone: formData.get('zone') as string,
-			user: formData.get('pic') as string
+			name: formData.get('pic') as string
 		}
+		logger.debug(`submittedPic ${JSON.stringify(submittedPic)}`);
 
 		const eventService = new EventService(churchId);
 		await eventService.insertEventPic(submittedPic);
-
-		logger.info(`Event ${eventId} PIC set to ${submittedPic.user}`);
 
 		return { success: true };
 	}

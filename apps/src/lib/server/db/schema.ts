@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey().unique().notNull(),
@@ -127,9 +127,7 @@ export const event_zone_pic = sqliteTable('event_zone_pic', {
 	zone: text('zone_id')
 		.references(() => church_zone.id, { onDelete: 'cascade' })
 		.notNull(),
-	pic: text('pic')
-		.references(() => user.id, { onDelete: 'cascade' })
-		.notNull(),
+	name: text('name'),
 	active: integer('active').notNull().default(1),
 	createdAt: integer('created_at')
 });

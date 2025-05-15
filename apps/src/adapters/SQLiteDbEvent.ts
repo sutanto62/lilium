@@ -17,7 +17,6 @@ import {
 	event_zone_pic,
 	lingkungan,
 	mass,
-	user,
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
@@ -102,31 +101,17 @@ export async function createEventUsher(
 
 export async function createEventPic(
 	db: ReturnType<typeof drizzle>,
-	pic: EventPicRequest
+	request: EventPicRequest
 ): Promise<boolean> {
-	const picValues = {
+	const values = {
 		id: uuidv4(),
-		event: pic.event,
-		zone: pic.zone,
-		pic: pic.user
+		event: request.event,
+		zone: request.zone,
+		name: request.name,
+		createdAt: new Date().getTime()
 	}
 
-	// 1 zone 1 pic only 
-	const existingPic = await db
-		.select()
-		.from(event_zone_pic)
-		.where(and(
-			eq(event_zone_pic.event, pic.event),
-			eq(event_zone_pic.zone, pic.zone),
-			eq(event_zone_pic.pic, pic.user)
-		));
-
-	if (existingPic.length > 0) {
-		logger.warn(`Failed to create event zone pic ${JSON.stringify(picValues)}`);
-		return false;
-	}
-
-	await db.insert(event_zone_pic).values(picValues);
+	await db.insert(event_zone_pic).values(values);
 	return true;
 }
 
@@ -441,10 +426,9 @@ export async function findJadwalDetail(
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
 			zone: church_zone.name,
-			pic: user.name
+			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
-		.leftJoin(user, eq(user.id, event_zone_pic.pic))
 		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
 		.where(eq(event_zone_pic.event, eventId));
 
@@ -474,7 +458,7 @@ export async function findJadwalDetail(
 		if (massEventPic.length > 0) {
 			acc[zoneName].pic = massEventPic
 				.filter((pic) => pic.zone === zoneName)
-				.map((pic) => pic.pic)
+				.map((pic) => pic.name)
 				.filter((pic): pic is string => pic !== null);
 		}
 
@@ -646,10 +630,9 @@ async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
 			zone: church_zone.name,
-			pic: user.name
+			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
-		.leftJoin(user, eq(user.id, event_zone_pic.pic))
 		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
 		.where(eq(event_zone_pic.event, eventId));
 }
@@ -676,7 +659,7 @@ function processUshersByZone(ushers: any[], pics: any[]): CetakJadwalSection[] {
 		if (pics.length > 0 && !acc[zone].pic) {
 			acc[zone].pic = pics
 				.filter((pic) => pic.zone === zone)
-				.map((pic) => pic.pic)
+				.map((pic) => pic.name)
 				.filter((pic): pic is string => pic !== null)
 				.join(', ');
 		}

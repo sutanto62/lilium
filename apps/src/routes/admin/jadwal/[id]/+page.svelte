@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Button, Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
+	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
+	import { Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import {
 		ArchiveOutline,
 		CashOutline,
-		UsersOutline,
 		PrinterOutline,
-		TrashBinOutline
+		TrashBinOutline,
+		UsersOutline
 	} from 'flowbite-svelte-icons';
-	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
 
 	export let data;
 
 	$: jadwalDetail = data.jadwalDetail;
-	$: users = data.users;
 	$: zones = data.zones;
 
 	let openRow: number | null = null;
@@ -69,7 +68,7 @@
 
 <div class="mt-4">
 	{#if jadwalDetail.rows && jadwalDetail.rows.length > 0}
-		<JadwalKonfirmasi rows={jadwalDetail.rows} {openRow} {toggleRow} {users} {zones} />
+		<JadwalKonfirmasi rows={jadwalDetail.rows} {openRow} {toggleRow} {zones} />
 	{:else}
 		<p>Data tidak ditemukan</p>
 	{/if}

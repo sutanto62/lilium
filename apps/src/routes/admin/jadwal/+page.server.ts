@@ -1,15 +1,14 @@
-import type { PageServerLoad } from './$types';
+import type { Event } from '$core/entities/Event';
+import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { repo } from '$src/lib/server/db';
-import { redirect, error } from '@sveltejs/kit';
-import { logger } from '$src/lib/utils/logger';
-import { getWeekNumber, formatDate } from '$src/lib/utils/dateUtils';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
-import type { Event } from '$core/entities/Event';
-import type { Mass } from '$core/entities/Schedule';
+import { formatDate, getWeekNumber } from '$src/lib/utils/dateUtils';
+import { logger } from '$src/lib/utils/logger';
 import { maskUuid } from '$src/lib/utils/maskUtils';
-import { mass } from '$src/lib/server/db/schema';
+import { error, redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
 interface EventWithUsherCounts extends Event {
 	usherCounts: {
@@ -101,7 +100,10 @@ export const load: PageServerLoad = async (event) => {
 
 	// Filter events into this week and past events based on week number
 	const currentWeek = getWeekNumber(new Date().toISOString());
-	const thisWeekEvents = eventsDetail.filter((event) => event.weekNumber === currentWeek);
+	const nextTwoWeeks = eventsDetail.filter((event) => {
+		const weekNumber = event.weekNumber ?? 0;
+		return weekNumber >= currentWeek && weekNumber <= currentWeek + 1;
+	});
 	const pastEvents = eventsDetail.filter((event) => (event.weekNumber ?? 0) < currentWeek);
 
 	const activityItems = pastEvents.map(event => ({
@@ -116,7 +118,7 @@ export const load: PageServerLoad = async (event) => {
 	// Return masses and processed events
 	return {
 		masses,
-		currentWeek: thisWeekEvents,
+		currentWeek: nextTwoWeeks,
 		pastWeek: activityItems
 	};
 };

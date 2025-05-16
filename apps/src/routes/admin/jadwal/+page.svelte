@@ -1,4 +1,5 @@
 <script lang="ts">
+	import JadwalCard from '$components/jadwal/JadwalTimeline.svelte';
 	import {
 		Avatar,
 		Breadcrumb,
@@ -9,7 +10,6 @@
 		P,
 		Timeline
 	} from 'flowbite-svelte';
-	import JadwalCard from '$components/jadwal/JadwalTimeline.svelte';
 
 	export let data;
 
@@ -30,9 +30,11 @@
 <div class="flex flex-col gap-8 lg:flex-row">
 	<div class="w-full lg:w-4/6">
 		<Heading tag="h2" class="mb-2 text-2xl tracking-tight text-gray-900 dark:text-white">
-			Minggu ini
+			Daftar Konfirmasi
 		</Heading>
-		<P class="mb-6">Melihat lingkungan yang telah melakukan konfirmasi tugas tata tertib.</P>
+		<P class="mb-6"
+			>Berikut daftar lingkungan yang telah melakukan konfirmasi untuk tugas 2 minggu ke depan.</P
+		>
 		{#if events.length === 0}
 			<div
 				class="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800"
@@ -48,7 +50,7 @@
 
 		<Timeline>
 			{#each events as event}
-				<JadwalCard {event} usherCounts={event.usherCounts} color="primary"/>
+				<JadwalCard {event} usherCounts={event.usherCounts} color="primary" />
 			{/each}
 		</Timeline>
 	</div>

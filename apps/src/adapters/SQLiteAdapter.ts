@@ -10,11 +10,12 @@ import {
 	findEventById,
 	findEventByIdResponse,
 	findEvents,
+	findEventsByDateRange,
+	findEventsByWeekNumber,
 	findEventUshers,
 	findEventUshersPosition,
 	findJadwalDetail,
 	findUshersByEvent,
-	softDeleteEvent,
 	updateEventUshers,
 } from './SQLiteDbEvent';
 import {
@@ -25,10 +26,10 @@ import {
 	findZonesByChurch,
 	findZonesByEvent
 } from './SQLiteDbFacility';
-import { findMasses, getMassById } from './SQLiteDbMass';
+import { findMassById, findMasses } from './SQLiteDbMass';
 import { findLingkunganById, findLingkungans, findWilayahs } from './SQLiteDbRegion';
 
-import type { EventPicRequest, EventUsher } from '$core/entities/Event';
+import type { Event as ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone } from '$core/entities/Schedule';
 import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
 
@@ -43,6 +44,9 @@ export class SQLiteAdapter implements ScheduleRepository {
 	constructor(db: ReturnType<typeof drizzle>) {
 		this.db = db;
 	}
+	findEventByIdResponse(id: string): Promise<{ date: string; id: string; church_id: string; code: string | null; active: number; createdAt: number | null; created_at: number; mass_id: string; week_number: number | null; isComplete: number; type: 'mass' | 'feast'; description: string | null; } | null> {
+		throw new Error('Method not implemented.');
+	}
 
 	// SQLiteDbRegion
 	getWilayahs = (churchId: string) => findWilayahs(this.db, churchId);
@@ -51,7 +55,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	// SQLiteDbMass
 	getMasses = (churchId: string) => findMasses(this.db, churchId);
-	getMassById = (id: string) => getMassById(this.db, id);
+	getMassById = (id: string) => findMassById(this.db, id);
 
 	// SQLiteDbEvents
 	getEventByChurch = (churchId: string, massId: string, date: string) =>
@@ -59,7 +63,12 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getPositionsByMass = (churchId: string, massId: string) =>
 		findPositionByMass(this.db, churchId, massId);
 	getEventById = (id: string) => findEventById(this.db, id);
+	getEventByIdResponse = (id: string) => findEventByIdResponse(this.db, id);
 	getEvents = (churchId: string, limit?: number) => findEvents(this.db, churchId, limit);
+	getEventsByWeekNumber = (churchId: string, weekNumber: number[], limit?: number) =>
+		findEventsByWeekNumber(this.db, churchId, weekNumber, limit);
+	getEventsByDateRange = (churchId: string, startDate: string, endDate: string) =>
+		findEventsByDateRange(this.db, churchId, startDate, endDate);
 	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
 	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
@@ -67,8 +76,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	findJadwalDetail = (eventId: string) => findJadwalDetail(this.db, eventId);
 	deactivateEvent = (eventId: string) => softDeleteEvent(this.db, eventId);
 
-	insertEvent = (churchId: string, massId: string, date: string) =>
-		createEvent(this.db, churchId, massId, date);
+	insertEvent = (event: ChurchEvent) =>
+		createEvent(this.db, event);
 	createEventPic = (request: EventPicRequest) => createEventPic(this.db, request);
 	insertEventUshers = (
 		eventId: string,

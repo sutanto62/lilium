@@ -1,6 +1,5 @@
 import type { Mass } from '$core/entities/Schedule';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { logger } from './logger';
 
 /**
  * Calculates the next event date based on the created date and mass day.
@@ -34,19 +33,37 @@ export function calculateEventDate(createdAt: Date, mass: Mass): string {
 	return nextEventDate.toISOString().split('T')[0];
 }
 
-export function formatDate(dateString: string): string {
+export function stringToDate(isoDate: string) {
+	if (!isoDate) {
+		return new Date();
+	}
+	return new Date(isoDate);
+}
+
+export function formatDate(dateString: string, format?: string | 'short' | 'long'): string {
 	const date = new Date(dateString);
-	return new Intl.DateTimeFormat('id-ID', {
-		weekday: 'long',
-		year: 'numeric',
-		month: 'long',
-		day: 'numeric'
-	}).format(date);
+
+	const options: Intl.DateTimeFormatOptions = format === 'long'
+		? {
+			weekday: 'long',
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric'
+		}
+		: {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric'
+		};
+
+	return new Intl.DateTimeFormat('id-ID', options).format(date);
 }
 
 /**
  * Get the week number of a given date.
+ * 
  * If no date is provided, the current date is used.
+ * 
  * @param date - The date to get the week number of.
  * @returns The week number of the given date.
  */

@@ -2,7 +2,6 @@ import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
 import { featureFlags } from '$src/lib/utils/FeatureFlag';
-import { logger } from '$src/lib/utils/logger';
 import { EventService } from './EventService';
 
 export interface ConfirmationQueue {
@@ -74,7 +73,6 @@ export class QueueManager {
 	 */
 	async processQueue(): Promise<void> {
 
-		logger.debug(`processing queue ${this.confirmationQueue.length} event(s)`);
 		this.assignedUshers = [];
 
 		for (const batch of this.confirmationQueue) {
@@ -86,7 +84,6 @@ export class QueueManager {
 				? this.massZonePositions
 				: this.massZonePositions.filter(pos => !pos.isPpg);
 			this.massZonePositions = eventPositions;
-			logger.debug(`found mass zone positions: ${this.massZonePositions.map(pos => pos.id)}`)
 
 			if (this.massZonePositions.length === 0) {
 				throw new Error(`Gagal menemukan titik tugas untuk ${batch.event.mass}`, { cause: 404 })
@@ -94,13 +91,10 @@ export class QueueManager {
 
 			// 2. Get event ushers for the event (including past unprocessed events)
 			this.eventUshers = await repo.getEventUshers(batch.event.id);
-			logger.debug(`found event ushers positions: ${this.eventUshers.map(pos => pos.position)}, null positions: ${this.eventUshers.filter(u => u.position === null).map(u => u.name)}`);
 
 			// 3. Define next index 
 			const eupLatestPositionId = this.latestPositionId(this.eventUshers.map(usher => usher.position || ''));
-			logger.debug(`event usher latest position id: ${eupLatestPositionId}`);
 			this.nextIndexNonPpg = this.nextPositionIndex(eupLatestPositionId || '', this.massZonePositions.map(position => position.id));
-			logger.debug(`next index non ppg ${this.nextIndexNonPpg}`);
 
 			// 4. Distribute position to ushers 
 			const assignedUshers = this.eventUshers.filter((usher) => usher.position !== null);
@@ -110,19 +104,16 @@ export class QueueManager {
 				batch.event.id,
 				this.nextIndexNonPpg
 			);
-			logger.debug(`completed distributing position to ${newAssignedUshers.length} event ushers`);
 
 			// Update event_ushers in the repository
 			this.eventUshers = [...assignedUshers, ...newAssignedUshers];
 			if (this.eventUshers.length > 0) {
 				const result = await repo.editEventUshers(this.eventUshers);
-				logger.debug(`succeed updating ${result.updatedCount} event ushers`);
 			}
 
 			// Remove the processed queue item
 			this.confirmationQueue.shift();
 			this.assignedUshers = [...this.assignedUshers, ...newAssignedUshers];
-			logger.debug(`removed queue item`);
 		}
 	}
 
@@ -142,8 +133,6 @@ export class QueueManager {
 		eventId: string,
 		nextIndex: number
 	): Promise<EventUsher[]> {
-		logger.debug(`distributing positions`);
-
 		// Map each usher to a position, cycling through available positions
 		const assignedUshers = unassignedUshers.map((usher) => {
 			// Get position at current index, cycling back to start if needed
@@ -158,7 +147,6 @@ export class QueueManager {
 			};
 		});
 
-		logger.debug(`distributed position: ${assignedUshers.map(usher => usher.position)}`);
 		return assignedUshers;
 	}
 
@@ -194,7 +182,6 @@ export class QueueManager {
 				const id = arr[i];
 				if (!id || id.trim() === "") continue;
 				if (idOccurrences.get(id) === 1) {
-					logger.debug(`returned last unique ID before first empty-positions`);
 					return id;
 				}
 			}
@@ -202,7 +189,6 @@ export class QueueManager {
 			// All positions have been assigend
 			for (const id of arr) {
 				if (id && id.trim() !== "" && idOccurrences.get(id) === 1) {
-					logger.debug(`returned first unique ID`);
 					return id;
 				}
 			}

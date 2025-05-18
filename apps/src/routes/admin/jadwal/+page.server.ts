@@ -6,7 +6,6 @@ import { repo } from '$src/lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { formatDate, getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
-import { maskUuid } from '$src/lib/utils/maskUtils';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -48,7 +47,6 @@ export const load: PageServerLoad = async (event) => {
 
 	// Fetch masses and events concurrently
 	try {
-		logger.debug(`Fetching masses and events for church ${maskUuid(churchId)}`);
 		const [fetchedMasses, massEvents] = await Promise.all([
 			churchService.getMasses(),
 			churchService.getEvents()
@@ -119,6 +117,12 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		masses,
 		currentWeek: nextTwoWeeks,
-		pastWeek: activityItems
+		pastWeek: activityItems,
+		wilayahs: [],
+		lingkungans: [],
+		events: [],
+		eventsDate: [],
+		success: false,
+		assignedUshers: []
 	};
 };

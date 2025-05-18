@@ -30,7 +30,13 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		jadwalDetail,
-		zones
+		zones,
+		wilayahs: [],
+		lingkungans: [],
+		events: [],
+		eventsDate: [],
+		success: false,
+		assignedUshers: []
 	};
 };
 
@@ -65,13 +71,11 @@ export const actions: Actions = {
 		}
 
 		const formData = await event.request.formData();
-		logger.debug(`formData ${JSON.stringify(formData)}`);
 		const submittedPic = {
 			event: eventId,
 			zone: formData.get('zone') as string,
 			name: formData.get('pic') as string
 		}
-		logger.debug(`submittedPic ${JSON.stringify(submittedPic)}`);
 
 		const eventService = new EventService(churchId);
 		await eventService.insertEventPic(submittedPic);

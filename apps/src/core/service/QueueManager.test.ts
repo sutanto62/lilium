@@ -331,7 +331,6 @@ describe('processQueue', () => {
             .mockResolvedValueOnce(ushersBatch1) // First call for first batch
             .mockResolvedValueOnce([...ushersBatch1, ...ushersBatch2]); // Second call includes both batches
         repoMassPositions.mockResolvedValue(positions);
-        repoEditEventUshers.mockResolvedValue({ success: true, updatedCount: 5 });
 
         // Submit and process first batch
         await manager.submitConfirmationQueue(event, lingkungan1);

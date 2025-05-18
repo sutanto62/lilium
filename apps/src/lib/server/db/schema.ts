@@ -116,7 +116,10 @@ export const event = sqliteTable('event', {
 		.default(sql`CURRENT_TIMESTAMP`),
 	isComplete: integer('is_complete').notNull().default(0),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at'),
+	type: text('type', { enum: ['mass', 'feast'] }).notNull().default('mass'),
+	code: text('code'),
+	description: text('description')
 });
 
 export const event_zone_pic = sqliteTable('event_zone_pic', {

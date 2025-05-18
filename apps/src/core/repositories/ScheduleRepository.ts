@@ -36,7 +36,7 @@ export interface ScheduleRepository {
 
 	// TODO: change Promies<string[]> array of usher id
 	// Event
-	insertEvent: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
+	insertEvent: (event: ChurchEvent) => Promise<ChurchEvent>;
 	insertEventUshers: (
 		eventId: string,
 		ushers: EventUsher[],
@@ -48,13 +48,16 @@ export interface ScheduleRepository {
 	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
 	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
 	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
+	getEventsByWeekNumber(churchId: string, weekNumbers: number[], limit?: number): Promise<ChurchEvent[]>;
+	getEventsByDateRange(churchId: string, startDate: string, endDate: string): Promise<ChurchEvent[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
 	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
 	deactivateEvent(eventId: string): Promise<boolean>;
 	listUshers(eventId: string): Promise<UsherByEvent[]>; // formatted response
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
 	findEventById(id: string): Promise<ChurchEvent>; // formatted response
-	editEventUshers(ushers: EventUsher[]): Promise<{ success: boolean; updatedCount: number }>;
+	findEventByIdResponse(id: string): Promise<typeof event.$inferSelect | null>; // returned as it is
+	editEventUshers(ushers: EventUsher[]): Promise<void>;
 	findCetakJadwal(eventId: string): Promise<CetakJadwalResponse>;
 
 	// Facility

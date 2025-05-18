@@ -2,7 +2,7 @@
 	import FeatureCard from '$components/FeatureCard.svelte';
 	import { P } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
-	import { ClipboardListSolid } from 'flowbite-svelte-icons';
+	import { CalendarMonthSolid, ClipboardListSolid } from 'flowbite-svelte-icons';
 </script>
 
 <P size="sm" class="mb-3">
@@ -15,6 +15,13 @@
 		description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
 		buttonHref="/admin/jadwal"
 		buttonText="Kelola"
+	/>
+	<FeatureCard
+		icon={CalendarMonthSolid}
+		title="Jadwal Misa"
+		description="Kelola jadwal misa. Buat jadwal misa untuk setiap minggu."
+		buttonHref="/admin/misa"
+		buttonText="Buat Jadwal"
 	/>
 	<!-- <FeatureCard
 			icon={UserCircleSolid}

@@ -1,12 +1,12 @@
-import type {
-	ChurchZone,
-	Mass,
-	Wilayah,
-	Lingkungan,
-	ChurchPosition,
-	Church
-} from '$core/entities/Schedule';
 import type { Event } from '$core/entities/Event';
+import type {
+	Church,
+	ChurchPosition,
+	ChurchZone,
+	Lingkungan,
+	Mass,
+	Wilayah
+} from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
 import { maskUuid } from '$src/lib/utils/maskUtils';
@@ -59,7 +59,6 @@ export class ChurchService {
 	 */
 	private async fetchZones(): Promise<void> {
 		this.zones = await repo.getZones(this.churchId);
-		logger.debug(`${this.zones.length} zones fetched for church ${maskUuid(this.churchId)}`);
 	}
 
 	/**
@@ -67,7 +66,6 @@ export class ChurchService {
 	 */
 	private async fetchMasses(): Promise<void> {
 		this.masses = await repo.getMasses(this.churchId);
-		logger.debug(`${this.masses.length} masses fetched for church ${maskUuid(this.churchId)}`);
 	}
 
 	/**
@@ -98,13 +96,13 @@ export class ChurchService {
 		return zones;
 	}
 
+	// TODO: move to event service
 	/**
 	 * Retrieves the list of events for the church from the repository.
 	 * @returns A promise that resolves to an array of Event objects.
 	 */
 	async getEvents(limit?: number): Promise<Event[]> {
 		this.events = await repo.getEvents(this.churchId, limit);
-		logger.debug(`${this.events.length} events fetched for church ${maskUuid(this.churchId)} ${limit ? `with limit ${limit}` : ''}`);
 		return this.events;
 	}
 

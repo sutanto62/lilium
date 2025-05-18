@@ -1,9 +1,11 @@
-import type { Mass } from '$core/entities/Schedule';
+import { EventType } from '$core/entities/Event';
 import { ChurchService } from '$core/service/ChurchService';
+import { EventService } from '$core/service/EventService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
+import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
+import { fail, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async (event) => {
     logger.info('Loading page admin/misa');
@@ -15,11 +17,90 @@ export const load: PageServerLoad = async (event) => {
     }
 
     const churchId = session.user?.cid ?? '';
-    const churchService = new ChurchService(churchId);
+    const eventService = new EventService(churchId);
 
-    const masses = await churchService.getMasses();
+    const events = await eventService.getEventsByWeekNumber(undefined, [20, 21, 22, 23, 24, 25, 26, 27]);
 
     return {
-        masses
+        wilayahs: [],
+        lingkungans: [],
+        events: events,
+        eventsDate: [],
+        success: false,
+        assignedUshers: []
     };
 };
+
+export const actions = {
+    createEvent: async ({ request, cookies }) => {
+        logger.info('Creating new event');
+
+        const churchId = cookies.get('cid') as string;
+        if (!churchId) {
+            return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
+        }
+
+        const churchService = new ChurchService(churchId);
+        const eventService = new EventService(churchId);
+
+        const masses = await churchService.getMasses();
+
+        try {
+            // Get current date and calculate next month's dates
+            const now = new Date();
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const lastDayOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+            // Check if events for next month already exist
+            const startDate = nextMonth.toISOString().split('T')[0];
+            const endDate = lastDayOfNextMonth.toISOString().split('T')[0];
+            const existingEvents = await eventService.getEventsByDateRange(startDate, endDate);
+
+            if (existingEvents && existingEvents.length > 0) {
+                logger.warn('Events for next month already exist');
+                return fail(400, { error: 'Jadwal misa untuk bulan depan sudah dibuat' });
+            }
+
+            // Loop through each day of next month
+            for (let date = new Date(nextMonth); date <= lastDayOfNextMonth; date.setDate(date.getDate() + 1)) {
+                // Get day of week in Indonesian, starting from Monday (1) to Sunday (7)
+                const dayOfWeek = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+                    .toLocaleDateString('en-EN', { weekday: 'long' })
+                    .toLowerCase();
+                logger.debug(`processing date: ${date.toISOString()}, day of week: ${dayOfWeek}`);
+
+                // Find masses scheduled for this day of week
+                const massesForDay = masses.filter(mass => mass.day === dayOfWeek && mass.active === 1);
+
+                // Create events for each mass on this day
+                for (const mass of massesForDay) {
+                    logger.debug(`processing mass: ${mass.id}, ${mass.name}`);
+                    const eventDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
+                    // Get week number using dateUtils
+                    const weekNumber = getWeekNumber(eventDate);
+
+                    await eventService.insertEvent({
+                        church: churchId,
+                        mass: mass.id,
+                        date: eventDate,
+                        weekNumber: weekNumber,
+                        isComplete: 0,
+                        active: 1,
+                        type: EventType.MASS,
+                        code: mass.code,
+                        description: mass.name
+                    });
+                }
+            }
+
+            return {
+                success: true
+            };
+        } catch (err) {
+            logger.error('Error creating event:', err);
+            return fail(500, { error: 'Gagal membuat jadwal misa' });
+        }
+    }
+};
+

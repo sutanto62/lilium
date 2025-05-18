@@ -6,6 +6,7 @@ import type {
 	JadwalDetailResponse,
 	UsherByEvent
 } from '$core/entities/Event';
+import { EventType } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
@@ -19,7 +20,60 @@ export class EventService {
 		this.eventDate = '';
 	}
 
+	/**
+	 * Retrieves events by week number for upcomping 2 weeks
+	 * 
+	 * @param weekNumber - The week number to retrieve events for
+	 * @param limit - The maximum number of events to retrieve, omit to return all events
+	 * @returns A promise that resolves to an array of Event objects
+	 */
+	async getEventsByWeekNumber(weekNumber?: number, weekNumbers?: number[], limit?: number): Promise<ChurchEvent[]> {
+		const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
+		const events = await repo.getEventsByWeekNumber(this.churchId, upcomingWeeks, limit);
+		return events;
+	}
+
+	async getEventsByDateRange(startDate: string, endDate: string): Promise<ChurchEvent[]> {
+		return await repo.getEventsByDateRange(this.churchId, startDate, endDate);
+	}
+
+	async getEvents(): Promise<ChurchEvent[]> {
+		const stubEvents: ChurchEvent[] = [
+			{
+				id: '1',
+				church: '1',
+				mass: '1',
+				date: '2025-05-29',
+				weekNumber: 1,
+				createdAt: 1715731200000,
+				isComplete: 1,
+				active: 1,
+				type: EventType.FEAST,
+				code: 'S1',
+				description: 'Hari Raya Kenaikan Tuhan '
+			},
+			{
+				id: '2',
+				church: '1',
+				mass: '2',
+				date: '2025-12-25',
+				weekNumber: 2,
+				createdAt: 1715731200000,
+				isComplete: 1,
+				active: 1,
+				type: EventType.FEAST,
+				code: 'S2',
+				description: 'Perayaan Natal'
+			}
+		];
+		return stubEvents;
+	}
+
 	async getEventById(eventId: string): Promise<ChurchEvent> {
+		return await repo.getEventById(eventId);
+	}
+
+	async getEventByIdResponse(eventId: string): Promise<ChurchEvent> {
 		return await repo.findEventById(eventId);
 	}
 
@@ -58,6 +112,10 @@ export class EventService {
 	 * @param event - The event details containing church ID, mass ID and date
 	 * @returns Promise<ChurchEvent> - The existing or newly created event
 	 */
+
+	/**
+	 * @deprecated confirm by predefined event
+	 */
 	async confirmEvent(event: ChurchEvent): Promise<ChurchEvent> {
 		const createdEvent = await repo.getEventByChurch(event.church, event.mass, event.date);
 
@@ -75,8 +133,9 @@ export class EventService {
 				id: uuidv4(),
 				createdAt: new Date().getTime()
 			};
+			logger.debug(`inserting event ${JSON.stringify(newEvent)}`);
 
-			const insertedEvent = await repo.insertEvent(newEvent.church, newEvent.mass, newEvent.date);
+			const insertedEvent = await repo.insertEvent(newEvent);
 
 			if (!insertedEvent) {
 				throw new Error('Failed to insert event');

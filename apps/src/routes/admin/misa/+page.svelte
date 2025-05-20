@@ -1,36 +1,56 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
+	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import { FloppyDiskSolid } from 'flowbite-svelte-icons';
+	import { onMount } from 'svelte';
+	import type { PageProps } from './$types';
 
-	export let data;
-	export let form;
+	export let data: PageProps['data'];
+	export let form: PageProps['form'];
 
 	$: events = data.events;
-	$: success = form?.success;
-	$: error = form?.error;
 
-	async function handleSubmit() {
-		try {
-			await fetch('?/createEvent', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded'
-				},
-				body: new URLSearchParams()
-			});
-			alert('Jadwal misa berhasil dibuat');
-			goto('/admin/misa', { invalidateAll: true });
-		} catch (err) {
-			alert('Gagal membuat jadwal misa');
+	// async function handleSubmit() {
+	// 	try {
+	// 		await fetch('', {
+	// 			method: 'POST',
+	// 			headers: {
+	// 				'Content-Type': 'application/x-www-form-urlencoded'
+	// 			},
+	// 			body: new URLSearchParams()
+	// 		});
+	// 		goto('/admin/misa', { invalidateAll: true });
+	// 	} catch (err) {
+	// 		alert('Gagal membuat jadwal misa');
+	// 	}
+	// }
+
+	let showAlert = true;
+
+	onMount(() => {
+		if (form?.success || form?.error) {
+			setTimeout(() => {
+				showAlert = false;
+			}, 10000); // 10 seconds
 		}
-	}
+	});
 </script>
 
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/admin" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/misa">Misa</BreadcrumbItem>
 </Breadcrumb>
+
+{#if form?.success && showAlert}
+	<Alert color="green" class="mb-4">
+		<p>Jadwal misa berhasil dibuat</p>
+	</Alert>
+{/if}
+
+{#if form?.error && showAlert}
+	<Alert color="red" class="mb-4">
+		<p>{form.error}</p>
+	</Alert>
+{/if}
 
 <div class="w-full">
 	{#if events.length === 0}
@@ -47,7 +67,7 @@
 	{/if}
 
 	<div class="mb-4">
-		<form on:submit|preventDefault={handleSubmit}>
+		<form method="POST">
 			<Button type="submit" id="save-button" color="primary">
 				<FloppyDiskSolid class="mr-2" />Tambah Jadwal Misa
 			</Button>

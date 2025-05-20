@@ -43,6 +43,7 @@ export interface ChurchZone {
 export interface ChurchPosition {
 	id: string;
 	church: string;
+	zone: string;
 	name: string;
 	code: string | null;
 	description: string | null;
@@ -72,4 +73,5 @@ export interface Usher {
 	isPpg: boolean | false;
 	isKolekte: boolean | false;
 	sequence: number | null;
+	validationMessage?: string;
 }

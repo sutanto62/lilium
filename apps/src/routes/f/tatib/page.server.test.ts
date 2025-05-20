@@ -1,14 +1,12 @@
-import { expect, test, vi } from "vitest";
-import { actions, load } from './+page.server';
-import type { RequestEvent } from '@sveltejs/kit';
-import type { RouteParams } from './$types';
-import { featureFlags } from '$lib/utils/FeatureFlag';
-import { repo } from '$lib/server/db';
+import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { QueueManager } from '$core/service/QueueManager';
-import type { Church, Mass, Wilayah, Lingkungan, ChurchPosition } from '$core/entities/Schedule';
-import type { Event as ChurchEvent } from '$core/entities/Event';
+import { repo } from '$lib/server/db';
 import { mass } from '$lib/server/db/schema';
-import type { ActionFailure } from '@sveltejs/kit';
+import { featureFlags } from '$lib/utils/FeatureFlag';
+import type { RequestEvent } from '@sveltejs/kit';
+import { expect, test, vi } from "vitest";
+import type { RouteParams } from './$types';
+import { actions } from './+page.server';
 
 // Mock dependencies
 vi.mock('$lib/server/db', () => ({

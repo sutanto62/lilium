@@ -8,8 +8,6 @@ import type {
 	Wilayah
 } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
-import { logger } from '$src/lib/utils/logger';
-import { maskUuid } from '$src/lib/utils/maskUtils';
 
 /**
  * ChurchService is a class responsible for managing church-related data,

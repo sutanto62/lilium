@@ -27,6 +27,7 @@
 
 <Breadcrumb class="mb-4	">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
+	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
 	<BreadcrumbItem href={`/admin/jadwal/${jadwalDetail.id}`}>
 		{jadwalDetail.mass}
@@ -59,7 +60,7 @@
 		</form>
 		<Button
 			size="xs"
-			on:click={() => window.open(`/admin/jadwal/${jadwalDetail.id}/cetak`, '_blank')}
+			onclick={() => window.open(`/admin/jadwal/${jadwalDetail.id}/cetak`, '_blank')}
 		>
 			<PrinterOutline class="me-2 h-5 w-5" /> Cetak
 		</Button>

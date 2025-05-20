@@ -109,17 +109,17 @@ export const actions = {
 
 			// Validate mass ushers position
 			if (massZonePositions.length === 0) {
-				logger.warn(`mass zone position not found: ${selectedMass?.name}.`)
-				return fail(404, { error: `Misa ${selectedMass?.name} belum memiliki titik tugas.` })
+				logger.warn(`mass zone position not found: ${selectedMass?.name}.`);
+				return fail(404, { error: `Misa ${selectedMass?.name} belum memiliki titik tugas.` });
 			}
 
 			if (!selectedMass) {
-				logger.warn(`mass not found.`)
+				logger.warn(`mass not found.`);
 				return fail(404, { error: `Misa tidak ditemukan` });
 			}
 
 			if (!selectedLingkungan) {
-				logger.warn(`lingkungan not found`)
+				logger.warn(`lingkungan not found`);
 				return fail(404, { error: 'Lingkungan tidak ditemukan' });
 			}
 
@@ -128,7 +128,7 @@ export const actions = {
 			try {
 				ushersArray = JSON.parse(ushersString);
 			} catch (err) {
-				logger.warn(`failed to parse ushers list`)
+				logger.warn(`failed to parse ushers list`);
 				return fail(400, { error: 'Gagal parsing data petugas' });
 			}
 

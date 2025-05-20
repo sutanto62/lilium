@@ -6,7 +6,6 @@
 	import {
 		Alert,
 		Button,
-		Checkbox,
 		Input,
 		Progressbar,
 		Table,
@@ -32,6 +31,49 @@
 			sequence: 0
 		}
 	];
+
+	function validateName(name: string): string | undefined {
+		console.log(`validating name: ${name}`);
+		// Don't validate empty input
+		if (!name.trim()) {
+			return undefined;
+		}
+
+		const sanitized = name.trim();
+		const words = sanitized.split(' ');
+
+		// Check if each word is at least 3 characters long
+		if (words.some((word) => word.length < 3)) {
+			return 'Nama minimal 3 karakter';
+		}
+
+		// Check if total length is reasonable (between 3 and 50 characters)
+		if (sanitized.length < 3 || sanitized.length > 50) {
+			return 'Nama harus antara 3 dan 50 karakter';
+		}
+
+		// Check for repeated characters (more than 3 same characters in sequence)
+		if (/(.)\1{2,}/.test(sanitized)) {
+			return 'Nama tidak boleh mengandung karakter yang berulang lebih dari 2 kali';
+		}
+
+		return undefined;
+	}
+
+	// TODO: check after input data
+	function handleNameChange(index: number, value: string) {
+		console.log(`handleNameChange: ${value}`);
+		ushers = ushers.map((usher, i) => {
+			if (i === index) {
+				return {
+					...usher,
+					name: value,
+					validationMessage: validateName(value)
+				};
+			}
+			return usher;
+		});
+	}
 
 	let selectedRole: 'PPG' | 'Kolekte' | null = null;
 	let screenMinWidth: number = 640;
@@ -75,7 +117,19 @@
 			return;
 		}
 
-		ushers = [...ushers, { name: '', isPpg: false, isKolekte: false, sequence: 0 }];
+		ushers = [
+			...ushers,
+			{
+				name: '',
+				isPpg: false,
+				isKolekte: false,
+				sequence: ushers.length
+			}
+		];
+	}
+
+	function removeUsher(index: number) {
+		ushers = ushers.filter((_, i) => i !== index);
 	}
 
 	// Recalculate progress whenever ushers changes
@@ -86,13 +140,22 @@
 
 		// Get the number of filled names
 		const filledNames = usher.filter((p) => p.name.trim() !== '').length;
+		const progress = Math.round((filledNames / maxUshers) * 100);
 
-		return Math.round((filledNames / maxUshers) * 100);
+		const confirmationStatus = usher.map((p) => {
+			if (progress === 0) return 'unconfirmed';
+			if (progress === 100) return 'confirmed';
+			return 'incomplete';
+		});
+
+		return confirmationStatus;
 	}
 
 	$: numberOfPpg = ushers.filter((p) => p.isPpg).length;
 	$: numberOfKolekte = ushers.filter((p) => p.isKolekte).length;
-	$: isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && progress >= (6 / maxUshers) * 100;
+	$: numberOfUsher = ushers.length;
+	$: progressPercentage = Math.round((numberOfUsher / maxUshers) * 100);
+	$: isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && numberOfUsher >= 6;
 
 	// Reset
 	function reset() {
@@ -108,109 +171,134 @@
 	}
 </script>
 
-<div
-	class="sticky top-0 z-10 flex items-center justify-between gap-4 bg-white px-0 pb-4 dark:bg-gray-800"
->
-	<caption class="text-left text-lg font-semibold">
-		Petugas
-		<p class="mt-1 text-sm font-normal">
-			Mohon isi petugas sesuai dengan persyaratan (8 orang dan 3 Kolekte)
-		</p>
-	</caption>
-	<Button color="alternative" size="xs" on:click={addUsher}>
-		<UserAddSolid class="mr-2" /> Petugas
-	</Button>
-</div>
-
-{#if progress > 0}
-	<div class="mb-4">
-		<Progressbar {progress} size="h-2" color={progress < 75 ? 'gray' : 'green'} />
-		<p class="mt-2 text-sm text-gray-500">
-			{progress}% lengkap
-		</p>
+<div class="relative">
+	<div
+		class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-0 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+	>
+		<div class="text-left text-lg font-semibold">
+			Petugas
+			<p class="mt-1 text-sm font-normal">
+				Mohon isi petugas sesuai dengan persyaratan (8 orang dan 3 Kolekte)
+			</p>
+		</div>
+		<Button color="primary" size="xs" onclick={addUsher}>
+			<UserAddSolid class="mr-2" /> Petugas
+		</Button>
 	</div>
-{/if}
 
-{#if showMaxAlert}
-	<Alert color="red" class="mb-4">Jumlah maksimum petugas ({maxUshers}) telah tercapai.</Alert>
-{/if}
+	{#if progressPercentage > 0}
+		<div class="mb-4">
+			<Progressbar
+				progress={progressPercentage}
+				size="h-2"
+				color={progressPercentage < 75 ? 'gray' : 'green'}
+			/>
+			<p class="mt-2 text-sm text-gray-500">
+				{progressPercentage}% lengkap
+			</p>
+		</div>
+	{/if}
 
-<Table>
-	<TableHead>
-		{#if screenWidth > screenMinWidth}
-			<TableHeadCell class="w-10 px-4">#</TableHeadCell>
-			<TableHeadCell class="w-max min-w-48 px-4">Nama</TableHeadCell>
-			<TableHeadCell class="w-20 px-4">PPG</TableHeadCell>
-			<TableHeadCell class="w-20 px-4">Kolekte</TableHeadCell>
-		{:else}
-			<!-- <TableHeadCell class="w-10 px-0">#</TableHeadCell> -->
-			<TableHeadCell class="w-full min-w-48 !px-4">Petugas</TableHeadCell>
-		{/if}
-	</TableHead>
-	<TableBody tableBodyClass="divide-y [&>tr>td]:px-4">
-		{#each ushers as usher, index}
-			<TableBodyRow>
-				{#if screenWidth > screenMinWidth}
-					<TableBodyCell class="w-10">{index + 1}</TableBodyCell>
-					<TableBodyCell class="w-max min-w-48">
-						<Input
-							type="text"
-							id="name-{index}"
-							placeholder="Tulis nama"
-							required
-							bind:value={usher.name}
-						/>
-					</TableBodyCell>
-					<TableBodyCell class="w-20">
-						<Checkbox
-							id="isPpg-{index}"
-							bind:checked={usher.isPpg}
-							on:click={() => handleRoleChange(index, 'PPG')}
-						/>
-					</TableBodyCell>
-					<TableBodyCell class="w-20">
-						<Checkbox
-							id="isKolekte-{index}"
-							bind:checked={usher.isKolekte}
-							on:click={() => handleRoleChange(index, 'Kolekte')}
-						/>
-					</TableBodyCell>
-				{:else}
-					<!-- <TableBodyCell class="w-10">1</TableBodyCell> -->
-					<TableBodyCell class="w-full !px-1">
-						<div class="flex flex-col gap-4">
-							<div class="w-full">
-								Petugas {index + 1}
+	{#if showMaxAlert}
+		<Alert color="red" class="mb-4">Jumlah maksimum petugas ({maxUshers}) telah tercapai.</Alert>
+	{/if}
+
+	<Table>
+		<TableHead>
+			{#if screenWidth > screenMinWidth}
+				<TableHeadCell class="w-10 px-4">#</TableHeadCell>
+				<TableHeadCell class="w-max min-w-48 px-4">Nama</TableHeadCell>
+				<TableHeadCell class="w-20 px-4">PPG</TableHeadCell>
+				<TableHeadCell class="w-20 px-4">Kolekte</TableHeadCell>
+			{:else}
+				<!-- <TableHeadCell class="w-10 px-0">#</TableHeadCell> -->
+				<TableHeadCell class="w-full min-w-48 !px-4">Petugas</TableHeadCell>
+			{/if}
+		</TableHead>
+		<TableBody class="divide-y [&>tr>td]:px-4">
+			{#each ushers as usher, index}
+				<TableBodyRow>
+					{#if screenWidth > screenMinWidth}
+						<TableBodyCell class="w-10">{index + 1}</TableBodyCell>
+						<TableBodyCell class="w-max min-w-48">
+							<div class="flex items-start gap-4">
+								<div class="flex-1">
+									<Input
+										id="name-{index}"
+										type="text"
+										placeholder="Masukkan nama lengkap"
+										bind:value={usher.name}
+										oninput={() => handleNameChange(index, usher.name)}
+										class="mt-2"
+									/>
+									{#if usher.validationMessage}
+										<Alert color="red" class="mt-2">
+											{usher.validationMessage}
+										</Alert>
+									{/if}
+								</div>
 							</div>
-							<Input
-								type="text"
-								id="name-{index}"
-								placeholder="Tulis nama"
-								required
-								bind:value={usher.name}
-							/>
-							<div class="flex flex-row gap-4">
-								<Toggle
-									id="isPpg-{index}"
+						</TableBodyCell>
+						<TableBodyCell class="w-20">
+							<div class="flex h-full items-center justify-center">
+								<input
+									id="ppg-{index}"
+									type="checkbox"
 									bind:checked={usher.isPpg}
-									on:click={() => handleRoleChange(index, 'PPG')}>PPG</Toggle
-								>
-								<Toggle
-									id="isKolekte-{index}"
-									bind:checked={usher.isKolekte}
-									on:click={() => handleRoleChange(index, 'Kolekte')}>Menghitung Kolekte</Toggle
-								>
+									class="h-4 w-4 rounded border-gray-300"
+									onclick={() => handleRoleChange(index, 'PPG')}
+								/>
 							</div>
-						</div>
-					</TableBodyCell>
-				{/if}
-			</TableBodyRow>
-		{/each}
-	</TableBody>
-</Table>
+						</TableBodyCell>
+						<TableBodyCell class="w-20">
+							<div class="flex h-full items-center justify-center">
+								<input
+									id="kolekte-{index}"
+									type="checkbox"
+									bind:checked={usher.isKolekte}
+									class="h-4 w-4 rounded border-gray-300"
+									onclick={() => handleRoleChange(index, 'Kolekte')}
+								/>
+							</div>
+						</TableBodyCell>
+					{:else}
+						<!-- <TableBodyCell class="w-10">1</TableBodyCell> -->
+						<TableBodyCell class="w-full !px-1">
+							<div class="flex flex-col gap-4">
+								<div class="w-full">
+									Petugas {index + 1}
+								</div>
+								<Input
+									type="text"
+									id="name-{index}"
+									placeholder="Tulis nama"
+									required
+									bind:value={usher.name}
+									oninput={() => handleNameChange(index, usher.name)}
+								/>
+								<div class="flex flex-row gap-4">
+									<Toggle
+										id="isPpg-{index}"
+										bind:checked={usher.isPpg}
+										onclick={() => handleRoleChange(index, 'PPG')}>PPG</Toggle
+									>
+									<Toggle
+										id="isKolekte-{index}"
+										bind:checked={usher.isKolekte}
+										onclick={() => handleRoleChange(index, 'Kolekte')}>Menghitung Kolekte</Toggle
+									>
+								</div>
+							</div>
+						</TableBodyCell>
+					{/if}
+				</TableBodyRow>
+			{/each}
+		</TableBody>
+	</Table>
 
-<div
-	class="sticky bottom-0 z-10 flex justify-end gap-4 border-t border-gray-200 bg-white px-0 py-4 dark:border-gray-700 dark:bg-gray-800"
->
-	<Button id="reset-button" color="alternative" size="xs" on:click={reset}>Reset</Button>
+	<div
+		class="sticky bottom-0 z-10 flex justify-end gap-4 border-t border-gray-200 bg-white px-0 py-4 dark:border-gray-700 dark:bg-gray-800"
+	>
+		<Button id="reset-button" color="alternative" size="xs" onclick={reset}>Reset</Button>
+	</div>
 </div>

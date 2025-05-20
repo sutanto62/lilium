@@ -1,7 +1,6 @@
-import posthog from 'posthog-js';
 import { browser } from '$app/environment';
+import posthog from 'posthog-js';
 import { PostHog } from 'posthog-node';
-import { logger } from './logger';
 
 /**
  * Analytics utility functions for PostHog integration, Client setup. Call these functions in your server actions or routes.

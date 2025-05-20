@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { Navbar, NavBrand, NavUl, NavLi, NavHamburger } from 'flowbite-svelte';
 	import { page } from '$app/stores';
 	import { SignIn, SignOut } from '@auth/sveltekit/components';
+	import { Navbar, NavBrand, NavHamburger, NavUl } from 'flowbite-svelte';
 </script>
 
-<Navbar color="primary" class="mb-7 py-7 print:hidden" fluid={true} id="navadmin">
-	<div class="container flex justify-between sm:px-0 md:px-3">
+<div class="relative px-8">
+	<!-- <Navbar color="primary" class="mb-7 py-7 print:hidden" fluid={true} id="navadmin"> -->
+	<Navbar
+		class="fixed start-0 top-0 z-20 w-full border-b bg-primary-100 px-2 py-2.5 dark:bg-primary-700 sm:px-4"
+	>
 		<NavBrand href="/">
 			<!-- Kidung Agung 2:2 -->
 			<img src="/images/lily-amongs-thorns.png" class="size-16" alt="LIS logo" />
@@ -16,23 +19,19 @@
 		<NavHamburger />
 		<NavUl class="order-1">
 			{#if $page.data.session}
-				<span class="signedInText">
+				<span class="signedInText mr-2">
 					{$page.data.session.user?.email ?? $page.data.session.user?.name} ({$page.data.session
 						.user?.role})
 				</span>
-				<NavLi class="text-l">
-					<SignOut options={{ redirectTo: `/` }}>
-						<div slot="submitButton" class="buttonPrimary">Keluar</div>
-					</SignOut>
-				</NavLi>
+
+				<SignOut options={{ redirectTo: `/` }}>
+					<div slot="submitButton" class="buttonPrimary">Keluar</div>
+				</SignOut>
 			{:else}
-				<!-- <span class="notSignedInText">You are not signed in</span> -->
-				<NavLi class="text-l">
-					<SignIn>
-						<div slot="submitButton">Masuk</div>
-					</SignIn>
-				</NavLi>
+				<SignIn>
+					<div slot="submitButton" class="buttonPrimary">Masuk</div>
+				</SignIn>
 			{/if}
 		</NavUl>
-	</div>
-</Navbar>
+	</Navbar>
+</div>

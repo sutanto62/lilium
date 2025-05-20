@@ -25,7 +25,7 @@
 
 	let defaultModal = false;
 	let selectedZoneId: string | null = null;
-	let eventZonePic: string | null = null;
+	let eventZonePic = '';
 </script>
 
 <Table>
@@ -42,10 +42,10 @@
 			<CashOutline /><Tooltip type="auto">Kolekte</Tooltip>
 		</TableHeadCell>
 	</TableHead>
-	<TableBody tableBodyClass="divide-y">
+	<TableBody class="divide-y">
 		{#each rows as jadwalDetaillZone, i}
 			<!-- TODO: prevent open on tambah pic click -->
-			<TableBodyRow class="hover:bg-gray-100" on:click={() => toggleRow(i)}>
+			<TableBodyRow class="hover:bg-gray-100" onclick={() => toggleRow(i)}>
 				<TableBodyCell class="px-2 align-top"
 					>{jadwalDetaillZone.name}
 					<ol class="block lg:hidden">
@@ -60,7 +60,7 @@
 							{/each}
 						{:else}
 							<!-- 1 zone 1 pic -->
-							<Button size="xs" on:click={() => (defaultModal = true)}>Tambah PIC</Button>
+							<Button size="xs" onclick={() => (defaultModal = true)}>Tambah PIC</Button>
 						{/if}
 					</ol>
 				</TableBodyCell>
@@ -81,7 +81,7 @@
 									{/each}
 								{:else}
 									<!-- 1 zone 1 pic -->
-									<Button size="xs" on:click={() => (defaultModal = true)}>Tambah PIC</Button>
+									<Button size="xs" onclick={() => (defaultModal = true)}>Tambah PIC</Button>
 								{/if}
 							</ol>
 						</div>
@@ -106,6 +106,7 @@
 	</TableBody>
 </Table>
 
+<!-- PIC modal for adding pic to zone -->
 <Modal title="Tambah PIC" bind:open={defaultModal}>
 	<form method="POST" action="?/jadwalDetailPic">
 		<div class="mb-4 grid gap-4 sm:grid-cols-1">

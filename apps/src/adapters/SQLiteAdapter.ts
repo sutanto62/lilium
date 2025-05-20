@@ -16,6 +16,7 @@ import {
 	findEventUshersPosition,
 	findJadwalDetail,
 	findUshersByEvent,
+	softDeleteEvent,
 	updateEventUshers,
 } from './SQLiteDbEvent';
 import {

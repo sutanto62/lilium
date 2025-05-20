@@ -1,33 +1,21 @@
 <script lang="ts">
 	import FeatureCard from '$components/FeatureCard.svelte';
-	import { P } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
-	import { CalendarMonthSolid, ClipboardListSolid } from 'flowbite-svelte-icons';
 </script>
 
-<P size="sm" class="mb-3">
-	Menu khusus untuk admin sistem. Hanya dapat diakses oleh pengguna dengan hak akses admin.
-</P>
-<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-4 gap-4">
+<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
 	<FeatureCard
-		icon={ClipboardListSolid}
 		title="Jadwal Tata Tertib"
 		description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
 		buttonHref="/admin/jadwal"
 		buttonText="Kelola"
+		buttonColor="alternative"
 	/>
 	<FeatureCard
-		icon={CalendarMonthSolid}
 		title="Jadwal Misa"
-		description="Kelola jadwal misa. Buat jadwal misa untuk setiap minggu."
+		description="Melihat dan membuat jadwal misa. Buka sebulan sekali untuk membuat jadwal satu bulan penuh."
 		buttonHref="/admin/misa"
-		buttonText="Buat Jadwal"
+		buttonText="Misa"
+		buttonColor="alternative"
 	/>
-	<!-- <FeatureCard
-			icon={UserCircleSolid}
-			title="PIC PETA"
-			description="Setiap minggu petugas PETA akan bergantian menjadi PIC pada setiap misa. PIC harus sudah terdaftar."
-			buttonHref="/admin/pic"
-			buttonText="Atur PIC"
-		/> -->
 </FeatureDefault>

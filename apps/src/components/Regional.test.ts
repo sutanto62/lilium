@@ -1,12 +1,43 @@
-import { render, fireEvent, screen } from '@testing-library/svelte';
-import { expect, describe, it, beforeEach, afterEach, vi } from 'vitest';
+import type { EventType } from '$core/entities/Event';
 import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/svelte';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Regional from './Regional.svelte';
 
 describe('Regional', () => {
 	const mockMasses = [
-		{ id: 'E1', name: 'Event 1', church: 'Church 1', sequence: 1, code: 'E1', day: 'saturday' },
-		{ id: 'E2', name: 'Event 2', church: 'Church 2', sequence: 2, code: 'E2', day: 'sunday' }
+		{
+			id: 'E1',
+			name: 'Event 1',
+			church: 'Church 1',
+			sequence: 1,
+			code: 'E1',
+			day: 'saturday',
+			mass: 'Mass 1',
+			date: '2023-04-15',
+			weekNumber: 1,
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
+			type: 'mass' as EventType,
+			isComplete: 0,
+			active: 1
+		},
+		{
+			id: 'E2',
+			name: 'Event 2',
+			church: 'Church 2',
+			sequence: 2,
+			code: 'E2',
+			day: 'sunday',
+			mass: 'Mass 2',
+			date: '2023-04-16',
+			weekNumber: 1,
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
+			type: 'mass' as EventType,
+			isComplete: 0,
+			active: 1
+		}
 	];
 	const mockWilayahs = [
 		{ id: 'W1', name: 'Wilayah 1', code: 'W1', sequence: 1, church: 'Church 1' },
@@ -29,7 +60,12 @@ describe('Regional', () => {
 
 	it('renders correctly with initial state', () => {
 		render(Regional, {
-			props: { masses: mockMasses, wilayahs: mockWilayahs, lingkungans: mockLingkungans }
+			props: {
+				events: mockMasses,
+				eventsDate: mockMasses.map(m => m.day),
+				wilayahs: mockWilayahs,
+				lingkungans: mockLingkungans
+			}
 		});
 
 		expect(screen.getByLabelText('Jadwal Misa')).toBeInTheDocument();
@@ -39,7 +75,12 @@ describe('Regional', () => {
 
 	it('updates lingkungan options when wilayah is selected', async () => {
 		render(Regional, {
-			props: { masses: mockMasses, wilayahs: mockWilayahs, lingkungans: mockLingkungans }
+			props: {
+				events: mockMasses,
+				eventsDate: mockMasses.map(m => m.day),
+				wilayahs: mockWilayahs,
+				lingkungans: mockLingkungans
+			}
 		});
 
 		const wilayahSelect = screen.getByLabelText('Wilayah');
@@ -54,7 +95,12 @@ describe('Regional', () => {
 
 	it('resets wilayah and lingkungan when event is changed', async () => {
 		render(Regional, {
-			props: { masses: mockMasses, wilayahs: mockWilayahs, lingkungans: mockLingkungans }
+			props: {
+				events: mockMasses,
+				eventsDate: mockMasses.map(m => m.day),
+				wilayahs: mockWilayahs,
+				lingkungans: mockLingkungans
+			}
 		});
 
 		const eventSelect = screen.getByLabelText('Jadwal Misa');

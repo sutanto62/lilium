@@ -51,6 +51,7 @@ export interface ScheduleRepository {
 	getEventsByWeekNumber(churchId: string, weekNumbers: number[], limit?: number): Promise<ChurchEvent[]>;
 	getEventsByDateRange(churchId: string, startDate: string, endDate: string): Promise<ChurchEvent[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
+	updateEventById(eventId: string, event: ChurchEvent): Promise<ChurchEvent>;
 	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
 	deactivateEvent(eventId: string): Promise<boolean>;
 	listUshers(eventId: string): Promise<UsherByEvent[]>; // formatted response

@@ -21,7 +21,7 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { logger } from '$src/lib/utils/logger';
+import { DatabaseError } from '$src/types/errors';
 import { and, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,36 +30,32 @@ export async function createEvent(
 	db: ReturnType<typeof drizzle>,
 	newEvent: ChurchEvent
 ): Promise<ChurchEvent> {
-	return await db
-		.insert(event)
-		.values({
-			id: newEvent.id,
-			church_id: newEvent.church,
-			mass_id: newEvent.mass,
-			date: newEvent.date,
-			week_number: newEvent.weekNumber,
-			created_at: newEvent.createdAt,
-			isComplete: 0,
-			active: 1,
-			code: newEvent.code,
-			description: newEvent.description
-		})
-		.returning({
-			id: event.id,
-			church: event.church_id,
-			mass: event.mass_id,
-			date: event.date,
-			weekNumber: event.week_number,
-			createdAt: event.created_at,
-			isComplete: event.isComplete,
-			active: event.active,
-			code: event.code,
-		})
-		.then((result: ChurchEvent[]) => result[0])
-		.catch((error: Error) => {
-			logger.error(`Error inserting event: ${error.message}`);
-			throw error;
-		});
+	try {
+		const result = await db
+			.insert(event)
+			.values({
+				id: newEvent.id,
+				church_id: newEvent.church,
+				mass_id: newEvent.mass,
+				date: newEvent.date,
+				week_number: newEvent.weekNumber ?? null,
+				created_at: newEvent.createdAt ?? new Date().getTime(),
+				isComplete: newEvent.isComplete ?? 0,
+				active: newEvent.active ?? 1,
+				code: newEvent.code ?? null,
+				description: newEvent.description ?? null,
+				type: newEvent.type ?? EventType.MASS
+			})
+			.returning();
+		return {
+			...result[0],
+			church: result[0].church_id,
+			mass: result[0].mass_id,
+			type: result[0].type as EventType
+		};
+	} catch (error) {
+		throw new DatabaseError(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`);
+	}
 }
 
 export async function createEventUsher(
@@ -229,6 +225,32 @@ export async function findEventById(
 		.limit(1);
 
 	return query[0] as ChurchEvent;
+}
+
+export async function updateEventById(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	eventData: ChurchEvent
+): Promise<ChurchEvent> {
+	const updatedEventId = await db.update(event)
+		.set({
+			church_id: eventData.church,
+			mass_id: eventData.mass,
+			date: eventData.date,
+			week_number: eventData.weekNumber ?? null,
+			code: eventData.code ?? null,
+			description: eventData.description ?? null,
+			isComplete: eventData.isComplete ?? 0,
+			active: eventData.active ?? 1,
+			type: eventData.type ?? undefined,
+		})
+		.where(eq(event.id, id))
+		.returning();
+
+	return {
+		...eventData,
+		id: updatedEventId[0].id
+	};
 }
 
 export async function findEventByIdResponse(

@@ -75,3 +75,19 @@ export function getWeekNumber(date?: string): number {
 	const weekNumber = Math.ceil((days + adjustedDay + 1) / 7);
 	return weekNumber;
 }
+
+/**
+ * Get current and specified number of upcoming week numbers.
+ * 
+ * If no parameters are provided, returns current and next week numbers.
+ * 
+ * @param weeks - Number of upcoming weeks to include (default: 1)
+ * @param date - Optional date to get the week numbers of (default: current date)
+ * @returns Array of week numbers starting from current week
+ */
+export function getWeekNumbers(weeks: number = 1, date?: string): number[] {
+	const currentWeekNumber = getWeekNumber(date);
+	return Array.from({ length: weeks + 1 }, (_, i) => currentWeekNumber + i);
+}
+
+

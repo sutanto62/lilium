@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { Button, Heading, Li, List } from 'flowbite-svelte';
+	import { Breadcrumb, BreadcrumbItem, Button, Heading, Li, List } from 'flowbite-svelte';
 </script>
 
 <svelte:head>
 	<title>LIS Petunjuk Pemakaian</title>
-	<meta name="description" content="LIS" />
+	<meta
+		name="description"
+		content="Pelajari cara menggunakan LIS untuk konfirmasi petugas tata tertib."
+	/>
 </svelte:head>
 
-<div class="mb-4">
-	<Button color="primary" onclick={() => history.back()}>← Kembali</Button>
-</div>
+<Breadcrumb class="mb-4	">
+	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
+	<BreadcrumbItem>Petunjuk</BreadcrumbItem>
+</Breadcrumb>
 
 <Heading tag="h5" class="mb-4 mt-7">A. Panduan Lengkap Sistem Konfirmasi</Heading>
 
@@ -49,3 +53,7 @@
 	<Li>Hubungi admin jika terjadi kesalahan</Li>
 	<Li>Periksa kembali kebenaran data petugas sebelum menyimpan</Li>
 </List>
+
+<div class="mb-4">
+	<Button color="primary" onclick={() => history.back()}>← Kembali</Button>
+</div>

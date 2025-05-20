@@ -8,7 +8,7 @@
 		<Section name="page404">
 			<Page404>
 				{#snippet h1()}
-					404
+					403
 				{/snippet}
 				{#snippet paragraph()}
 					<p

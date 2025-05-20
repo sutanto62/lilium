@@ -75,8 +75,8 @@ export const load: PageServerLoad = async (event) => {
 				const totalPpg = ushers.filter((usher) => usher.isPpg).length;
 				const totalKolekte = ushers.filter((usher) => usher.isKolekte).length;
 
-				// Keep progress between 0 and 100
-				const progress = Math.min((confirmedUshers / totalUshers) * 100, 100);
+				// Calculate progress with safety check for division by zero
+				const progress = totalUshers === 0 ? 0 : Math.min((confirmedUshers / totalUshers) * 100, 100);
 
 				// Return event with additional usher count information
 				return {

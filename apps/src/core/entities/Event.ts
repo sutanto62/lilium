@@ -86,6 +86,7 @@ export interface JadwalDetailZone {
 export interface JadwalDetailLingkungan {
 	name: string;
 	zone: string;
+	id: string;
 	ushers: JadwalDetailUsher[];
 }
 

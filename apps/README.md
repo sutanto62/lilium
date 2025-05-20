@@ -65,6 +65,71 @@ npm run db:migrate
 npm run db:studio
 ```
 
+## System Architecture
+
+### Clean Architecture
+
+The project follows Clean Architecture principles to maintain separation of concerns and maintainability:
+
+```
+src/
+├── core/                  # Core business logic
+│   ├── entities/         # Domain models and business objects
+│   ├── repositories/     # Repository interfaces
+│   └── service/         # Business logic services
+├── lib/
+│   └── server/
+│       └── db/          # Database implementations
+└── routes/              # API endpoints and UI components
+```
+
+#### Layers
+
+1. **Entities Layer** (`core/entities/`)
+
+   - Pure domain models and business objects
+   - No dependencies on other layers
+   - Defines core business rules
+
+2. **Repository Interfaces** (`core/repositories/`)
+
+   - Defines contracts for data access
+   - Pure interfaces that entities depend on
+   - Enables loose coupling between layers
+
+3. **Services Layer** (`core/service/`)
+
+   - Contains business logic
+   - Uses repositories through interfaces
+   - Implements use cases and workflows
+
+4. **Database Implementation** (`lib/server/db/`)
+
+   - Implements repository interfaces
+   - Contains database-specific code
+   - Uses Drizzle ORM for database operations
+
+5. **Adapters Layer** (`routes/`)
+   - Connects core logic to the outside world
+   - Handles HTTP requests/responses
+   - Implements UI components
+
+#### Key Principles
+
+- Dependencies point inward (core layers don't depend on outer layers)
+- Use dependency injection for implementations
+- Keep business logic in the service layer
+- Use interfaces for repositories to maintain loose coupling
+- Keep database-specific code in the implementation layer
+
+#### Adding New Features
+
+1. Define entity in `core/entities/`
+2. Create repository interface in `core/repositories/`
+3. Implement business logic in `core/service/`
+4. Create database implementation in `lib/server/db/repositories/`
+5. Create API endpoints or UI components in `routes/`
+
 ## Project Structure
 
 ```

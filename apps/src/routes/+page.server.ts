@@ -7,6 +7,7 @@ export const load: PageServerLoad = async (event) => {
 
     return {
         session,
-        isAdmin
+        isAdmin,
+        success: true
     };
 };

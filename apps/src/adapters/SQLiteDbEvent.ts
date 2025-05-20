@@ -150,6 +150,18 @@ export async function updateEventUshers(
 	}
 }
 
+export async function deleteEventUsher(
+	db: ReturnType<typeof drizzle>,
+	eventId: string,
+	lingkunganId: string
+): Promise<boolean> {
+	const result = await db.delete(event_usher)
+		.where(and(eq(event_usher.event, eventId), eq(event_usher.lingkungan, lingkunganId)))
+		.returning();
+
+	return result.length > 0;
+}
+
 export async function findEventByChurch(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
@@ -449,10 +461,11 @@ export async function findUshersByEvent(
 	return result;
 }
 
-export async function findJadwalDetail(
+export async function readJadwalDetail(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
 ): Promise<JadwalDetailResponse> {
+
 	// Get mass event
 	const massEvent = await db
 		.select({
@@ -483,6 +496,7 @@ export async function findJadwalDetail(
 			id: church_zone.id,
 			zone: church_zone.name,
 			wilayah: wilayah.name,
+			lingkunganId: lingkungan.id,
 			lingkungan: lingkungan.name,
 			name: event_usher.name,
 			position: church_position.name,
@@ -545,6 +559,8 @@ export async function findJadwalDetail(
 		if (r.isKolekte === 1) acc[zoneName].zoneKolekte++;
 
 		const lingkunganName = r.lingkungan || 'Lingkungan';
+		const lingkunganId = r.lingkunganId || '';
+
 		// Add lingkungan if not already present
 		if (!acc[zoneName].lingkungan.includes(lingkunganName)) {
 			acc[zoneName].lingkungan.push(lingkunganName);
@@ -563,6 +579,7 @@ export async function findJadwalDetail(
 		if (!lingkunganDetail) {
 			lingkunganDetail = {
 				name: lingkunganName,
+				id: lingkunganId,
 				zone: zoneName,
 				ushers: []
 			};

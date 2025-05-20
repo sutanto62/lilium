@@ -73,7 +73,6 @@ export const actions = {
 
                 // Create events for each mass on this day
                 for (const mass of massesForDay) {
-                    logger.debug(`processing mass: ${mass.id}, ${mass.name}`);
                     const eventDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 
                     // Get week number using dateUtils

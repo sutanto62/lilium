@@ -103,6 +103,10 @@ export class EventService {
 		return await repo.deactivateEvent(eventId);
 	}
 
+	async removeEventUsher(eventId: string, lingkunganId: string): Promise<boolean> {
+		return await repo.removeEventUsher(eventId, lingkunganId);
+	}
+
 	/**
 	 * Confirms or creates a new church event.
 	 * 
@@ -133,7 +137,6 @@ export class EventService {
 				id: uuidv4(),
 				createdAt: new Date().getTime()
 			};
-			logger.debug(`inserting event ${JSON.stringify(newEvent)}`);
 
 			const insertedEvent = await repo.insertEvent(newEvent);
 

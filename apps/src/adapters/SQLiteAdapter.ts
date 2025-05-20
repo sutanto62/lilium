@@ -4,6 +4,7 @@ import {
 	createEvent,
 	createEventPic,
 	createEventUsher,
+	deleteEventUsher,
 	findCetakJadwal,
 	findEvent,
 	findEventByChurch,
@@ -14,8 +15,8 @@ import {
 	findEventsByWeekNumber,
 	findEventUshers,
 	findEventUshersPosition,
-	findJadwalDetail,
 	findUshersByEvent,
+	readJadwalDetail,
 	softDeleteEvent,
 	updateEventUshers,
 } from './SQLiteDbEvent';
@@ -74,7 +75,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 		findEventUshers(this.db, eventId, lingkunganId, date);
 	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
 		findEventUshersPosition(this.db, eventId, isPpg);
-	findJadwalDetail = (eventId: string) => findJadwalDetail(this.db, eventId);
+	findJadwalDetail = (eventId: string) => readJadwalDetail(this.db, eventId);
 	deactivateEvent = (eventId: string) => softDeleteEvent(this.db, eventId);
 
 	insertEvent = (event: ChurchEvent) =>
@@ -92,6 +93,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 		findEvent(this.db, churchId, massId, date);
 	findEventById = (id: string) => findEventByIdResponse(this.db, id);
 	findCetakJadwal = (eventId: string) => findCetakJadwal(this.db, eventId);
+	removeEventUsher = (eventId: string, lingkunganId: string) => deleteEventUsher(this.db, eventId, lingkunganId);
 
 	// SQLiteDbFacility
 	getChurches = () => findChurches(this.db);

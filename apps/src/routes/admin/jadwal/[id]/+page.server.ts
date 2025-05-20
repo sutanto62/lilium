@@ -7,6 +7,7 @@ import type { Actions, PageServerLoad, RequestEvent } from './$types';
 import { AuthService } from '$core/service/AuthService';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
+import { hasRole } from '$src/auth';
 
 export const load: PageServerLoad = async (event) => {
 	const { session } = await handlePageLoad(event, 'jadwal_detail');
@@ -42,6 +43,12 @@ export const load: PageServerLoad = async (event) => {
 
 /** @satisfies {import('./$types').Actions} */
 export const actions: Actions = {
+	/**
+	 * Deactivates (soft deletes) an event
+	 * @param event The request event containing session data and params
+	 * @throws {error} 404 if church ID is not found in session
+	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
+	 */
 	deactivate: async (event: RequestEvent) => {
 		// Get church id from cookie
 		const session = await event.locals.auth();
@@ -60,7 +67,13 @@ export const actions: Actions = {
 
 		throw redirect(303, '/admin/jadwal');
 	},
-	jadwalDetailPic: async (event: RequestEvent) => {
+	/**
+	 * Updates event's PIC
+	 * @param event The request event containing session data and params
+	 * @throws {error} 404 if church ID is not found in session
+	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
+	 */
+	updatePic: async (event: RequestEvent) => {
 		const session = await event.locals.auth();
 		const churchId = session?.user?.cid ?? '';
 		const eventId = event.params.id;
@@ -81,5 +94,33 @@ export const actions: Actions = {
 		await eventService.insertEventPic(submittedPic);
 
 		return { success: true };
-	}
+	},
+	/**
+	 * Deletes event usher for a specific lingkungan
+	 * @param event The request event containing session data and params 
+	 * @throws {error} 404 if church ID is not found in session
+	 * @returns {success: true} on successful deletion
+	 */
+	deleteEventUsher: async (event: RequestEvent) => {
+		const session = await event.locals.auth();
+		const churchId = session?.user?.cid ?? '';
+		const eventId = event.params.id;
+
+		if (!churchId) {
+			logger.error('Church not found');
+			throw error(404, 'Gereja belum terdaftar');
+		}
+
+		const formData = await event.request.formData();
+		const lingkungan = formData.get('lingkungan') as string;
+
+		const eventService = new EventService(churchId);
+
+		if (hasRole(session, 'admin')) {
+			await eventService.removeEventUsher(eventId, lingkungan);
+			logger.info(`Event usher deleted: ${lingkungan}`);
+		}
+
+		return { success: true };
+	},
 };

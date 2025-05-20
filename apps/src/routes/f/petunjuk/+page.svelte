@@ -1,11 +1,15 @@
 <script lang="ts">
-	import { Heading, Li, List } from 'flowbite-svelte';
+	import { Button, Heading, Li, List } from 'flowbite-svelte';
 </script>
 
 <svelte:head>
 	<title>LIS Petunjuk Pemakaian</title>
 	<meta name="description" content="LIS" />
 </svelte:head>
+
+<div class="mb-4">
+	<Button color="primary" onclick={() => history.back()}>← Kembali</Button>
+</div>
 
 <Heading tag="h5" class="mb-4 mt-7">A. Panduan Lengkap Sistem Konfirmasi</Heading>
 

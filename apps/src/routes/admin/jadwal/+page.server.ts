@@ -24,6 +24,7 @@ interface EventWithUsherCounts extends Event {
  * @type {import('./$types').PageServerLoad}
  */
 export const load: PageServerLoad = async (event) => {
+
 	// Check if the user is authenticated
 	const { session } = await handlePageLoad(event, 'jadwal');
 
@@ -57,9 +58,6 @@ export const load: PageServerLoad = async (event) => {
 		// Process each event to include detailed data
 		eventsDetail = await Promise.all(
 			massEvents.map(async (event: Event) => {
-				// Fetch ushers for the event
-				const ushers = await eventService.getEventUshers(event.id);
-
 				// Get mass details and positions
 				const massDetails = await repo.getEventById(event.id);
 				if (!massDetails) {
@@ -67,20 +65,23 @@ export const load: PageServerLoad = async (event) => {
 					throw error(500, 'Failed to fetch mass details');
 				}
 
-				const requiredPositions = await churchService.getPositionsByMass(massDetails.mass);
-				const totalUshers = requiredPositions?.length ?? 0;
+				// Fetch ushers for the event
+				const ushers = await eventService.getEventUshers(event.id);
 
 				// Calculate usher statistics
+				const requiredPositions = await churchService.getPositionsByMass(massDetails.mass);
+				const totalUshers = requiredPositions?.length ?? 0;
 				const confirmedUshers = ushers?.length ?? 0;
 				const totalPpg = ushers.filter((usher) => usher.isPpg).length;
 				const totalKolekte = ushers.filter((usher) => usher.isKolekte).length;
 
-				// Keep progress between 0 and 100
-				const progress = Math.min((confirmedUshers / totalUshers) * 100, 100);
+				// Calculate progress with safety check for division by zero
+				const progress = totalUshers === 0 ? 0 : Math.min((confirmedUshers / totalUshers) * 100, 100);
 
 				// Return event with additional usher count information
 				return {
 					...event,
+					massDetails,
 					usherCounts: {
 						progress,
 						totalUshers,

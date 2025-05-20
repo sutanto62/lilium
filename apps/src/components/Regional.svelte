@@ -49,10 +49,10 @@
 </script>
 
 <div class="mb-6 grid gap-6 md:grid-cols-1">
-	<caption class="text-left text-lg font-semibold">
+	<div class="text-left text-lg font-semibold">
 		Pilih Jadwal
 		<p class="mt-1 text-sm font-normal">Hari ini: {currentDate}</p>
-	</caption>
+	</div>
 
 	<Label class="text-md font-normal">
 		Tanggal

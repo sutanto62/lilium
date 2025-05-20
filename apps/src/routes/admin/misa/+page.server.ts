@@ -5,7 +5,7 @@ import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
 import { fail, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
     logger.info('Loading page admin/misa');
@@ -32,7 +32,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions = {
-    createEvent: async ({ request, cookies }) => {
+    default: async ({ request, cookies }) => {
         logger.info('Creating new event');
 
         const churchId = cookies.get('cid') as string;
@@ -67,7 +67,6 @@ export const actions = {
                 const dayOfWeek = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
                     .toLocaleDateString('en-EN', { weekday: 'long' })
                     .toLowerCase();
-                logger.debug(`processing date: ${date.toISOString()}, day of week: ${dayOfWeek}`);
 
                 // Find masses scheduled for this day of week
                 const massesForDay = masses.filter(mass => mass.day === dayOfWeek && mass.active === 1);
@@ -94,13 +93,11 @@ export const actions = {
                 }
             }
 
-            return {
-                success: true
-            };
+            return { success: true };
         } catch (err) {
             logger.error('Error creating event:', err);
             return fail(500, { error: 'Gagal membuat jadwal misa' });
         }
     }
-};
+} satisfies Actions;
 

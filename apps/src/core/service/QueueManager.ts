@@ -23,7 +23,7 @@ export class QueueManager {
 	public massZonePositions: ChurchPosition[] = [];
 	/** Queue of confirmation requests */
 	public confirmationQueue: ConfirmationQueue[] = []; // TODO: make sure to include past unprocessed queue events
-	public assignedUshers: (EventUsher & { positionName?: string })[] = [];
+	public assignedUshers: (EventUsher & { zone?: string, positionName?: string })[] = [];
 	/** Last assigned position index for non-PPG positions */
 	private nextIndexNonPpg: number = 0;
 	/** Last assigned position index for PPG positions */
@@ -143,6 +143,7 @@ export class QueueManager {
 				...usher,
 				event: eventId,
 				position: position.id,
+				zone: position.zone,
 				positionName: position.name
 			};
 		});

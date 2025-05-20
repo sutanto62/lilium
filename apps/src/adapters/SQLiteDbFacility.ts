@@ -84,6 +84,7 @@ export async function findPositionByChurch(
 	return result.map((position) => ({
 		id: position.church_position.id,
 		church: position.church_zone?.church ?? '',
+		zone: position.church_zone?.name ?? '',
 		name: position.church_position.name,
 		code: position.church_position.code,
 		description: position.church_position.description,
@@ -136,6 +137,7 @@ export async function findPositionByMass(
 	return result.map((position) => ({
 		id: position.church_position.id,
 		church: position.church_zone?.church ?? '',
+		zone: position.church_zone?.name ?? '',
 		name: position.church_position.name,
 		code: position.church_position.code,
 		description: position.church_position.description,

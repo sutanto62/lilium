@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { SignIn } from '@auth/sveltekit/components';
-	import { Button } from 'flowbite-svelte';
 
 	type ProviderResponse = {
 		id: string;
@@ -31,7 +30,7 @@
 </script>
 
 <SignIn provider={provider.id}>
-	<div slot="submitButton" class="bg-primary-600 flex w-full max-w-full rounded p-2 text-white">
+	<div slot="submitButton" class="flex w-full max-w-full rounded bg-primary-600 p-2 text-white">
 		<div class="mr-2 flex-shrink-0">
 			<img src={getProviderIcon(provider.id)} alt={`${provider.name} icon`} class="h-6 w-6" />
 		</div>

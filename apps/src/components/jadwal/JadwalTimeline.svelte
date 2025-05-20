@@ -13,7 +13,9 @@
 	$: progress = usherCounts.progress;
 </script>
 
-<TimelineItem date={formatDate(event.date)}
+<TimelineItem
+	date={formatDate(event.date)}
+	title={event.type === 'mass' ? (event.mass ?? '') : (event.description ?? '')}
 	><Card>
 		<h2 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
 			{#if event.type === 'mass'}

@@ -1,8 +1,8 @@
+import { ChurchService } from '$core/service/ChurchService';
+import { EventService } from '$core/service/EventService';
+import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { EventService } from '$core/service/EventService';
-import { ChurchService } from '$core/service/ChurchService';
-import { handlePageLoad } from '$src/lib/server/pageHandler';
 
 export const load: PageServerLoad = async (event) => {
     const { session } = await handlePageLoad(event, 'jadwal_cetak');
@@ -20,5 +20,17 @@ export const load: PageServerLoad = async (event) => {
     const eventService = new EventService(churchId);
     const [jadwalDetail] = await Promise.all([eventService.getCetakJadwal(eventId)]);
 
-    return { church, jadwalDetail };
+    return {
+        church,
+        jadwalDetail,
+        wilayahs: [],
+        lingkungans: [],
+        events: [],
+        eventsDate: [],
+        selectedEventId: null,
+        selectedWilayahId: null,
+        selectedLingkunganId: null,
+        success: true,
+        assignedUshers: []
+    };
 };

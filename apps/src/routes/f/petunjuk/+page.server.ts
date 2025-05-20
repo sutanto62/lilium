@@ -1,5 +1,5 @@
-import type { PageServerLoad } from '../../$types';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
+import type { PageServerLoad } from '../../$types';
 
 /**
  * Page server load function for the petunjuk (instructions) page.
@@ -13,5 +13,8 @@ import { handlePageLoad } from '$src/lib/server/pageHandler';
  */
 export const load: PageServerLoad = async (event) => {
     await handlePageLoad(event, 'petunjuk');
-    return {};
+    return {
+        success: true,
+        assignedUshers: []
+    };
 };

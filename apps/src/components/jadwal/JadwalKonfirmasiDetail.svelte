@@ -3,9 +3,9 @@
 </script>
 
 <script lang="ts">
-	import html2canvas from 'html2canvas';
-	import { Card, Button } from 'flowbite-svelte';
+	import { Button, Card } from 'flowbite-svelte';
 	import { ArchiveSolid, CashSolid, DownloadSolid } from 'flowbite-svelte-icons';
+	import html2canvas from 'html2canvas';
 
 	export let lingkungan: any;
 
@@ -27,7 +27,7 @@
 	$: cardId = `card-${lingkungan.lingkungan}-${lingkungan.zone}`;
 </script>
 
-<Card shadow={false} id={cardId} padding="xs" class="bg-gray-50 text-black">
+<Card shadow="sm" id={cardId} class="bg-gray-50 p-2 text-black">
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-lg font-semibold">{lingkungan.name}</h1>
@@ -36,7 +36,7 @@
 		<div>
 			<Button
 				class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300"
-				on:click={captureSnapshot}
+				onclick={captureSnapshot}
 				id=""
 			>
 				<DownloadSolid class="size-4" />

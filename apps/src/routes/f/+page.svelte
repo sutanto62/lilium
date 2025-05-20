@@ -1,1 +1,1 @@
-<h1>Formulir</h1>
+<!-- Redirect to tatib page -->

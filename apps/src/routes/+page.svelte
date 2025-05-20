@@ -1,16 +1,12 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import NavigationAdmin from '$components/NavigationAdmin.svelte';
-	import { Section, FeatureDefault } from 'flowbite-svelte-blocks';
-	import {
-		QuestionCircleSolid,
-		ClipboardListSolid,
-		CalendarMonthSolid
-	} from 'flowbite-svelte-icons';
 	import FeatureCard from '$components/FeatureCard.svelte';
-	import { P, Heading } from 'flowbite-svelte';
-	import { onMount } from 'svelte';
+	import Footer from '$components/Footer.svelte';
+	import NavigationAdmin from '$components/NavigationAdmin.svelte';
+	import { Heading, P } from 'flowbite-svelte';
+	import { FeatureDefault, Section } from 'flowbite-svelte-blocks';
 	import posthog from 'posthog-js';
+	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 
 	// Props
 	export let data: PageData;
@@ -21,58 +17,51 @@
 			posthog.identify(data.session.user.email ?? '');
 		}
 	});
-
 </script>
 
 <NavigationAdmin />
-<Section name="feature">
-	<!-- TODO: Provide separate page for admin related features -->
+<main class="mx-auto bg-gray-50 dark:bg-gray-900">
+	<div class="container mx-auto px-4 pt-24 dark:bg-gray-900 md:pt-32 lg:px-0">
+		<Section name="feature">
+			<!-- TODO: Provide separate page for admin related features -->
 
-	<Heading tag="h2" class="mb-4 mt-8 text-4xl tracking-tight text-gray-900 dark:text-white">
-		Selamat Melayani
-	</Heading>
-	<P class="mb-6">Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</P>
-	{#if data.isAdmin}
-		<div class="mb-8 rounded-lg bg-gray-50 p-6 dark:bg-gray-400">
-			<!-- <Heading tag="h2" class="mb-2 text-2xl tracking-tight text-gray-900 dark:text-white">
-				Menu Admin
-			</Heading> -->
-			<P size="sm" class="mb-3">
-				Menu khusus untuk admin sistem. Hanya dapat diakses oleh pengguna dengan hak akses admin.
-			</P>
-			<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-4 gap-4">
+			<Heading tag="h2" class="text-4xl tracking-tight text-gray-900 dark:text-white">
+				Selamat Melayani
+			</Heading>
+			<P>Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</P>
+			{#if data.isAdmin}
+				<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+					<FeatureCard
+						title="Jadwal Tata Tertib"
+						description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
+						buttonHref="/admin/jadwal"
+						buttonText="Kelola"
+					/>
+					<FeatureCard
+						title="Jadwal Misa"
+						description="Melihat dan membuat jadwal misa. Buka sebulan sekali untuk membuat jadwal satu bulan penuh."
+						buttonHref="/admin/misa"
+						buttonText="Misa"
+						buttonColor="alternative"
+					/>
+				</FeatureDefault>
+			{/if}
+			<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4 ">
 				<FeatureCard
-					icon={ClipboardListSolid}
-					title="Jadwal Tata Tertib"
-					description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
-					buttonHref="/admin/jadwal"
-					buttonText="Kelola"
+					title="Tugas Tata Tertib"
+					description="Konfirmasi kehadiran tugas tata tertib lingkungan. Jadwal konfirmasi hanya dibuka setiap Senin s.d. Kamis."
+					buttonHref="/f/tatib"
+					buttonText="Konfirmasi"
 				/>
-				<!-- <FeatureCard
-					icon={UserCircleSolid}
-					title="PIC PETA"
-					description="Setiap minggu petugas PETA akan bergantian menjadi PIC pada setiap misa. PIC harus sudah terdaftar."
-					buttonHref="/admin/pic"
-					buttonText="Atur PIC"
-				/> -->
+				<FeatureCard
+					title="Petunjuk Pemakaian"
+					description="Aturan, tata cara, dan hal penting lain yang perlu diketahui selama mempergunakan sistem."
+					buttonHref="/f/petunjuk"
+					buttonText="Baca"
+					buttonColor="alternative"
+				/>
 			</FeatureDefault>
-		</div>
-	{/if}
-	<FeatureDefault divClass="grid grid-cols-1 md:grid-cols-4 gap-4 ">
-		<FeatureCard
-			icon={CalendarMonthSolid}
-			title="Tugas Tata Tertib"
-			description="Konfirmasi kehadiran tugas tata tertib lingkungan. Jadwal konfirmasi hanya dibuka setiap Senin s.d. Kamis."
-			buttonHref="/f/tatib"
-			buttonText="Konfirmasi"
-		/>
-		<FeatureCard
-			icon={QuestionCircleSolid}
-			title="Petunjuk Pemakaian"
-			description="Aturan, tata cara, dan hal penting lain yang perlu diketahui selama mempergunakan sistem."
-			buttonHref="/f/petunjuk"
-			buttonText="Baca"
-			buttonColor="alternative"
-		/>
-	</FeatureDefault>
-</Section>
+		</Section>
+	</div>
+</main>
+<Footer />

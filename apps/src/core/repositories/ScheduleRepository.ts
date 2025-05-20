@@ -57,7 +57,7 @@ export interface ScheduleRepository {
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
 	findEventById(id: string): Promise<ChurchEvent>; // formatted response
 	findEventByIdResponse(id: string): Promise<typeof event.$inferSelect | null>; // returned as it is
-	editEventUshers(ushers: EventUsher[]): Promise<void>;
+	editEventUshers(ushers: EventUsher[]): Promise<{ success: boolean; updatedCount: number }>;
 	findCetakJadwal(eventId: string): Promise<CetakJadwalResponse>;
 
 	// Facility

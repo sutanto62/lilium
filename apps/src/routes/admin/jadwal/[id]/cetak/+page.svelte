@@ -44,7 +44,7 @@
 	<div class="flex items-center justify-center gap-2">
 		<Button
 			class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300"
-			on:click={downloadImage}
+			onclick={downloadImage}
 		>
 			Download Daftar
 		</Button>
@@ -54,13 +54,13 @@
 <div class="print-content" id="print-content">
 	<div class="print-header mb-4 text-center">
 		<h1
-			class="mb-2 text-2xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white md:text-2xl lg:text-3xl"
+			class="mb-2 text-2xl leading-none font-extrabold tracking-tight text-gray-900 md:text-2xl lg:text-3xl dark:text-white"
 		>
 			{church.name}, {church.parish}
 		</h1>
 
 		<h1
-			class="mb-0 text-xl font-bold leading-none tracking-tight text-gray-900 dark:text-white md:text-xl lg:text-2xl"
+			class="mb-0 text-xl leading-none font-bold tracking-tight text-gray-900 md:text-xl lg:text-2xl dark:text-white"
 		>
 			Misa {mass.mass}
 			<br />

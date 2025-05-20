@@ -127,7 +127,7 @@ src/
 1. Define entity in `core/entities/`
 2. Create repository interface in `core/repositories/`
 3. Implement business logic in `core/service/`
-4. Create database implementation in `lib/server/db/repositories/`
+4. Create database implementation in `lib/server/db`
 5. Create API endpoints or UI components in `routes/`
 
 ## Project Structure

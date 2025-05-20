@@ -17,6 +17,7 @@
 	export let lingkungan: any;
 
 	let isDeleteConfirmation = false;
+	let isSubmitting = false;
 
 	function captureSnapshot(): void {
 		if (typeof window !== 'undefined') {
@@ -30,25 +31,6 @@
 					link.click();
 				});
 			}
-		}
-	}
-
-	async function handleDelete() {
-		console.log('deleting lingkungan', lingkungan.id);
-		try {
-			const formData = new FormData();
-			formData.append('lingkungan', lingkungan.id);
-			const response = await fetch('?/deleteEventUsher', {
-				method: 'POST',
-				body: formData
-			});
-
-			const result = await response.json();
-			if (result.success) {
-				isDeleteConfirmation = false;
-			}
-		} catch (err) {
-			return { success: false };
 		}
 	}
 
@@ -118,16 +100,38 @@
 				<P class="mb-3 text-sm font-light">
 					Data konfirmasi dari <strong>{lingkungan.name}</strong> tidak akan dapat dipulihkan kembali.
 				</P>
-				<form method="POST" action="?/deleteEventUsher" use:enhance>
-					<input type="hidden" name="lingkungan-id" value={lingkungan.id} />
-					<div class="flex gap-4">
-						<Button size="sm" type="submit" onclick={handleDelete}>Ya! Saya yakin</Button>
+				<form
+					method="POST"
+					action="?/deleteEventUsher"
+					use:enhance={() => {
+						isSubmitting = true;
+						return async ({ result, update }) => {
+							isSubmitting = false;
+							if (result.type === 'success') {
+								isDeleteConfirmation = false;
+							}
+							await update();
+						};
+					}}
+				>
+					<input type="hidden" name="lingkungan" value={lingkungan.id} />
+					<div class="flex gap-2">
+						<Button size="sm" type="submit" disabled={isSubmitting}>
+							{#if isSubmitting}
+								Menghapus...
+							{:else}
+								Ya! Saya yakin
+							{/if}
+						</Button>
 						<Button
 							size="sm"
 							type="button"
 							color="alternative"
-							onclick={() => (isDeleteConfirmation = false)}>Batal</Button
+							disabled={isSubmitting}
+							onclick={() => (isDeleteConfirmation = false)}
 						>
+							Batal
+						</Button>
 					</div>
 				</form>
 			</div>

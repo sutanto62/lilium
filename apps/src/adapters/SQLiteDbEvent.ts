@@ -563,7 +563,6 @@ export async function readJadwalDetail(
 
 		// Add lingkungan if not already present
 		if (!acc[zoneName].lingkungan.includes(lingkunganName)) {
-			// acc[zoneName].lingkungan.push(lingkunganId);
 			acc[zoneName].lingkungan.push(lingkunganName);
 		}
 

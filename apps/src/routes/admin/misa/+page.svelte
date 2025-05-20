@@ -9,21 +9,6 @@
 
 	$: events = data.events;
 
-	// async function handleSubmit() {
-	// 	try {
-	// 		await fetch('', {
-	// 			method: 'POST',
-	// 			headers: {
-	// 				'Content-Type': 'application/x-www-form-urlencoded'
-	// 			},
-	// 			body: new URLSearchParams()
-	// 		});
-	// 		goto('/admin/misa', { invalidateAll: true });
-	// 	} catch (err) {
-	// 		alert('Gagal membuat jadwal misa');
-	// 	}
-	// }
-
 	let showAlert = true;
 
 	onMount(() => {
@@ -35,9 +20,18 @@
 	});
 </script>
 
-<Breadcrumb class="mb-4">
-	<BreadcrumbItem href="/admin" home>Beranda</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/misa">Misa</BreadcrumbItem>
+<svelte:head>
+	<title>Misa</title>
+	<meta
+		name="description"
+		content="Melihat dan membuat jadwal misa. Buka sebulan sekali untuk membuat jadwal satu bulan penuh."
+	/>
+</svelte:head>
+
+<Breadcrumb class="mb-4	">
+	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
+	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
+	<BreadcrumbItem>Misa</BreadcrumbItem>
 </Breadcrumb>
 
 {#if form?.success && showAlert}

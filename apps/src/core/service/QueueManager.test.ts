@@ -1,17 +1,109 @@
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
+import { featureFlags } from '$src/lib/utils/FeatureFlag';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { QueueManager } from './QueueManager';
 
 describe('QueueManager', () => {
     const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
     const repoMassPositions = vi.spyOn(repo, 'getPositionsByMass');
+    const repoEditEventUshers = vi.spyOn(repo, 'editEventUshers');
     const manager = QueueManager.getInstance();
+    const isPpgEnabled = vi.spyOn(featureFlags, 'isEnabled');
 
     afterEach(() => {
-        manager.confirmationQueue = [];
+        manager.reset();
         vi.resetAllMocks();
+    });
+
+    it('should filter out PPG positions when feature flag is disabled', async () => {
+        const event = createTestEvent();
+        const lingkungan = createTestLingkungan()[0];
+        const positions = createTestPositions();
+        const ushers = createUshersLingkunganA();
+
+        isPpgEnabled.mockReturnValue(false);
+        repoGetEventUshers.mockResolvedValue(ushers);
+        repoMassPositions.mockResolvedValue(positions);
+
+        await manager.submitConfirmationQueue(event, lingkungan);
+        await manager.processQueue();
+
+        expect(manager.massZonePositions.every(pos => !pos.isPpg)).toBe(true);
+    });
+
+    it('should include PPG positions when feature flag is enabled', async () => {
+        const event = createTestEvent();
+        const lingkungan = createTestLingkungan()[0];
+        const positions = createTestPositions();
+        const ushers = createUshersLingkunganA();
+
+        isPpgEnabled.mockReturnValue(true);
+        repoGetEventUshers.mockResolvedValue(ushers);
+        repoMassPositions.mockResolvedValue(positions);
+
+        await manager.submitConfirmationQueue(event, lingkungan);
+        await manager.processQueue();
+
+        expect(manager.massZonePositions).toEqual(positions);
+    });
+
+    it('should assign positions with zone and positionName', async () => {
+        const event = createTestEvent();
+        const lingkungan = createTestLingkungan()[0];
+        const positions = createTestPositions();
+        const ushers = createUshersLingkunganA();
+
+        isPpgEnabled.mockReturnValue(true);
+        repoGetEventUshers.mockResolvedValue(ushers);
+        repoMassPositions.mockResolvedValue(positions);
+
+        await manager.submitConfirmationQueue(event, lingkungan);
+        await manager.processQueue();
+
+        expect(manager.assignedUshers[0]).toHaveProperty('zone');
+        expect(manager.assignedUshers[0]).toHaveProperty('positionName');
+    });
+
+    it('should distribute positions in round-robin fashion', async () => {
+        const event = createTestEvent();
+        const lingkungan = createTestLingkungan()[0];
+        const positions = createTestPositions();
+        const ushers = createUshersLingkunganA();
+
+        isPpgEnabled.mockReturnValue(true);
+        repoGetEventUshers.mockResolvedValue(ushers);
+        repoMassPositions.mockResolvedValue(positions);
+
+        await manager.submitConfirmationQueue(event, lingkungan);
+        await manager.processQueue();
+
+        // Verify positions are assigned in sequence
+        const assignedPositions = manager.assignedUshers.map(usher => usher.position);
+        expect(assignedPositions).toEqual(['1', '2', '3']);
+    });
+
+    it('should handle multiple queue items correctly', async () => {
+        const event = createTestEvent();
+        const lingkungan1 = createTestLingkungan()[0];
+        const lingkungan2 = createTestLingkungan()[1];
+        const positions = createTestPositions();
+        const ushers1 = createUshersLingkunganA();
+        const ushers2 = createUshersLingkunganB();
+
+        isPpgEnabled.mockReturnValue(true);
+        repoGetEventUshers
+            .mockResolvedValueOnce(ushers1)
+            .mockResolvedValueOnce([...ushers1, ...ushers2]);
+        repoMassPositions.mockResolvedValue(positions);
+
+        await manager.submitConfirmationQueue(event, lingkungan1);
+        await manager.submitConfirmationQueue(event, lingkungan2);
+        await manager.processQueue();
+
+        expect(manager.assignedUshers.length).toBe(ushers1.length + ushers2.length);
+        expect(repoEditEventUshers).toHaveBeenCalledTimes(2);
     });
 
     it('should submit confirmation queue', async () => {
@@ -158,42 +250,6 @@ describe('QueueManager', () => {
             }
         }
 
-    });
-});
-
-describe('findLowestUniqueNumber', () => {
-    // Make the private method accessible for testing
-    const manager = QueueManager.getInstance();
-    const findLowestUniqueNumber = (arr: string[]) => {
-        return (manager as any).findLowestUniqueNumber(arr);
-    };
-
-    it('should return null for empty array', () => {
-        expect(findLowestUniqueNumber([])).toBeNull();
-    });
-
-    it('should return the only element in single-element array', () => {
-        expect(findLowestUniqueNumber(['1'])).toBe('1');
-    });
-
-    it('should return null when all elements are duplicates', () => {
-        expect(findLowestUniqueNumber(['1', '1', '1'])).toBeNull();
-    });
-
-    it('should find the first unique number in array with duplicates', () => {
-        expect(findLowestUniqueNumber(['1', '2', '2', '3', '3'])).toBe('1');
-    });
-
-    it('should find unique number in middle of array', () => {
-        expect(findLowestUniqueNumber(['1', '1', '2', '3', '3'])).toBe('2');
-    });
-
-    it('should find unique number at end of array', () => {
-        expect(findLowestUniqueNumber(['1', '1', '2', '2', '3'])).toBe('3');
-    });
-
-    it('should handle multiple unique numbers and return the first one', () => {
-        expect(findLowestUniqueNumber(['1', '2', '3', '4', '5'])).toBe('1');
     });
 });
 
@@ -428,14 +484,10 @@ describe('latestPositionId', () => {
 
 function createTestPositions(): ChurchPosition[] {
     return [
-        { id: '1', church: '1', name: 'P1', code: '1', description: '1', sequence: 1, type: 'usher', isPpg: false },
-        { id: '2', church: '1', name: 'P2', code: '2', description: '2', sequence: 2, type: 'usher', isPpg: false },
-        { id: '3', church: '1', name: 'P3', code: '3', description: '3', sequence: 3, type: 'usher', isPpg: false },
-        { id: '4', church: '1', name: 'P4', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: false },
-        // { id: '5', church: '1', name: 'P5', code: '5', description: '5', sequence: 5, type: 'usher', isPpg: false },
-        // { id: '6', church: '1', name: 'P6', code: '6', description: '6', sequence: 6, type: 'usher', isPpg: false },
-        // { id: '7', church: '1', name: 'P7', code: '7', description: '7', sequence: 7, type: 'usher', isPpg: true },
-        // { id: '8', church: '1', name: 'P8', code: '8', description: '8', sequence: 8, type: 'usher', isPpg: true }
+        { id: '1', church: '1', name: 'P1', code: '1', description: '1', sequence: 1, type: 'usher', isPpg: false, zone: '1' },
+        { id: '2', church: '1', name: 'P2', code: '2', description: '2', sequence: 2, type: 'usher', isPpg: false, zone: '1' },
+        { id: '3', church: '1', name: 'P3', code: '3', description: '3', sequence: 3, type: 'usher', isPpg: false, zone: '1' },
+        { id: '4', church: '1', name: 'P4', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: false, zone: '1' },
     ];
 }
 

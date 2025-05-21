@@ -30,36 +30,29 @@ export async function createEvent(
 	db: ReturnType<typeof drizzle>,
 	newEvent: ChurchEvent
 ): Promise<ChurchEvent> {
-	return await db
+	const result = await db
 		.insert(event)
 		.values({
 			id: newEvent.id,
 			church_id: newEvent.church,
 			mass_id: newEvent.mass,
 			date: newEvent.date,
-			week_number: newEvent.weekNumber,
-			created_at: newEvent.createdAt,
-			isComplete: 0,
-			active: 1,
-			code: newEvent.code,
-			description: newEvent.description
+			week_number: newEvent.weekNumber ?? null,
+			created_at: newEvent.createdAt ?? new Date().getTime(),
+			isComplete: newEvent.isComplete ?? 0,
+			active: newEvent.active ?? 1,
+			code: newEvent.code ?? null,
+			description: newEvent.description ?? null,
+			type: newEvent.type ?? EventType.MASS
 		})
-		.returning({
-			id: event.id,
-			church: event.church_id,
-			mass: event.mass_id,
-			date: event.date,
-			weekNumber: event.week_number,
-			createdAt: event.created_at,
-			isComplete: event.isComplete,
-			active: event.active,
-			code: event.code,
-		})
-		.then((result: ChurchEvent[]) => result[0])
-		.catch((error: Error) => {
-			logger.error(`Error inserting event: ${error.message}`);
-			throw error;
-		});
+		.returning();
+
+	return {
+		...result[0],
+		church: result[0].church_id,
+		mass: result[0].mass_id,
+		type: result[0].type as EventType
+	} as ChurchEvent;
 }
 
 export async function createEventUsher(

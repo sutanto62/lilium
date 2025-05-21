@@ -231,6 +231,35 @@ export async function findEventById(
 	return query[0] as ChurchEvent;
 }
 
+export async function updateEventById(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	eventData: ChurchEvent
+): Promise<ChurchEvent> {
+	const updatedEventId = await db.update(event)
+		.set({
+			church_id: eventData.church,
+			mass_id: eventData.mass,
+			date: eventData.date,
+			week_number: eventData.weekNumber ?? null,
+			code: eventData.code ?? null,
+			description: eventData.description ?? null,
+			created_at: eventData.createdAt ?? new Date().getTime(),
+			isComplete: eventData.isComplete ?? 0,
+			active: eventData.active ?? 1,
+			type: eventData.type ?? 'mass',
+		})
+		.where(eq(event.id, id))
+		.returning();
+
+	logger.debug(`updated event: ${JSON.stringify(updatedEventId)}`);
+
+	return {
+		...eventData,
+		id: updatedEventId[0].id
+	};
+}
+
 export async function findEventByIdResponse(
 	db: ReturnType<typeof drizzle>,
 	id: string

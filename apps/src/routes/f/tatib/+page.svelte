@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Alert, Button } from 'flowbite-svelte';
+	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import type { ActionData, PageData } from './$types';
@@ -114,8 +114,13 @@
 
 <svelte:head>
 	<title>Konfirmasi Tatib</title>
-	<meta name="description" content="LIS" />
+	<meta name="description" content="Proses konfirmasi petugas tata tertib untuk jadwal misa." />
 </svelte:head>
+
+<Breadcrumb class="mb-4	">
+	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
+	<BreadcrumbItem>Konfirmasi</BreadcrumbItem>
+</Breadcrumb>
 
 <!-- On error  -->
 {#if form?.error}

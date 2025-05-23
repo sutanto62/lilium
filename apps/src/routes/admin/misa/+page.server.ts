@@ -2,24 +2,24 @@ import { EventType } from '$core/entities/Event';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
-import { getWeekNumber } from '$src/lib/utils/dateUtils';
+import { getWeekNumber, getWeekNumbers } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    logger.info('Loading page admin/misa');
 
     const { session } = await handlePageLoad(event, 'misa');
     if (!session) {
-        logger.error('User not authenticated');
         throw redirect(302, '/signin');
     }
 
     const churchId = session.user?.cid ?? '';
     const eventService = new EventService(churchId);
 
-    const events = await eventService.getEventsByWeekNumber(undefined, [20, 21, 22, 23, 24, 25, 26, 27]);
+    const weekNumbers = getWeekNumbers(1);
+
+    const events = await eventService.getEventsByWeekNumber(undefined, weekNumbers);
 
     return {
         wilayahs: [],

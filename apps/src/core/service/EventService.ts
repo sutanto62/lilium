@@ -8,6 +8,7 @@ import type {
 } from '$core/entities/Event';
 import { EventType } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
+import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -71,6 +72,36 @@ export class EventService {
 
 	async getEventById(eventId: string): Promise<ChurchEvent> {
 		return await repo.getEventById(eventId);
+	}
+
+	// Omit mass: preventing changes in event mass's position
+	async updateEventById(eventId: string, event: Omit<ChurchEvent, 'id' | 'church' | 'churchCode' | 'mass'>): Promise<ChurchEvent> {
+		const existingEvent = await this.getEventById(eventId);
+
+		let updatedEvent: ChurchEvent = {
+			...event,
+			id: eventId,
+			church: existingEvent.church,
+			mass: existingEvent.mass
+		};
+
+		if (!event.code) {
+			throw new Error('Kode tidak ditemukan');
+		}
+
+		if (!event.description) {
+			throw new Error('Deskripsi tidak ditemukan');
+		}
+
+		if (!event.weekNumber || event.weekNumber === null) {
+			updatedEvent.weekNumber = getWeekNumber(event.date);
+		}
+
+		if (!event.createdAt || event.createdAt === null) {
+			updatedEvent.createdAt = new Date().getTime();
+		}
+
+		return await repo.updateEventById(eventId, updatedEvent);
 	}
 
 	async getEventByIdResponse(eventId: string): Promise<ChurchEvent> {
@@ -139,10 +170,6 @@ export class EventService {
 			};
 
 			const insertedEvent = await repo.insertEvent(newEvent);
-
-			if (!insertedEvent) {
-				throw new Error('Failed to insert event');
-			}
 
 			return insertedEvent;
 		} catch (error) {

@@ -1,7 +1,13 @@
 <script lang="ts">
 	import FeatureCard from '$components/FeatureCard.svelte';
+	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
 </script>
+
+<Breadcrumb class="mb-4	">
+	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
+	<BreadcrumbItem>Admin</BreadcrumbItem>
+</Breadcrumb>
 
 <FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
 	<FeatureCard

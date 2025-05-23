@@ -29,6 +29,7 @@
 	let selectedDate = $state<Date | undefined>(undefined);
 	let showAlert = $state(true);
 
+	// TODO: sync filtered date with loaded data (maximum 2 weeks)
 	const events = $derived(
 		data.events.filter((event: ChurchEvent) => {
 			const eventDate = new Date(event.date);

@@ -6,8 +6,11 @@
 	export let placeholder = 'Pilih tanggal';
 	export let color: DatepickerProps['color'] = 'green';
 	export let locale = 'id';
+	export let required = false;
+	export let onselect: ((date: Date | { from?: Date; to?: Date }) => void) | undefined = undefined;
 </script>
 
+<!-- Wrap the datepicker to accommodate default format for local -->
 <Datepicker
 	dateFormat={{
 		dateStyle: 'medium'
@@ -16,4 +19,6 @@
 	{locale}
 	bind:value
 	{color}
+	{required}
+	{onselect}
 />

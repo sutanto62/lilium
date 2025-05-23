@@ -21,7 +21,6 @@ export const load: PageServerLoad = async (event) => {
         if (!event) {
             throw redirect(302, '/admin/misa');
         }
-        logger.debug(`loaded event: ${JSON.stringify(event)}`);
 
         return {
             event,
@@ -71,33 +70,3 @@ export const actions = {
         };
     }
 } satisfies Actions;
-
-// const eventId = params.id;
-//         const eventService = new EventService(churchId);
-
-//         try {
-//             const formData = await request.formData();
-//             const date = formData.get('date') as string;
-//             const church = formData.get('church') as string;
-//             const code = formData.get('code') as string;
-//             const description = formData.get('description') as string;
-//             const isComplete = parseInt(formData.get('isComplete') as string);
-//             const active = parseInt(formData.get('active') as string);
-
-//             await eventService.updateEventById(eventId, {
-//                 date,
-//                 church,
-//                 code,
-//                 description,
-//                 isComplete,
-//                 active,
-//                 type: EventType.MASS
-//             });
-
-//             return { success: true };
-//         } catch (err) {
-//             logger.error('Error updating event:', err);
-//             return fail(500, { error: 'Gagal memperbarui data misa' });
-//         }
-//     }
-// } satisfies Actions; 

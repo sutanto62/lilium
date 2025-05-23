@@ -9,8 +9,6 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
 
-    logger.debug(`loading misa page ${event.url.searchParams.get('page')} ${event.url.searchParams.get('limit')}`)
-
     const { session } = await handlePageLoad(event, 'misa');
     if (!session) {
         throw redirect(302, '/signin');

@@ -21,7 +21,6 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { logger } from '$src/lib/utils/logger';
 import { and, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
@@ -244,8 +243,6 @@ export async function updateEventById(
 		})
 		.where(eq(event.id, id))
 		.returning();
-
-	logger.debug(`updated event: ${JSON.stringify(updatedEventId)}`);
 
 	return {
 		...eventData,

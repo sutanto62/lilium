@@ -76,8 +76,6 @@ export class EventService {
 
 	// Omit mass: preventing changes in event mass's position
 	async updateEventById(eventId: string, event: Omit<ChurchEvent, 'id' | 'church' | 'churchCode' | 'mass'>): Promise<ChurchEvent> {
-		logger.debug(`updating event: ${JSON.stringify(event)}`);
-
 		const existingEvent = await this.getEventById(eventId);
 
 		let updatedEvent: ChurchEvent = {
@@ -102,8 +100,6 @@ export class EventService {
 		if (!event.createdAt || event.createdAt === null) {
 			updatedEvent.createdAt = new Date().getTime();
 		}
-
-		logger.debug(`updating event: after validation 	${JSON.stringify(updatedEvent)}`);
 
 		return await repo.updateEventById(eventId, updatedEvent);
 	}
@@ -174,10 +170,6 @@ export class EventService {
 			};
 
 			const insertedEvent = await repo.insertEvent(newEvent);
-
-			if (!insertedEvent) {
-				throw new Error('Failed to insert event');
-			}
 
 			return insertedEvent;
 		} catch (error) {

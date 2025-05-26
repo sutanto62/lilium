@@ -5,10 +5,10 @@ export interface Event {
 	churchCode?: string | null;
 	mass: string;
 	date: string;
-	weekNumber: number | null;
-	createdAt: number;
-	isComplete: number; // 100% assigned ushers
-	active: number;
+	weekNumber?: number | null;
+	createdAt?: number | null;
+	isComplete?: number | null; // 100% assigned ushers
+	active?: number | null;
 	type?: EventType | null;
 	code?: string | null;
 	description?: string | null;

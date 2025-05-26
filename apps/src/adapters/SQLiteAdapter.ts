@@ -19,6 +19,7 @@ import {
 	readJadwalDetail,
 	softDeleteEvent,
 	updateEventUshers,
+	updateEventById
 } from './SQLiteDbEvent';
 import {
 	findChurchById,
@@ -65,6 +66,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getPositionsByMass = (churchId: string, massId: string) =>
 		findPositionByMass(this.db, churchId, massId);
 	getEventById = (id: string) => findEventById(this.db, id);
+	updateEventById = (id: string, event: ChurchEvent) => updateEventById(this.db, id, event);
 	getEventByIdResponse = (id: string) => findEventByIdResponse(this.db, id);
 	getEvents = (churchId: string, limit?: number) => findEvents(this.db, churchId, limit);
 	getEventsByWeekNumber = (churchId: string, weekNumber: number[], limit?: number) =>

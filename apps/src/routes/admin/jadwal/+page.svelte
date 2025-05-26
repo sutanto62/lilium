@@ -59,13 +59,16 @@
 
 <svelte:head>
 	<title>Kelola Tatib</title>
-	<meta name="description" content="LIS" />
+	<meta
+		name="description"
+		content="Dashboard atas petugas tata tertib lingkungan, kelengkapan petugas, dan status konfirmasi."
+	/>
 </svelte:head>
 
 <Breadcrumb class="mb-4	">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
+	<BreadcrumbItem>Jadwal</BreadcrumbItem>
 </Breadcrumb>
 
 <!-- <Button onclick={switchListEvents}>Switch</Button> -->

@@ -7,7 +7,9 @@ import type {
 	UsherByEvent
 } from '$core/entities/Event';
 import { EventType } from '$core/entities/Event';
+import { ServiceError } from '$core/errors/ServiceError';
 import { repo } from '$src/lib/server/db';
+import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -73,6 +75,32 @@ export class EventService {
 		return await repo.getEventById(eventId);
 	}
 
+	// Omit mass: preventing changes in event mass's position
+	async updateEventById(eventId: string, event: Omit<ChurchEvent, 'id' | 'church' | 'churchCode' | 'mass'>): Promise<ChurchEvent> {
+		const existingEvent = await this.getEventById(eventId);
+
+		let updatedEvent: ChurchEvent = {
+			...event,
+			id: eventId,
+			church: existingEvent.church,
+			mass: existingEvent.mass
+		};
+
+		if (!event.code) {
+			throw new Error('Kode tidak ditemukan');
+		}
+
+		if (!event.description) {
+			throw new Error('Deskripsi tidak ditemukan');
+		}
+
+		if (!event.weekNumber || event.weekNumber === null) {
+			updatedEvent.weekNumber = getWeekNumber(event.date);
+		}
+
+		return await repo.updateEventById(eventId, updatedEvent);
+	}
+
 	async getEventByIdResponse(eventId: string): Promise<ChurchEvent> {
 		return await repo.findEventById(eventId);
 	}
@@ -132,6 +160,33 @@ export class EventService {
 
 	async insertEvent(event: Omit<ChurchEvent, 'id' | 'createdAt'>): Promise<ChurchEvent> {
 		try {
+			// Validate required fields
+			if (!event.church) {
+				throw ServiceError.validation('Church ID is required', { field: 'church' });
+			}
+			if (!event.mass) {
+				throw ServiceError.validation('Mass ID is required', { field: 'mass' });
+			}
+			if (!event.date) {
+				throw ServiceError.validation('Event date is required', { field: 'date' });
+			}
+			if (!event.code) {
+				throw ServiceError.validation('Event code is required', { field: 'code' });
+			}
+			if (!event.description) {
+				throw ServiceError.validation('Event description is required', { field: 'description' });
+			}
+
+			// Check if event already exists
+			const existingEvent = await repo.getEventByChurch(event.church, event.mass, event.date);
+			if (existingEvent && Object.keys(existingEvent).length > 0) {
+				throw ServiceError.duplicate('Event already exists for this church, mass, and date', {
+					church: event.church,
+					mass: event.mass,
+					date: event.date
+				});
+			}
+
 			const newEvent: ChurchEvent = {
 				...event,
 				id: uuidv4(),
@@ -139,15 +194,17 @@ export class EventService {
 			};
 
 			const insertedEvent = await repo.insertEvent(newEvent);
-
 			if (!insertedEvent) {
-				throw new Error('Failed to insert event');
+				throw ServiceError.database('Failed to insert event into database', { event: newEvent });
 			}
 
 			return insertedEvent;
 		} catch (error) {
-			logger.error('Gagal menambah tugas misa:', error);
-			throw new Error('Sistem gagal mencatat konfirmasi tugas');
+			logger.error('Failed to insert event:', error);
+			if (error instanceof ServiceError) {
+				throw error;
+			}
+			throw ServiceError.unknown('System failed to record event confirmation', { originalError: error });
 		}
 	}
 

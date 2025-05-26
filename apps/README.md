@@ -96,12 +96,14 @@ src/
    - Defines contracts for data access
    - Pure interfaces that entities depend on
    - Enables loose coupling between layers
+   - Translate repository layer error into domain-meaningful message
 
 3. **Services Layer** (`core/service/`)
 
    - Contains business logic
    - Uses repositories through interfaces
    - Implements use cases and workflows
+   - Handle domain rules, validation, and coordinate between repositories
 
 4. **Database Implementation** (`lib/server/db/`)
 

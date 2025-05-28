@@ -4,6 +4,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 // Services
+import { ServiceError } from '$core/errors/ServiceError';
 import { AuthService } from '$core/service/AuthService';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
@@ -61,11 +62,15 @@ export const actions: Actions = {
 		}
 
 		const eventService = new EventService(churchId);
-		await eventService.deactivateEvent(eventId);
 
-		logger.info(`Event ${eventId} deactivated`);
-
-		throw redirect(303, '/admin/jadwal');
+		try {
+			await eventService.deactivateEvent(eventId);
+			logger.info(`event ${eventId} deactivated`);
+		} catch (error) {
+			logger.error('Error deactivating event:', error);
+			throw ServiceError.database('Gagal menonaktifkan jadwal');
+		}
+		return redirect(303, '/admin/jadwal');
 	},
 	/**
 	 * Updates event's PIC

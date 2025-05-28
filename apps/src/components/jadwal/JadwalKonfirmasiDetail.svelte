@@ -45,18 +45,18 @@
 		</div>
 		<div class="flex items-center gap-2">
 			<Button
-				class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300"
+				class="flex items-center justify-center rounded-full bg-red-200 p-2 text-gray-600 hover:bg-gray-300"
 				onclick={() => {
 					isDeleteConfirmation = true;
 				}}
-				id=""
+				id="delete-jadwal-konfirmasi"
 			>
 				<TrashBinOutline class="size-4" />
 			</Button>
 			<Button
 				class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300"
 				onclick={captureSnapshot}
-				id=""
+				id="download-jadwal-konfirmasi"
 			>
 				<DownloadSolid class="size-4" />
 			</Button>

@@ -83,15 +83,13 @@
 
 	<Toolbar embedded class="sm:flex-column w-full gap-4 py-4 text-gray-500 dark:text-gray-300">
 		<DatePicker bind:value={selectedDate} />
-		{#snippet end()}
-			<div class="space-x-2">
-				<form method="POST" class="w-full">
-					<Button type="submit" id="save-button" color="primary" class="whitespace-nowrap">
-						<CogSolid class="mr-2" />+ Misa Bulan Depan
-					</Button>
-				</form>
-			</div>
-		{/snippet}
+		<div class="space-x-2">
+			<form method="POST" class="w-full">
+				<Button type="submit" id="save-button" color="primary" class="whitespace-nowrap">
+					<CogSolid class="mr-2" />+ Misa Bulan Depan
+				</Button>
+			</form>
+		</div>
 	</Toolbar>
 </div>
 

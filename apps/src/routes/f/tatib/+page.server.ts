@@ -37,10 +37,6 @@ export const load: PageServerLoad = async (event) => {
 
 	let weekNumber = getWeekNumber();
 
-	// if (process.env.NODE_ENV === 'development') {
-	// 	weekNumber = 20;
-	// }
-
 	try {
 		const [wilayahs, lingkungans, events] = await Promise.all([
 			churchService.getWilayahs(),
@@ -61,6 +57,7 @@ export const load: PageServerLoad = async (event) => {
 			eventsDate: eventsDate,
 			success: false,
 			assignedUshers: [],
+			formData: null
 		};
 	} catch (err) {
 		logger.error('Error fetching data:', err);
@@ -68,6 +65,64 @@ export const load: PageServerLoad = async (event) => {
 	}
 };
 
+/**
+ * Actions for the tatib (tata tertib/ushers) form.
+ * 
+ * The default action handles form submission for confirming ushers for a church event.
+ * It validates the submitted data, processes the ushers information, and assigns positions
+ * to the ushers based on their roles and sequence.
+ * 
+ * The flow includes:
+ * 1. Validating form data including church, event, wilayah and lingkungan
+ * 2. Parsing and validating ushers information (names, roles)
+ * 3. Assigning positions based on business rules
+ * 4. Saving the confirmed ushers to the database
+ * 
+ * @returns {Promise<ActionFailure<{error: string, formData: any}> | {success: boolean, json: any}>}
+ *          Returns a success object with the processed data if successful,
+ *          or an ActionFailure with error details if validation fails
+ */
+
+function validateUsherNames(ushers: EventUsher[]): { isValid: boolean; error?: string } {
+	const usherNames = ushers.map(u => u.name);
+	const uniqueNames = new Set(usherNames);
+
+	if (uniqueNames.size !== usherNames.length) {
+		const duplicates = usherNames.filter((item, index) => usherNames.indexOf(item) !== index);
+		return { isValid: false, error: `Nama petugas tidak boleh duplikat: ${duplicates.join(', ')}` };
+	}
+
+	for (const name of usherNames) {
+		if (name.length < 3 || name.length > 50) {
+			return { isValid: false, error: `Panjang nama petugas minimum 3 karakter: ${name}` };
+		}
+
+		if (/(.)\1{2,}/.test(name)) {
+			return { isValid: false, error: `Mohon ketik nama petugas dengan benar: ${name}` };
+		}
+
+		// Check for non-alphabetic characters (except spaces)
+		if (!/^[a-zA-Z\s]+$/.test(name)) {
+			return { isValid: false, error: `Nama petugas hanya boleh mengandung huruf: ${name}` };
+		}
+	}
+
+	return { isValid: true };
+}
+
+/**
+ * Validates a list of ushers for tatib (ushers) confirmation.
+ * 
+ * This function checks:
+ * 1. If there are any duplicate names in the ushers list
+ * 2. If all names are between 3-50 characters in length
+ * 3. If any name contains excessive character repetition (3+ same characters in a row)
+ * 
+ * @param {EventUsher[]} ushers - Array of ushers to validate
+ * @returns {Object} Result object with isValid flag and optional error message
+ * @property {boolean} isValid - Whether the ushers list passed all validation rules
+ * @property {string} [error] - Description of the validation error (if any)
+ */
 export const actions = {
 	default: async ({ request, cookies }) => {
 		logger.info('event ushers confirmation is starting')
@@ -80,20 +135,29 @@ export const actions = {
 
 		const submittedAt = new Date();
 		const formData = await request.formData();
+		const eventDate = formData.get('eventDate') as string;
 		const eventId = formData.get('eventId') as string;
 		const wilayahId = formData.get('wilayahId') as string;
 		const lingkunganId = formData.get('lingkunganId') as string;
 		const ushersString = formData.get('ushers') as string;
 
+		const formValues = {
+			eventDate,
+			eventId,
+			wilayahId,
+			lingkunganId,
+			ushers: ushersString
+		};
+
 		// Validate to reject entry if submittedAt weekday is Sunday, Friday, and Saturday
 		if (featureFlags.isEnabled('no_saturday_sunday') && [0, 5, 6].includes(submittedAt.getDay())) {
 			logger.warn(`lingkungan ${lingkunganId} tried to confirm at closed window.`)
-			return fail(400, { error: 'Batas konfirmasi tugas Senin s.d. Kamis' });
+			return fail(422, { error: 'Batas konfirmasi tugas Senin s.d. Kamis', formData: formValues });
 		}
 
 		// Validate mandatory input 
 		if ((!eventId) || !wilayahId || !lingkunganId || !ushersString) {
-			return fail(400, { error: 'Mohon lengkapi semua isian.' });
+			return fail(422, { error: 'Mohon lengkapi semua isian.', formData: formValues });
 		}
 
 		try {
@@ -129,7 +193,12 @@ export const actions = {
 				ushersArray = JSON.parse(ushersString);
 			} catch (err) {
 				logger.warn(`failed to parse ushers list`);
-				return fail(400, { error: 'Gagal parsing data petugas' });
+				return fail(422, { error: 'Gagal parsing data petugas' });
+			}
+
+			const validation = validateUsherNames(ushersArray);
+			if (!validation.isValid) {
+				return fail(422, { error: validation.error, formData: formValues });
 			}
 
 			// Insert ushers into event
@@ -163,7 +232,7 @@ export const actions = {
 			return { success: true, json: { ushers: queueManager.assignedUshers } };
 		} catch (err) {
 			logger.warn('failed creating event:', err);
-			return fail(404, { error: err });
+			return fail(404, { error: err, formData: formValues });
 		}
 	}
 } satisfies Actions;

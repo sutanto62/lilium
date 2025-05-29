@@ -32,48 +32,47 @@
 		}
 	];
 
-	function validateName(name: string): string | undefined {
-		console.log(`validating name: ${name}`);
-		// Don't validate empty input
-		if (!name.trim()) {
-			return undefined;
-		}
+	// function validateName(name: string): string | undefined {
+	// 	// Don't validate empty input
+	// 	if (!name.trim()) {
+	// 		return undefined;
+	// 	}
 
-		const sanitized = name.trim();
-		const words = sanitized.split(' ');
+	// 	const sanitized = name.trim();
+	// 	const words = sanitized.split(' ');
 
-		// Check if each word is at least 3 characters long
-		if (words.some((word) => word.length < 3)) {
-			return 'Nama minimal 3 karakter';
-		}
+	// 	// Check if each word is at least 3 characters long
+	// 	if (words.some((word) => word.length < 3)) {
+	// 		return 'Nama minimal 3 karakter';
+	// 	}
 
-		// Check if total length is reasonable (between 3 and 50 characters)
-		if (sanitized.length < 3 || sanitized.length > 50) {
-			return 'Nama harus antara 3 dan 50 karakter';
-		}
+	// 	// Check if total length is reasonable (between 3 and 50 characters)
+	// 	if (sanitized.length < 3 || sanitized.length > 50) {
+	// 		return 'Nama harus antara 3 dan 50 karakter';
+	// 	}
 
-		// Check for repeated characters (more than 3 same characters in sequence)
-		if (/(.)\1{2,}/.test(sanitized)) {
-			return 'Nama tidak boleh mengandung karakter yang berulang lebih dari 2 kali';
-		}
+	// 	// Check for repeated characters (more than 3 same characters in sequence)
+	// 	if (/(.)\1{2,}/.test(sanitized)) {
+	// 		return 'Nama tidak boleh mengandung karakter yang berulang lebih dari 2 kali';
+	// 	}
 
-		return undefined;
-	}
+	// 	return undefined;
+	// }
 
 	// TODO: check after input data
-	function handleNameChange(index: number, value: string) {
-		console.log(`handleNameChange: ${value}`);
-		ushers = ushers.map((usher, i) => {
-			if (i === index) {
-				return {
-					...usher,
-					name: value,
-					validationMessage: validateName(value)
-				};
-			}
-			return usher;
-		});
-	}
+	// function handleNameChange(index: number, value: string) {
+	// 	console.log(`handleNameChange: ${value}`);
+	// 	ushers = ushers.map((usher, i) => {
+	// 		if (i === index) {
+	// 			return {
+	// 				...usher,
+	// 				name: value,
+	// 				validationMessage: validateName(value)
+	// 			};
+	// 		}
+	// 		return usher;
+	// 	});
+	// }
 
 	let selectedRole: 'PPG' | 'Kolekte' | null = null;
 	let screenMinWidth: number = 640;
@@ -128,9 +127,9 @@
 		];
 	}
 
-	function removeUsher(index: number) {
-		ushers = ushers.filter((_, i) => i !== index);
-	}
+	// function removeUsher(index: number) {
+	// 	ushers = ushers.filter((_, i) => i !== index);
+	// }
 
 	// Recalculate progress whenever ushers changes
 	$: progress = calculateProgress(ushers);
@@ -142,19 +141,19 @@
 		const filledNames = usher.filter((p) => p.name.trim() !== '').length;
 		const progress = Math.round((filledNames / maxUshers) * 100);
 
-		const confirmationStatus = usher.map((p) => {
-			if (progress === 0) return 'unconfirmed';
-			if (progress === 100) return 'confirmed';
-			return 'incomplete';
-		});
+		// const confirmationStatus = usher.map((p) => {
+		// 	if (progress === 0) return 'unconfirmed';
+		// 	if (progress === 100) return 'confirmed';
+		// 	return 'incomplete';
+		// });
 
-		return confirmationStatus;
+		return progress;
 	}
 
 	$: numberOfPpg = ushers.filter((p) => p.isPpg).length;
 	$: numberOfKolekte = ushers.filter((p) => p.isKolekte).length;
 	$: numberOfUsher = ushers.length;
-	$: progressPercentage = Math.round((numberOfUsher / maxUshers) * 100);
+	// $: progressPercentage = Math.round((numberOfUsher / maxUshers) * 100);
 	$: isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && numberOfUsher >= 6;
 
 	// Reset
@@ -186,15 +185,11 @@
 		</Button>
 	</div>
 
-	{#if progressPercentage > 0}
+	{#if progress > 0}
 		<div class="mb-4">
-			<Progressbar
-				progress={progressPercentage}
-				size="h-2"
-				color={progressPercentage < 75 ? 'gray' : 'green'}
-			/>
+			<Progressbar {progress} size="h-2" color={progress < 75 ? 'gray' : 'green'} />
 			<p class="mt-2 text-sm text-gray-500">
-				{progressPercentage}% lengkap
+				{progress}% lengkap
 			</p>
 		</div>
 	{/if}
@@ -228,8 +223,10 @@
 										type="text"
 										placeholder="Masukkan nama lengkap"
 										bind:value={usher.name}
-										oninput={() => handleNameChange(index, usher.name)}
 										class="mt-2"
+										required
+										minlength={3}
+										maxlength={50}
 									/>
 									{#if usher.validationMessage}
 										<Alert color="red" class="mt-2">
@@ -272,9 +269,10 @@
 									type="text"
 									id="name-{index}"
 									placeholder="Tulis nama"
-									required
 									bind:value={usher.name}
-									oninput={() => handleNameChange(index, usher.name)}
+									required
+									minlength={3}
+									maxlength={50}
 								/>
 								<div class="flex flex-row gap-4">
 									<Toggle

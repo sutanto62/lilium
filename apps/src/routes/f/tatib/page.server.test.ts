@@ -4,6 +4,7 @@ import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
 import { mass } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { logger } from '$lib/utils/logger';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, test, vi } from "vitest";
@@ -190,7 +191,9 @@ describe('validateUsherNames', () => {
 			createMockUsher('John Doe'),
 			createMockUsher('Jane Smith')
 		];
-		expect(validateUsherNames(ushers)).toEqual({ isValid: true });
+		const result = validateUsherNames(ushers);
+		logger.debug('Valid names test result:', result);
+		expect(result).toEqual({ isValid: true });
 	});
 
 	test('should reject duplicate names', () => {
@@ -198,7 +201,9 @@ describe('validateUsherNames', () => {
 			createMockUsher('John Doe'),
 			createMockUsher('John Doe')
 		];
-		expect(validateUsherNames(ushers)).toEqual({
+		const result = validateUsherNames(ushers);
+		logger.debug('Duplicate names test result:', result);
+		expect(result).toEqual({
 			isValid: false,
 			error: 'Nama petugas tidak boleh duplikat: John Doe'
 		});
@@ -206,16 +211,19 @@ describe('validateUsherNames', () => {
 
 	test('should reject names shorter than 3 characters', () => {
 		const ushers = [createMockUsher('Jo')];
-		expect(validateUsherNames(ushers)).toEqual({
+		const result = validateUsherNames(ushers);
+		logger.debug('Short name test result:', result);
+		expect(result).toEqual({
 			isValid: false,
-			error: 'Panjang nama petugas minimum 3 karakter: Jo'
+			error: 'Panjang nama petugas minimum 3/maksimum 50 karakter: Jo'
 		});
 	});
 
-
 	test('should reject names with excessive character repetition', () => {
 		const ushers = [createMockUsher('Jooohn')];
-		expect(validateUsherNames(ushers)).toEqual({
+		const result = validateUsherNames(ushers);
+		logger.debug('Character repetition test result:', result);
+		expect(result).toEqual({
 			isValid: false,
 			error: 'Mohon ketik nama petugas dengan benar: Jooohn'
 		});
@@ -223,9 +231,47 @@ describe('validateUsherNames', () => {
 
 	test('should reject names with non-alphabetic characters', () => {
 		const ushers = [createMockUsher('John123')];
-		expect(validateUsherNames(ushers)).toEqual({
+		const result = validateUsherNames(ushers);
+		logger.debug('Non-alphabetic test result:', result);
+		expect(result).toEqual({
 			isValid: false,
 			error: 'Nama petugas hanya boleh mengandung huruf: John123'
 		});
+	});
+
+	test('should reject names with abbreviation character', () => {
+		const ushers = [createMockUsher('John S. Doe')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Single character test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: 'Nama petugas tidak boleh mengandung singkatan 1 huruf: John S. Doe'
+		});
+	});
+
+	// Additional test cases
+	test('should reject names longer than 50 characters', () => {
+		const longName = 'A'.repeat(51);
+		const ushers = [createMockUsher(longName)];
+		const result = validateUsherNames(ushers);
+		logger.debug('Long name test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: `Panjang nama petugas minimum 3/maksimum 50 karakter: ${longName}`
+		});
+	});
+
+	test('should handle names with multiple spaces', () => {
+		const ushers = [createMockUsher('John   Doe')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Multiple spaces test result:', result);
+		expect(result).toEqual({ isValid: true });
+	});
+
+	test('should handle names with leading/trailing spaces', () => {
+		const ushers = [createMockUsher('  John Doe  ')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Leading/trailing spaces test result:', result);
+		expect(result).toEqual({ isValid: true });
 	});
 });

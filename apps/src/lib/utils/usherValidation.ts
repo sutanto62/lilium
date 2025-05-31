@@ -21,6 +21,16 @@ export function validateUsherNames(ushers: EventUsher[]): { isValid: boolean; er
         if (!/^[a-zA-Z\s]+$/.test(name)) {
             return { isValid: false, error: `Nama petugas hanya boleh mengandung huruf: ${name}` };
         }
+
+        if (name.includes('.')) {
+            return { isValid: false, error: `Nama petugas tidak boleh mengandung titik: ${name}` };
+        }
+
+        // Check for single character words (abbreviations)
+        const words = name.trim().split(/\s+/);
+        if (words.some(word => word.length === 1)) {
+            return { isValid: false, error: `Nama petugas tidak boleh mengandung singkatan 1 huruf: ${name}` };
+        }
     }
 
     return { isValid: true };

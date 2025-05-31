@@ -6,6 +6,7 @@ import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { getWeekNumber } from '$lib/utils/dateUtils';
+import { validateUsherNames } from '$lib/utils/usherValidation';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -83,46 +84,6 @@ export const load: PageServerLoad = async (event) => {
  *          or an ActionFailure with error details if validation fails
  */
 
-function validateUsherNames(ushers: EventUsher[]): { isValid: boolean; error?: string } {
-	const usherNames = ushers.map(u => u.name);
-	const uniqueNames = new Set(usherNames);
-
-	if (uniqueNames.size !== usherNames.length) {
-		const duplicates = usherNames.filter((item, index) => usherNames.indexOf(item) !== index);
-		return { isValid: false, error: `Nama petugas tidak boleh duplikat: ${duplicates.join(', ')}` };
-	}
-
-	for (const name of usherNames) {
-		if (name.length < 3 || name.length > 50) {
-			return { isValid: false, error: `Panjang nama petugas minimum 3 karakter: ${name}` };
-		}
-
-		if (/(.)\1{2,}/.test(name)) {
-			return { isValid: false, error: `Mohon ketik nama petugas dengan benar: ${name}` };
-		}
-
-		// Check for non-alphabetic characters (except spaces)
-		if (!/^[a-zA-Z\s]+$/.test(name)) {
-			return { isValid: false, error: `Nama petugas hanya boleh mengandung huruf: ${name}` };
-		}
-	}
-
-	return { isValid: true };
-}
-
-/**
- * Validates a list of ushers for tatib (ushers) confirmation.
- * 
- * This function checks:
- * 1. If there are any duplicate names in the ushers list
- * 2. If all names are between 3-50 characters in length
- * 3. If any name contains excessive character repetition (3+ same characters in a row)
- * 
- * @param {EventUsher[]} ushers - Array of ushers to validate
- * @returns {Object} Result object with isValid flag and optional error message
- * @property {boolean} isValid - Whether the ushers list passed all validation rules
- * @property {string} [error] - Description of the validation error (if any)
- */
 export const actions = {
 	default: async ({ request, cookies }) => {
 		logger.info('event ushers confirmation is starting')

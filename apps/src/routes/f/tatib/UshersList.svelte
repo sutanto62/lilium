@@ -1,4 +1,4 @@
-<script lang="ts" context="module">
+<script lang="ts" module>
 	declare const window: Window & typeof globalThis;
 </script>
 
@@ -22,15 +22,20 @@
 	import { UserAddSolid } from 'flowbite-svelte-icons';
 
 	// Props
-	export let isSubmitable: boolean = false;
-	export let ushers: Usher[] = [
-		{
-			name: '',
-			isPpg: false,
-			isKolekte: false,
-			sequence: 0
-		}
-	];
+	let {
+		isSubmitable = $bindable(false),
+		ushers = $bindable<Usher[]>([
+			{
+				name: '',
+				isPpg: false,
+				isKolekte: false,
+				sequence: 0
+			}
+		])
+	} = $props<{
+		isSubmitable?: boolean;
+		ushers?: Usher[];
+	}>();
 
 	// function validateName(name: string): string | undefined {
 	// 	// Don't validate empty input
@@ -74,11 +79,11 @@
 	// 	});
 	// }
 
-	let selectedRole: 'PPG' | 'Kolekte' | null = null;
-	let screenMinWidth: number = 640;
-	let screenWidth: number;
-	let maxUshers: number = 8;
-	let showMaxAlert = false;
+	let selectedRole = $state<'PPG' | 'Kolekte' | null>(null);
+	let screenMinWidth = $state(640);
+	let screenWidth = $state(0);
+	let maxUshers = $state(8);
+	let showMaxAlert = $state(false);
 
 	onMount(() => {
 		screenWidth = window.innerWidth;
@@ -94,7 +99,7 @@
 	}
 
 	function handleRoleChange(index: number, role: 'PPG' | 'Kolekte') {
-		ushers = ushers.map((usher, i) => {
+		ushers = ushers.map((usher: Usher, i: number) => {
 			if (i === index) {
 				if (role === 'PPG') {
 					return { ...usher, isPpg: !usher.isPpg, isKolekte: false };
@@ -131,8 +136,26 @@
 	// 	ushers = ushers.filter((_, i) => i !== index);
 	// }
 
-	// Recalculate progress whenever ushers changes
-	$: progress = calculateProgress(ushers);
+	let progress = $derived(calculateProgress(ushers));
+	let numberOfPpg = $derived(ushers.filter((p: Usher) => p.isPpg).length);
+	let numberOfKolekte = $derived(ushers.filter((p: Usher) => p.isKolekte).length);
+	let numberOfUsher = $derived(ushers.length);
+	$effect(() => {
+		isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && numberOfUsher >= 6;
+	});
+
+	// Reset
+	function reset() {
+		ushers = [
+			{
+				name: '',
+				isPpg: false,
+				isKolekte: false,
+				sequence: 0
+			}
+		];
+		selectedRole = null;
+	}
 
 	function calculateProgress(usher: Usher[]) {
 		if (usher.length === 0) return 0;
@@ -148,25 +171,6 @@
 		// });
 
 		return progress;
-	}
-
-	$: numberOfPpg = ushers.filter((p) => p.isPpg).length;
-	$: numberOfKolekte = ushers.filter((p) => p.isKolekte).length;
-	$: numberOfUsher = ushers.length;
-	// $: progressPercentage = Math.round((numberOfUsher / maxUshers) * 100);
-	$: isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && numberOfUsher >= 6;
-
-	// Reset
-	function reset() {
-		ushers = [
-			{
-				name: '',
-				isPpg: false,
-				isKolekte: false,
-				sequence: 0
-			}
-		];
-		selectedRole = null;
 	}
 </script>
 

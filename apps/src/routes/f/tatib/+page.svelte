@@ -9,47 +9,54 @@
 	import UshersList from './UshersList.svelte';
 
 	// Props
-	export let data: PageData;
-	export let form: ActionData;
+	const { data = $bindable(), form = $bindable() } = $props<{
+		data: PageData;
+		form: ActionData;
+	}>();
 
 	// Data
-	let selectedEventDate: string | null = null;
-	let selectedEventId: string | null = null;
-	let selectedWilayahId: string | null = null;
-	let selectedLingkunganId: string | null = null;
-	let ushers: Usher[] = [
+	let selectedEventDate = $state<string | null>(null);
+	let selectedEventId = $state<string | null>(null);
+	let selectedWilayahId = $state<string | null>(null);
+	let selectedLingkunganId = $state<string | null>(null);
+	let ushers = $state<Usher[]>([
 		{
 			name: '',
 			isPpg: false,
 			isKolekte: false,
 			sequence: 0
 		}
-	];
+	]);
 
 	// Restore form data on validation failure
-	$: if (form?.formData) {
-		selectedEventDate = form.formData.eventDate;
-		selectedEventId = form.formData.eventId;
-		selectedWilayahId = form.formData.wilayahId;
-		selectedLingkunganId = form.formData.lingkunganId;
-		try {
-			ushers = JSON.parse(form.formData.ushers);
-		} catch (e) {
-			console.error('Failed to parse ushers data:', e);
+	$effect(() => {
+		if (form?.formData) {
+			selectedEventDate = form.formData.eventDate;
+			selectedEventId = form.formData.eventId;
+			selectedWilayahId = form.formData.wilayahId;
+			selectedLingkunganId = form.formData.lingkunganId;
+			try {
+				ushers = JSON.parse(form.formData.ushers);
+			} catch (e) {
+				console.error('Failed to parse ushers data:', e);
+			}
 		}
-	}
+	});
 
 	// Display form only on weekdays
-	let currentDay: number;
-	$: showForm = [1, 2, 3, 4].includes(currentDay) || !featureFlags.isEnabled('no_saturday_sunday');
+	let currentDay = $state(0);
+	let showForm = $derived(
+		[1, 2, 3, 4].includes(currentDay) || !featureFlags.isEnabled('no_saturday_sunday')
+	);
 
 	// Disabled submit button
-	let isUshersValid: boolean = false;
-	$: isSubmitDisable =
+	let isUshersValid = $state(false);
+	let isSubmitDisable = $derived(
 		!isUshersValid ||
-		selectedEventId === null ||
-		selectedWilayahId === null ||
-		selectedLingkunganId === null;
+			selectedEventId === null ||
+			selectedWilayahId === null ||
+			selectedLingkunganId === null
+	);
 
 	// Name validation and sanitization
 	function sanitizeName(name: string): string {
@@ -104,7 +111,9 @@
 	}
 
 	// Watch for changes in ushers list and validate
-	$: isUshersValid = validateUshers(ushers);
+	$effect(() => {
+		isUshersValid = validateUshers(ushers);
+	});
 
 	onMount(() => {
 		currentDay = new Date().getDay();

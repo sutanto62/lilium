@@ -1,10 +1,12 @@
+import type { EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
 import { mass } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { validateUsherNames } from '$lib/utils/usherValidation';
 import type { RequestEvent } from '@sveltejs/kit';
-import { expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { RouteParams } from './$types';
 import { actions } from './+page.server';
 
@@ -134,7 +136,8 @@ test('should handle queue processing errors', async () => {
 		description: 'Test Position',
 		isPpg: false,
 		sequence: 1,
-		type: 'usher'
+		type: 'usher',
+		zone: 'Zone 1'
 	};
 	const mockLingkungan: Lingkungan = {
 		id: 'lingkungan1',
@@ -167,4 +170,62 @@ test('should handle queue processing errors', async () => {
 
 	const result = await actions.default(createMockRequestEvent(formData));
 	expect(result).toEqual({ status: 400, data: { error: 'Batas konfirmasi tugas Senin s.d. Kamis' } });
+});
+
+describe('validateUsherNames', () => {
+	const createMockUsher = (name: string): EventUsher => ({
+		id: '1',
+		name,
+		event: 'event1',
+		wilayah: 'wilayah1',
+		lingkungan: 'lingkungan1',
+		position: null,
+		isPpg: false,
+		isKolekte: false,
+		createdAt: Date.now()
+	});
+
+	test('should return valid for unique, properly formatted names', () => {
+		const ushers = [
+			createMockUsher('John Doe'),
+			createMockUsher('Jane Smith')
+		];
+		expect(validateUsherNames(ushers)).toEqual({ isValid: true });
+	});
+
+	test('should reject duplicate names', () => {
+		const ushers = [
+			createMockUsher('John Doe'),
+			createMockUsher('John Doe')
+		];
+		expect(validateUsherNames(ushers)).toEqual({
+			isValid: false,
+			error: 'Nama petugas tidak boleh duplikat: John Doe'
+		});
+	});
+
+	test('should reject names shorter than 3 characters', () => {
+		const ushers = [createMockUsher('Jo')];
+		expect(validateUsherNames(ushers)).toEqual({
+			isValid: false,
+			error: 'Panjang nama petugas minimum 3 karakter: Jo'
+		});
+	});
+
+
+	test('should reject names with excessive character repetition', () => {
+		const ushers = [createMockUsher('Jooohn')];
+		expect(validateUsherNames(ushers)).toEqual({
+			isValid: false,
+			error: 'Mohon ketik nama petugas dengan benar: Jooohn'
+		});
+	});
+
+	test('should reject names with non-alphabetic characters', () => {
+		const ushers = [createMockUsher('John123')];
+		expect(validateUsherNames(ushers)).toEqual({
+			isValid: false,
+			error: 'Nama petugas hanya boleh mengandung huruf: John123'
+		});
+	});
 });

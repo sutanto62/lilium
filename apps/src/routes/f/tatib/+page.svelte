@@ -178,7 +178,8 @@
 	<form
 		method="POST"
 		class="mb-6"
-		on:submit|preventDefault={(e) => {
+		onsubmit={(e) => {
+			e.preventDefault();
 			const sanitizedUshers = ushers.map((usher) => ({
 				...usher,
 				name: sanitizeName(usher.name)

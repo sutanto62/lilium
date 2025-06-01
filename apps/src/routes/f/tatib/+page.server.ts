@@ -193,7 +193,7 @@ export const actions = {
 			return { success: true, json: { ushers: queueManager.assignedUshers } };
 		} catch (err) {
 			logger.warn('failed creating event:', err);
-			return fail(404, { error: err, formData: formValues });
+return fail(500, { error: 'Terjadi kesalahan internal: ' + (err instanceof Error ? err.message : 'Detail tidak diketahui'), formData: formValues });
 		}
 	}
 } satisfies Actions;

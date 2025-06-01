@@ -20,7 +20,7 @@
 						/>
 					</a>
 					<h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-						Lilium Inter Spinas
+						{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'}
 					</h1>
 				</div>
 				<div class="flex w-full flex-col items-center justify-center gap-4">

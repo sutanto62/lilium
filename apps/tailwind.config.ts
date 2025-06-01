@@ -1,4 +1,3 @@
-
 import type { Config } from 'tailwindcss';
 
 export default {
@@ -24,16 +23,16 @@ export default {
 			colors: {
 				// flowbite-svelte
 				primary: {
-					50: '#FFF5F2',
-					100: '#FFF1EE',
-					200: '#FFE4DE',
-					300: '#FFD5CC',
-					400: '#FFBCAD',
-					500: '#FE795D',
-					600: '#EF562F',
-					700: '#EB4F27',
-					800: '#CC4522',
-					900: '#A5371B'
+					50: '#E6F2FF',
+					100: '#CCE5FF',
+					200: '#99CCFF',
+					300: '#66B2FF',
+					400: '#3399FF',
+					500: '#007ACC',
+					600: '#0066B3',
+					700: '#005299',
+					800: '#003D80',
+					900: '#002966'
 				},
 				secondary: {
 					50: '#F0F6FF',

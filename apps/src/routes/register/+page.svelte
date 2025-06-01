@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Card, Label, Input, P, Alert } from 'flowbite-svelte';
+	import { Alert, Button, Card, Input, Label, P } from 'flowbite-svelte';
 	import { MailBoxOutline } from 'flowbite-svelte-icons';
 
 	let email = '';

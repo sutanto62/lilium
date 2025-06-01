@@ -11,9 +11,9 @@
 	>
 		<NavBrand href="/">
 			<!-- Kidung Agung 2:2 -->
-			<img src="/images/lily-amongs-thorns.png" class="size-16" alt="LIS logo" />
+			<img src="/images/lily-amongs-thorns.png" class="mx-2 size-16" alt="LIS logo" />
 			<span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"
-				>Lilium Inter Spinas</span
+				>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'}</span
 			>
 		</NavBrand>
 		<NavHamburger />

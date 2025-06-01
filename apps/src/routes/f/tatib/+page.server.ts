@@ -6,6 +6,7 @@ import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { getWeekNumber } from '$lib/utils/dateUtils';
+import { validateUsherNames } from '$lib/utils/usherValidation';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -37,10 +38,6 @@ export const load: PageServerLoad = async (event) => {
 
 	let weekNumber = getWeekNumber();
 
-	// if (process.env.NODE_ENV === 'development') {
-	// 	weekNumber = 20;
-	// }
-
 	try {
 		const [wilayahs, lingkungans, events] = await Promise.all([
 			churchService.getWilayahs(),
@@ -61,12 +58,31 @@ export const load: PageServerLoad = async (event) => {
 			eventsDate: eventsDate,
 			success: false,
 			assignedUshers: [],
+			formData: null
 		};
 	} catch (err) {
 		logger.error('Error fetching data:', err);
 		throw error(500, 'Gagal memuat jadwal misa, wilayah, dan lingkungan');
 	}
 };
+
+/**
+ * Actions for the tatib (tata tertib/ushers) form.
+ * 
+ * The default action handles form submission for confirming ushers for a church event.
+ * It validates the submitted data, processes the ushers information, and assigns positions
+ * to the ushers based on their roles and sequence.
+ * 
+ * The flow includes:
+ * 1. Validating form data including church, event, wilayah and lingkungan
+ * 2. Parsing and validating ushers information (names, roles)
+ * 3. Assigning positions based on business rules
+ * 4. Saving the confirmed ushers to the database
+ * 
+ * @returns {Promise<ActionFailure<{error: string, formData: any}> | {success: boolean, json: any}>}
+ *          Returns a success object with the processed data if successful,
+ *          or an ActionFailure with error details if validation fails
+ */
 
 export const actions = {
 	default: async ({ request, cookies }) => {
@@ -80,20 +96,29 @@ export const actions = {
 
 		const submittedAt = new Date();
 		const formData = await request.formData();
+		const eventDate = formData.get('eventDate') as string;
 		const eventId = formData.get('eventId') as string;
 		const wilayahId = formData.get('wilayahId') as string;
 		const lingkunganId = formData.get('lingkunganId') as string;
 		const ushersString = formData.get('ushers') as string;
 
+		const formValues = {
+			eventDate,
+			eventId,
+			wilayahId,
+			lingkunganId,
+			ushers: ushersString
+		};
+
 		// Validate to reject entry if submittedAt weekday is Sunday, Friday, and Saturday
 		if (featureFlags.isEnabled('no_saturday_sunday') && [0, 5, 6].includes(submittedAt.getDay())) {
 			logger.warn(`lingkungan ${lingkunganId} tried to confirm at closed window.`)
-			return fail(400, { error: 'Batas konfirmasi tugas Senin s.d. Kamis' });
+			return fail(422, { error: 'Batas konfirmasi tugas Senin s.d. Kamis', formData: formValues });
 		}
 
 		// Validate mandatory input 
 		if ((!eventId) || !wilayahId || !lingkunganId || !ushersString) {
-			return fail(400, { error: 'Mohon lengkapi semua isian.' });
+			return fail(422, { error: 'Mohon lengkapi semua isian.', formData: formValues });
 		}
 
 		try {
@@ -129,7 +154,12 @@ export const actions = {
 				ushersArray = JSON.parse(ushersString);
 			} catch (err) {
 				logger.warn(`failed to parse ushers list`);
-				return fail(400, { error: 'Gagal parsing data petugas' });
+				return fail(422, { error: 'Gagal parsing data petugas' });
+			}
+
+			const validation = validateUsherNames(ushersArray);
+			if (!validation.isValid) {
+				return fail(422, { error: validation.error, formData: formValues });
 			}
 
 			// Insert ushers into event
@@ -163,7 +193,7 @@ export const actions = {
 			return { success: true, json: { ushers: queueManager.assignedUshers } };
 		} catch (err) {
 			logger.warn('failed creating event:', err);
-			return fail(404, { error: err });
+return fail(500, { error: 'Terjadi kesalahan internal: ' + (err instanceof Error ? err.message : 'Detail tidak diketahui'), formData: formValues });
 		}
 	}
 } satisfies Actions;

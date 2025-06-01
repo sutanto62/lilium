@@ -1,44 +1,62 @@
 <script lang="ts">
+	import Regional from '$components/Regional.svelte';
+	import type { Usher } from '$core/entities/Schedule';
+	import { featureFlags } from '$lib/utils/FeatureFlag';
 	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import type { ActionData, PageData } from './$types';
-	// Utils
-	import { featureFlags } from '$lib/utils/FeatureFlag';
-
-	// Components
-	import Regional from '$components/Regional.svelte';
-	import type { Usher } from '$core/entities/Schedule';
 	import UshersList from './UshersList.svelte';
 
 	// Props
-	export let data: PageData;
-	export let form: ActionData;
+	const { data = $bindable(), form = $bindable() } = $props<{
+		data: PageData;
+		form: ActionData;
+	}>();
 
 	// Data
-	let selectedEventId: string | null = null;
-	let selectedWilayahId: string | null = null;
-	let selectedLingkunganId: string | null = null;
-	let ushers: Usher[] = [
+	let selectedEventDate = $state<string | null>(null);
+	let selectedEventId = $state<string | null>(null);
+	let selectedWilayahId = $state<string | null>(null);
+	let selectedLingkunganId = $state<string | null>(null);
+	let ushers = $state<Usher[]>([
 		{
 			name: '',
 			isPpg: false,
 			isKolekte: false,
 			sequence: 0
 		}
-	];
+	]);
+
+	// Restore form data on validation failure
+	$effect(() => {
+		if (form?.formData) {
+			selectedEventDate = form.formData.eventDate;
+			selectedEventId = form.formData.eventId;
+			selectedWilayahId = form.formData.wilayahId;
+			selectedLingkunganId = form.formData.lingkunganId;
+			try {
+				ushers = JSON.parse(form.formData.ushers);
+			} catch (e) {
+				console.error('Failed to parse ushers data:', e);
+			}
+		}
+	});
 
 	// Display form only on weekdays
-	let currentDay: number;
-	$: showForm = [1, 2, 3, 4].includes(currentDay) || !featureFlags.isEnabled('no_saturday_sunday');
+	let currentDay = $state(0);
+	let showForm = $derived(
+		[1, 2, 3, 4].includes(currentDay) || !featureFlags.isEnabled('no_saturday_sunday')
+	);
 
 	// Disabled submit button
-	let isUshersValid: boolean = false;
-	$: isSubmitDisable =
+	let isUshersValid = $state(false);
+	let isSubmitDisable = $derived(
 		!isUshersValid ||
-		selectedEventId === null ||
-		selectedWilayahId === null ||
-		selectedLingkunganId === null;
+			selectedEventId === null ||
+			selectedWilayahId === null ||
+			selectedLingkunganId === null
+	);
 
 	// Name validation and sanitization
 	function sanitizeName(name: string): string {
@@ -51,49 +69,51 @@
 			.join(' ');
 	}
 
-	function isValidName(name: string): { isValid: boolean; message?: string } {
-		const sanitized = sanitizeName(name);
-		const words = sanitized.split(' ');
+	// function isValidName(name: string): { isValid: boolean; message?: string } {
+	// 	const sanitized = sanitizeName(name);
+	// 	const words = sanitized.split(' ');
 
-		// Check if each word is at least 2 characters long
-		if (words.some((word) => word.length < 3)) {
-			return { isValid: false, message: 'Nama minimal 3 karakter' };
-		}
+	// 	// Check if each word is at least 2 characters long
+	// 	if (words.some((word) => word.length < 3)) {
+	// 		return { isValid: false, message: 'Nama minimal 3 karakter' };
+	// 	}
 
-		// Check if total length is reasonable (between 4 and 50 characters)
-		if (sanitized.length < 3 || sanitized.length > 50) {
-			return { isValid: false, message: 'Nama harus antara 3 dan 50 karakter' };
-		}
+	// 	// Check if total length is reasonable (between 4 and 50 characters)
+	// 	if (sanitized.length < 3 || sanitized.length > 50) {
+	// 		return { isValid: false, message: 'Nama harus antara 3 dan 50 karakter' };
+	// 	}
 
-		// Check for repeated characters (more than 3 same characters in sequence)
-		if (/(.)\1{2,}/.test(sanitized)) {
-			return {
-				isValid: false,
-				message: 'Nama tidak boleh mengandung karakter yang berulang lebih dari 2 kali'
-			};
-		}
+	// 	// Check for repeated characters (more than 3 same characters in sequence)
+	// 	if (/(.)\1{2,}/.test(sanitized)) {
+	// 		return {
+	// 			isValid: false,
+	// 			message: 'Nama tidak boleh mengandung karakter yang berulang lebih dari 2 kali'
+	// 		};
+	// 	}
 
-		return { isValid: true };
-	}
+	// 	return { isValid: true };
+	// }
 
 	function validateUshers(usherList: Usher[]): boolean {
-		const hasValidNames = usherList.every((usher) => {
-			const validation = isValidName(usher.name);
-			if (!validation.isValid) {
-				usher.validationMessage = validation.message;
-			} else {
-				usher.validationMessage = undefined;
-			}
-			return validation.isValid;
-		});
+		// const hasValidNames = usherList.every((usher) => {
+		// 	const validation = isValidName(usher.name);
+		// 	if (!validation.isValid) {
+		// 		usher.validationMessage = validation.message;
+		// 	} else {
+		// 		usher.validationMessage = undefined;
+		// 	}
+		// 	return validation.isValid;
+		// });
 		const hasEnoughKolekte = usherList.filter((usher) => usher.isKolekte).length >= 3;
 		const hasMinimumUshers = usherList.length >= 6;
 
-		return hasValidNames && hasEnoughKolekte && hasMinimumUshers;
+		return hasEnoughKolekte && hasMinimumUshers;
 	}
 
 	// Watch for changes in ushers list and validate
-	$: isUshersValid = validateUshers(ushers);
+	$effect(() => {
+		isUshersValid = validateUshers(ushers);
+	});
 
 	onMount(() => {
 		currentDay = new Date().getDay();
@@ -125,7 +145,7 @@
 <!-- On error  -->
 {#if form?.error}
 	<Alert color="red" class="mb-4">
-		<span class="font-medium">Error:</span>
+		<span class="font-medium">Kesalahan:</span>
 		{form?.error}
 	</Alert>
 {/if}
@@ -168,6 +188,7 @@
 		}}
 	>
 		<input type="hidden" name="churchId" value={data.church.id} />
+		<input type="hidden" name="eventDate" value={selectedEventDate} />
 		<input type="hidden" name="eventId" value={selectedEventId || ''} />
 		<input type="hidden" name="wilayahId" value={selectedWilayahId || ''} />
 		<input type="hidden" name="lingkunganId" value={selectedLingkunganId || ''} />
@@ -180,6 +201,7 @@
 					events={data.events}
 					wilayahs={data.wilayahs}
 					lingkungans={data.lingkungans}
+					bind:selectedEventDate
 					bind:selectedEventId
 					bind:selectedWilayahId
 					bind:selectedLingkunganId

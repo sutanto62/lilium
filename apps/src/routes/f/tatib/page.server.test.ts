@@ -1,10 +1,13 @@
+import type { EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
 import { mass } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { logger } from '$lib/utils/logger';
+import { validateUsherNames } from '$lib/utils/usherValidation';
 import type { RequestEvent } from '@sveltejs/kit';
-import { expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import type { RouteParams } from './$types';
 import { actions } from './+page.server';
 
@@ -134,7 +137,8 @@ test('should handle queue processing errors', async () => {
 		description: 'Test Position',
 		isPpg: false,
 		sequence: 1,
-		type: 'usher'
+		type: 'usher',
+		zone: 'Zone 1'
 	};
 	const mockLingkungan: Lingkungan = {
 		id: 'lingkungan1',
@@ -167,4 +171,107 @@ test('should handle queue processing errors', async () => {
 
 	const result = await actions.default(createMockRequestEvent(formData));
 	expect(result).toEqual({ status: 400, data: { error: 'Batas konfirmasi tugas Senin s.d. Kamis' } });
+});
+
+describe('validateUsherNames', () => {
+	const createMockUsher = (name: string): EventUsher => ({
+		id: '1',
+		name,
+		event: 'event1',
+		wilayah: 'wilayah1',
+		lingkungan: 'lingkungan1',
+		position: null,
+		isPpg: false,
+		isKolekte: false,
+		createdAt: Date.now()
+	});
+
+	test('should return valid for unique, properly formatted names', () => {
+		const ushers = [
+			createMockUsher('John Doe'),
+			createMockUsher('Jane Smith')
+		];
+		const result = validateUsherNames(ushers);
+		logger.debug('Valid names test result:', result);
+		expect(result).toEqual({ isValid: true });
+	});
+
+	test('should reject duplicate names', () => {
+		const ushers = [
+			createMockUsher('John Doe'),
+			createMockUsher('John Doe')
+		];
+		const result = validateUsherNames(ushers);
+		logger.debug('Duplicate names test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: 'Nama petugas tidak boleh duplikat: John Doe'
+		});
+	});
+
+	test('should reject names shorter than 3 characters', () => {
+		const ushers = [createMockUsher('Jo')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Short name test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: 'Panjang nama petugas minimum 3/maksimum 50 karakter: Jo'
+		});
+	});
+
+	test('should reject names with excessive character repetition', () => {
+		const ushers = [createMockUsher('Jooohn')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Character repetition test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: 'Mohon ketik nama petugas dengan benar: Jooohn'
+		});
+	});
+
+	test('should reject names with non-alphabetic characters', () => {
+		const ushers = [createMockUsher('John123')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Non-alphabetic test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: 'Nama petugas hanya boleh mengandung huruf: John123'
+		});
+	});
+
+	test('should reject names with abbreviation character', () => {
+		const ushers = [createMockUsher('John S. Doe')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Single character test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: 'Nama petugas tidak boleh mengandung singkatan 1 huruf: John S. Doe'
+		});
+	});
+
+	// Additional test cases
+	test('should reject names longer than 50 characters', () => {
+		const longName = 'A'.repeat(51);
+		const ushers = [createMockUsher(longName)];
+		const result = validateUsherNames(ushers);
+		logger.debug('Long name test result:', result);
+		expect(result).toEqual({
+			isValid: false,
+			error: `Panjang nama petugas minimum 3/maksimum 50 karakter: ${longName}`
+		});
+	});
+
+	test('should handle names with multiple spaces', () => {
+		const ushers = [createMockUsher('John   Doe')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Multiple spaces test result:', result);
+		expect(result).toEqual({ isValid: true });
+	});
+
+	test('should handle names with leading/trailing spaces', () => {
+		const ushers = [createMockUsher('  John Doe  ')];
+		const result = validateUsherNames(ushers);
+		logger.debug('Leading/trailing spaces test result:', result);
+		expect(result).toEqual({ isValid: true });
+	});
 });

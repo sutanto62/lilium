@@ -10,13 +10,13 @@
 	export let wilayahs: Wilayah[];
 	export let lingkungans: Lingkungan[];
 
+	export let selectedEventDate: string | null = null;
 	export let selectedEventId: string | null = null;
 	export let selectedWilayahId: string | null = null;
 	export let selectedLingkunganId: string | null = null;
 
 	// Local variables
 	let currentDate: string;
-	let selectedEventDate: string | null = null;
 
 	// Filter events by selected date
 	$: filteredEvents = selectedEventDate
@@ -29,9 +29,9 @@
 		: [];
 
 	// Reset selectedLingkungan when selectedWilayah changes
-	$: if (selectedWilayahId !== null) {
-		selectedLingkunganId = null;
-	}
+	// $: if (selectedWilayahId !== null) {
+	// 	selectedLingkunganId = null;
+	// }
 
 	// $: if (selectedEventDate) {
 	// 	selectedEventId = events.find((event) => event.date === selectedEventDate)?.id || null;

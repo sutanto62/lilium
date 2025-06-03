@@ -50,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 			? [...new Set(events.map(event => event.date))]
 			: [];
 
-		return {
+		const returnData = {
 			church,
 			wilayahs,
 			lingkungans,
@@ -60,6 +60,7 @@ export const load: PageServerLoad = async (event) => {
 			assignedUshers: [],
 			formData: null
 		};
+		return returnData;
 	} catch (err) {
 		logger.error('Error fetching data:', err);
 		throw error(500, 'Gagal memuat jadwal misa, wilayah, dan lingkungan');
@@ -193,7 +194,7 @@ export const actions = {
 			return { success: true, json: { ushers: queueManager.assignedUshers } };
 		} catch (err) {
 			logger.warn('failed creating event:', err);
-return fail(500, { error: 'Terjadi kesalahan internal: ' + (err instanceof Error ? err.message : 'Detail tidak diketahui'), formData: formValues });
+			return fail(500, { error: 'Terjadi kesalahan internal: ' + (err instanceof Error ? err.message : 'Detail tidak diketahui'), formData: formValues });
 		}
 	}
 } satisfies Actions;

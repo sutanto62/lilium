@@ -129,7 +129,8 @@ export async function findPositionByMass(
 			and(
 				eq(church_position.zone, church_zone.id),
 				eq(mass_zone.mass, massId),
-				eq(church_zone.church, churchId)
+				eq(church_zone.church, churchId),
+				eq(church_position.active, 1)
 			)
 		)
 		.orderBy(mass_zone.sequence, church_zone.sequence, church_position.sequence);

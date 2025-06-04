@@ -1,6 +1,8 @@
 import { browser } from '$app/environment';
-import posthog from 'posthog-js';
-import { PostHog } from 'posthog-node';
+import { StatsigClient } from '@statsig/js-client';
+import { StatsigSessionReplayPlugin } from '@statsig/session-replay';
+import { StatsigAutoCapturePlugin } from '@statsig/web-analytics';
+import { logger } from './logger';
 
 /**
  * Analytics utility functions for PostHog integration, Client setup. Call these functions in your server actions or routes.
@@ -14,67 +16,53 @@ import { PostHog } from 'posthog-node';
  * 2. Users are identified with properties like email, role, etc.
  * 3. PostHog client is properly shutdown after each operation
  */
+export const initStatsig = async () => {
+    if (!browser) return;
 
-export function initPostHog() {
-    if (browser) {
-        posthog.init(
-            import.meta.env.VITE_POSTHOG_KEY,
+    try {
+        logger.debug(`initStatsig`);
+        if (!import.meta.env.VITE_STATSIG_CLIENT_KEY) {
+            console.error('Statsig SDK key is not configured');
+            return;
+        }
+
+        const statsigClient = new StatsigClient(
+            import.meta.env.VITE_STATSIG_CLIENT_KEY,
             {
-                api_host: import.meta.env.VITE_POSTHOG_HOST,
-                person_profiles: 'always',
-                capture_pageview: true, // prevent double count pageviews and pageleaves
-                capture_pageleave: true, // prevent double count pageviews and pageleaves
-                persistence: 'localStorage'
+                userID: import.meta.env.VITE_STATSIG_USER_ID || 'anonymous',
+            },
+            {
+                plugins: [
+                    new StatsigSessionReplayPlugin(),
+                    new StatsigAutoCapturePlugin(),
+                ],
             }
         );
+
+        await statsigClient.initializeAsync();
+        return statsigClient;
+    } catch (error) {
+        console.error('Failed to initialize Statsig:', error);
+        return null;
     }
 }
 
-/**
- * Captures an analytics event and sends it to PostHog Server setup
- * @param event - The SvelteKit server load event containing session info
- * @param identityId - Optional unique identifier for the user
- * @param eventName - Name of the event to capture
- * @param properties - Additional properties for the event
- */
-export const capture = async (identityId: string, eventName: string, properties?: Record<string, any>) => {
+export const identifyStatsigUser = async (userId: string, properties?: Record<string, any>) => {
+    if (!browser) return;
 
-    const posthog = new PostHog(import.meta.env.VITE_POSTHOG_KEY, { host: import.meta.env.VITE_POSTHOG_HOST });
-    posthog.capture({
-        distinctId: identityId ?? 'visitor',
-        event: eventName ?? 'page_view',
-        properties
-    });
+    try {
+        const statsigClient = await initStatsig();
+        if (!statsigClient) return;
 
-    await posthog.shutdown();
-}
-
-export const captureEventClient = async (identityId: string, eventName: string, properties?: Record<string, any>) => {
-
-    if (!browser) {
-        return;
+        await statsigClient.updateUser({
+            userID: userId,
+            custom: {
+                ...properties,
+                environment: import.meta.env.MODE,
+                version: import.meta.env.VITE_APP_VERSION || '1.0.0'
+            }
+        });
+    } catch (error) {
+        console.error('Failed to identify user in Statsig:', error);
     }
-
-    initPostHog();
-    posthog.identify(identityId ?? 'visitor');
-
-    posthog.capture(
-        eventName ?? 'page_view',
-        properties
-    );
-}
-
-
-/**
- * Identifies a user in PostHog and sets their properties
- * @param userId - Unique identifier for the user
- * @param properties - Object containing user properties like email, role, etc.
- */
-export const identifyUser = async (userId: string, properties: Record<string, any>) => {
-    const posthogInstance = new PostHog(import.meta.env.VITE_POSTHOG_KEY, { host: import.meta.env.VITE_POSTHOG_HOST });
-    posthogInstance.identify({
-        distinctId: userId,
-        properties
-    });
-    await posthogInstance.shutdown();
 }

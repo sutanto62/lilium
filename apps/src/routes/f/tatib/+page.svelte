@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import type { ActionData, PageData } from './$types';
 	import UshersList from './UshersList.svelte';
+	import { initStatsig } from '$src/lib/utils/analytic';
 
 	// Props
 	const { data = $bindable(), form = $bindable() } = $props<{

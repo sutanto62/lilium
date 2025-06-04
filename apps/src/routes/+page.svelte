@@ -4,19 +4,10 @@
 	import NavigationAdmin from '$components/NavigationAdmin.svelte';
 	import { Heading, P } from 'flowbite-svelte';
 	import { FeatureDefault, Section } from 'flowbite-svelte-blocks';
-	import posthog from 'posthog-js';
-	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 
 	// Props
 	export let data: PageData;
-
-	// Ensure posthog run in client side
-	onMount(() => {
-		if (data.session?.user) {
-			posthog.identify(data.session.user.email ?? '');
-		}
-	});
 </script>
 
 <NavigationAdmin />

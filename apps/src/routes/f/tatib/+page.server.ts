@@ -7,6 +7,7 @@ import { repo } from '$lib/server/db';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
+import { initStatsig } from '$src/lib/utils/analytic';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -26,6 +27,12 @@ const queueManager = QueueManager.getInstance();
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
 export const load: PageServerLoad = async (event) => {
+	const statsigClient = await initStatsig();
+	statsigClient?.logEvent("tatib_page_view", "tatib_page_view", {
+		church_id: event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID,
+	})
+	await statsigClient?.flush();
+
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 
 	let church: Church | null = null;

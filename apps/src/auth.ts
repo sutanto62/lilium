@@ -3,6 +3,7 @@ import type { Provider } from '@auth/sveltekit/providers';
 import Google from '@auth/sveltekit/providers/google';
 import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
 import { repo } from './lib/server/db';
+import { identifyStatsigUser } from './lib/utils/analytic';
 import { logger } from './lib/utils/logger';
 
 const providers: Provider[] = [
@@ -75,6 +76,15 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
+
+				// Identify user in Statsig
+				if (user.id) {
+					await identifyStatsigUser(user.id, {
+						email: user.email,
+						role: dbUser?.role,
+						cid: import.meta.env.VITE_CHURCH_ID
+					});
+				}
 			}
 
 			return token;

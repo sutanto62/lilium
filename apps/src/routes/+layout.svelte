@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import '$src/app.css';
-	import posthog from 'posthog-js';
+	import { initStatsig } from '$src/lib/utils/analytic';
 
 	if (browser) {
-		beforeNavigate(() => posthog.capture('$pageleave'));
-		afterNavigate(() => posthog.capture('$pageview'));
+		initStatsig();
 	}
 </script>
 

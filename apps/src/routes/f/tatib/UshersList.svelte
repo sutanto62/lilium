@@ -225,7 +225,7 @@
 									<Input
 										id="name-{index}"
 										type="text"
-										placeholder="Masukkan nama lengkap"
+										placeholder="Masukkan nama"
 										bind:value={usher.name}
 										class="mt-2"
 										required

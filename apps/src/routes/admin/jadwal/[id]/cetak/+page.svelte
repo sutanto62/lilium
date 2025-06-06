@@ -54,13 +54,13 @@
 <div class="print-content" id="print-content">
 	<div class="print-header mb-4 text-center">
 		<h1
-			class="mb-2 text-2xl leading-none font-extrabold tracking-tight text-gray-900 md:text-2xl lg:text-3xl dark:text-white"
+			class="mb-2 text-2xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white md:text-2xl lg:text-3xl"
 		>
 			{church.name}, {church.parish}
 		</h1>
 
 		<h1
-			class="mb-0 text-xl leading-none font-bold tracking-tight text-gray-900 md:text-xl lg:text-2xl dark:text-white"
+			class="mb-0 text-xl font-bold leading-none tracking-tight text-gray-900 dark:text-white md:text-xl lg:text-2xl"
 		>
 			Misa {mass.mass}
 			<br />
@@ -75,7 +75,7 @@
 		</h1>
 		<div class="mt-2 text-left">
 			<h2 class="mb-2 font-bold">CATATAN:</h2>
-			<ol class="list-inside list-decimal">
+			<ol class="max-w-full list-inside list-decimal space-y-1" style="margin-left: 2rem">
 				<li>
 					Petugas TATIB dan PM wajib hadir {mass.briefingTime ?? 'sesuai instruksi'} sebelum Misa untuk
 					briefing
@@ -97,76 +97,64 @@
 			</ol>
 		</div>
 	</div>
-	<table style="border-collapse: collapse; width: 100%;">
+	<table class="w-full border-collapse border border-black">
 		<thead>
 			<tr>
-				<th>Zona</th>
-				<th>PIC</th>
-				<th>Posisi</th>
-				<th>Petugas</th>
-				<th>Wilayah</th>
-				<th>Lingkungan</th>
+				<th class="border border-black">Zona</th>
+				<th class="border border-black">PIC</th>
+				<th class="border border-black">Posisi</th>
+				<th class="border border-black">Petugas</th>
+				<th class="border border-black">Wilayah</th>
+				<th class="border border-black">Lingkungan</th>
 			</tr>
 		</thead>
-		<tbody style="border: 1px solid black;">
-			<tr style="background-color: #FFFF00;">
-				<td colspan="6" style="border: 1px solid black;"> Petugas Misa </td>
+		<tbody class="border border-black">
+			<tr class="bg-yellow-300">
+				<td colspan="6" class="border border-black"> Petugas Misa </td>
 			</tr>
 			{#each zones as item}
 				{#each item.ushers as usher, j}
 					<tr>
 						{#if j === 0}
-							<td
-								rowspan={item.rowSpan}
-								style="border-bottom: 1px solid black;
-							border-right: 1px solid black;">{item.zone}</td
-							>
-							<td
-								rowspan={item.rowSpan}
-								style="border-bottom: 1px solid black;
-							border-right: 1px solid black;">{item.pic}</td
-							>
+							<td rowspan={item.rowSpan} class="border-b border-r border-black">{item.zone}</td>
+							<td rowspan={item.rowSpan} class="border-b border-r border-black">{item.pic}</td>
 						{/if}
-						<td style="border-bottom: 1px solid black;">{usher.position}</td>
-						<td style="border-bottom: 1px solid black;">{usher.name}</td>
-						<td style="border-bottom: 1px solid black;">{usher.wilayah}</td>
-						<td style="border-bottom: 1px solid black;">{usher.lingkungan}</td>
+						<td class="border-b border-black">{usher.position}</td>
+						<td class="border-b border-black">{usher.name}</td>
+						<td class="border-b border-black">{usher.wilayah}</td>
+						<td class="border-b border-black">{usher.lingkungan}</td>
 					</tr>
 				{/each}
 			{/each}
-			<tr style="background-color: #FFFF00;">
-				<td colspan="6" style="border: 1px solid black;">Setelah selesai perayaan Misa Ekaristi</td>
+			<tr class="bg-yellow-300">
+				<td colspan="6" class="border border-black">Setelah selesai perayaan Misa Ekaristi</td>
 			</tr>
 			{#each kolekte as item}
 				{#each item.ushers as usher, j}
 					<tr>
 						{#if j === 0}
-							<td style="border-right: 1px solid black;" rowspan={item.rowSpan} colspan="2"
-								>{item.zone}</td
-							>
+							<td class="border-r border-black" rowspan={item.rowSpan} colspan="2">{item.zone}</td>
 						{/if}
-						<td style="border-bottom: 1px solid black;">{usher.position}</td>
-						<td style="border-bottom: 1px solid black;">{usher.name}</td>
-						<td style="border-bottom: 1px solid black;">{usher.wilayah}</td>
-						<td style="border-bottom: 1px solid black;">{usher.lingkungan}</td>
+						<td class="border-b border-black">{usher.position}</td>
+						<td class="border-b border-black">{usher.name}</td>
+						<td class="border-b border-black">{usher.wilayah}</td>
+						<td class="border-b border-black">{usher.lingkungan}</td>
 					</tr>
 				{/each}
 			{/each}
-			<tr style="background-color: #FFFF00;">
-				<td colspan="6" style="border: 1px solid black;">Bersama tim PPG menghitung uang amplop</td>
-			</tr>
+			<!-- <tr class="bg-yellow-300">
+				<td colspan="6" class="border border-black">Bersama tim PPG menghitung uang amplop</td>
+			</tr> -->
 			{#each ppg as item}
 				{#each item.ushers as usher, j}
 					<tr>
 						{#if j === 0}
-							<td style="border-right: 1px solid black;" rowspan={item.rowSpan} colspan="2"
-								>{item.zone}</td
-							>
+							<td class="border-r border-black" rowspan={item.rowSpan} colspan="2">{item.zone}</td>
 						{/if}
-						<td style="border-bottom: 1px solid black;">{usher.position}</td>
-						<td style="border-bottom: 1px solid black;">{usher.name}</td>
-						<td style="border-bottom: 1px solid black;">{usher.wilayah}</td>
-						<td style="border-bottom: 1px solid black;">{usher.lingkungan}</td>
+						<td class="border-b border-black">{usher.position}</td>
+						<td class="border-b border-black">{usher.name}</td>
+						<td class="border-b border-black">{usher.wilayah}</td>
+						<td class="border-b border-black">{usher.lingkungan}</td>
 					</tr>
 				{/each}
 			{/each}
@@ -178,25 +166,41 @@
 	/* Base styles for both print and non-print */
 	.print-content {
 		padding: 5rem;
-		/* font-size: 0.875rem; 14px */
-		border: 1px solid black;
-	}
-	table {
-		border-collapse: collapse;
-		width: 100%;
-		border: 1px solid black;
-		/* font-size: 0.75rem; 12px */
 	}
 
-	tr {
-		height: 1.2rem;
+	.print-content tr {
+		margin-top: 0px !important;
 	}
+	.print-content td,
+	.print-content th {
+		padding-bottom: 1rem !important;
+		padding-left: 0.5rem !important;
+		border-bottom: 1px solid black !important;
+	}
+	/* Print-specific styles */
+	/* @media print {
+		.no-print {
+			display: none;
+		}
 
-	th,
-	td {
-		vertical-align: middle; /* Center content vertically */
-		white-space: nowrap; /* Prevent text wrapping */
-		overflow: hidden; /* Handle overflow */
-		text-overflow: ellipsis; /* Show ellipsis for overflowing text */
-	}
+		.print-content th,
+		.print-content td {
+			padding: 0.5rem !important;
+			line-height: 1rem !important;
+			border: 1px solid black !important;
+		}
+
+		table {
+			page-break-inside: avoid;
+		}
+
+		tr {
+			page-break-inside: avoid;
+		}
+
+		th,
+		td {
+			padding: 0.25rem;
+		}
+	} */
 </style>

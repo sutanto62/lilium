@@ -56,3 +56,24 @@ db-delete:
 	@rm -rf db 2>/dev/null || true
 	@rm -rf drizzle 2>/dev/null || true
 	@echo "✅ Database and migrations deleted!"
+
+# Archive database by ISO date
+db-archive:
+	@echo "📦 Archiving database..."
+	@mkdir -p db/archive
+	@DATE=$$(date +"%Y-%m-%d"); \
+	tar -czf db/archive/$$DATE-lilium.tar.gz db/lilium.db*; \
+	echo "✅ Database archived to db/archive/$$DATE-lilium.tar.gz"
+
+# Restore database from archive
+db-restore:
+	@echo "⚠️ This will overwrite your current database. Are you sure? (y/n)"
+	@read -r confirm; \
+	if [ "$$confirm" != "y" ]; then \
+		echo "❌ Database restore cancelled."; \
+		exit 1; \
+	fi
+	@echo "📦 Restoring database..."
+	@DATE=$$(date +"%Y-%m-%d"); \
+	tar -xzf db/archive/$$DATE-lilium.tar.gz -C db; \
+	echo "✅ Database restored from db/archive/$$DATE-lilium.tar.gz"

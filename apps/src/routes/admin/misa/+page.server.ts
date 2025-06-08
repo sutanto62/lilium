@@ -1,6 +1,7 @@
 import { EventType } from '$core/entities/Event';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { getWeekNumber, getWeekNumbers } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
@@ -8,6 +9,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
+    await statsigService.use();
 
     const { session } = await handlePageLoad(event, 'misa');
     if (!session) {
@@ -19,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 
     const weekNumbers = getWeekNumbers(1);
 
-    const events = await eventService.getEventsByWeekNumber(undefined, weekNumbers);
+    const events = await eventService.fetchEventsByWeekRange(undefined, weekNumbers);
 
     return {
         wilayahs: [],
@@ -54,7 +56,7 @@ export const actions = {
             // Check if events for next month already exist
             const startDate = nextMonth.toISOString().split('T')[0];
             const endDate = lastDayOfNextMonth.toISOString().split('T')[0];
-            const existingEvents = await eventService.getEventsByDateRange(startDate, endDate);
+            const existingEvents = await eventService.fetchEventsByDateRange(startDate, endDate);
 
             if (existingEvents && existingEvents.length > 0) {
                 logger.warn('Events for next month already exist');
@@ -78,7 +80,7 @@ export const actions = {
                     // Get week number using dateUtils
                     const weekNumber = getWeekNumber(eventDate);
 
-                    await eventService.insertEvent({
+                    await eventService.createEvent({
                         church: churchId,
                         mass: mass.id,
                         date: eventDate,

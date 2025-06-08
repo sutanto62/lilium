@@ -8,6 +8,7 @@ A digital service information system built with SvelteKit, TypeScript, and SQLit
 - npm or pnpm
 - SQLite3
 - sqlpkg (for database extensions)
+- Statsig SDK key (VITE_STATSIG_CLIENT_KEY)
 
 ## Quick Start
 
@@ -177,3 +178,7 @@ Key points:
    - Usher scheduling system
    - Authentication via MS Entra and Gmail
    - Role-based access control
+   - Feature flags and analytics via Statsig
+     - Feature flag management for controlled rollouts
+     - User analytics and session replay
+     - A/B testing capabilities

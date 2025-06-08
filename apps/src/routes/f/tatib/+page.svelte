@@ -1,13 +1,14 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import Regional from '$components/Regional.svelte';
-	import type { Usher } from '$core/entities/Schedule';
-	import { featureFlags } from '$lib/utils/FeatureFlag';
+	import type { Event as MassEvent } from '$core/entities/Event';
+	import type { Lingkungan, Usher, Wilayah } from '$core/entities/Schedule';
+	import { statsigService } from '$src/lib/application/StatsigService';
 	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import type { ActionData, PageData } from './$types';
 	import UshersList from './UshersList.svelte';
-	import { initStatsig } from '$src/lib/utils/analytic';
 
 	// Props
 	const { data = $bindable(), form = $bindable() } = $props<{
@@ -20,6 +21,7 @@
 	let selectedEventId = $state<string | null>(null);
 	let selectedWilayahId = $state<string | null>(null);
 	let selectedLingkunganId = $state<string | null>(null);
+	let isSubmitted = $state<boolean>(false);
 	let ushers = $state<Usher[]>([
 		{
 			name: '',
@@ -44,14 +46,11 @@
 		}
 	});
 
-	// Display form only on weekdays
-	let currentDay = $state(0);
-	let showForm = $derived(
-		[1, 2, 3, 4].includes(currentDay) || !featureFlags.isEnabled('no_saturday_sunday')
-	);
+	// Use server-provided form visibility
+	let showForm = $derived(data.showForm);
 
 	// Disabled submit button
-	let isUshersValid = $state(false);
+	let isUshersValid = $state<boolean>(false);
 	let isSubmitDisable = $derived(
 		!isUshersValid ||
 			selectedEventId === null ||
@@ -70,72 +69,76 @@
 			.join(' ');
 	}
 
-	// function isValidName(name: string): { isValid: boolean; message?: string } {
-	// 	const sanitized = sanitizeName(name);
-	// 	const words = sanitized.split(' ');
-
-	// 	// Check if each word is at least 2 characters long
-	// 	if (words.some((word) => word.length < 3)) {
-	// 		return { isValid: false, message: 'Nama minimal 3 karakter' };
-	// 	}
-
-	// 	// Check if total length is reasonable (between 4 and 50 characters)
-	// 	if (sanitized.length < 3 || sanitized.length > 50) {
-	// 		return { isValid: false, message: 'Nama harus antara 3 dan 50 karakter' };
-	// 	}
-
-	// 	// Check for repeated characters (more than 3 same characters in sequence)
-	// 	if (/(.)\1{2,}/.test(sanitized)) {
-	// 		return {
-	// 			isValid: false,
-	// 			message: 'Nama tidak boleh mengandung karakter yang berulang lebih dari 2 kali'
-	// 		};
-	// 	}
-
-	// 	return { isValid: true };
-	// }
-
-	function validateUshers(usherList: Usher[]): boolean {
-		// const hasValidNames = usherList.every((usher) => {
-		// 	const validation = isValidName(usher.name);
-		// 	if (!validation.isValid) {
-		// 		usher.validationMessage = validation.message;
-		// 	} else {
-		// 		usher.validationMessage = undefined;
-		// 	}
-		// 	return validation.isValid;
-		// });
+	async function validateUshers(usherList: Usher[]): Promise<boolean> {
 		const hasEnoughKolekte = usherList.filter((usher) => usher.isKolekte).length >= 3;
 		const hasMinimumUshers = usherList.length >= 6;
+		const isValid = hasEnoughKolekte && hasMinimumUshers;
 
-		return hasEnoughKolekte && hasMinimumUshers;
+		if (isSubmitted) {
+			await statsigService.logEvent(
+				'tatib_submission',
+				isValid ? 'valid' : 'invalid',
+				page.data.session || undefined,
+				{
+					has_enough_kolekte: hasEnoughKolekte,
+					has_minimum_ushers: hasMinimumUshers
+				}
+			);
+		}
+
+		return isValid;
 	}
 
 	// Watch for changes in ushers list and validate
 	$effect(() => {
-		isUshersValid = validateUshers(ushers);
+		validateUshers(ushers).then((valid) => {
+			isUshersValid = valid;
+		});
 	});
 
-	onMount(() => {
-		currentDay = new Date().getDay();
-	});
-
-	// TODO: bump to navigator.clipboard
 	async function copyToClipboard(id: string) {
 		const element = document.getElementById(id);
 		if (element) {
 			try {
 				await navigator.clipboard.writeText(element.innerText);
+				await statsigService.logEvent('tatib_view', 'copy_to_clipboard');
 			} catch (error) {
 				console.error('Failed to copy text: ', error);
 			}
 		}
 	}
+
+	onMount(async () => {
+		await statsigService.logEvent('tatib_view', 'confirm', page.data.session || undefined);
+	});
+
+	async function handleSubmit(e: SubmitEvent) {
+		e.preventDefault();
+		isSubmitted = true;
+		const sanitizedUshers = ushers.map((usher) => ({
+			...usher,
+			name: sanitizeName(usher.name)
+		}));
+		ushers = sanitizedUshers;
+		(e.target as HTMLFormElement).submit();
+
+		await statsigService.logEvent('tatib_submission', 'submit', page.data.session || undefined, {
+			lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
+			wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
+			eventDate: selectedEventDate,
+			mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
+		});
+	}
 </script>
 
 <svelte:head>
-	<title>Konfirmasi Tatib</title>
-	<meta name="description" content="Proses konfirmasi petugas tata tertib untuk jadwal misa." />
+	<title
+		>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'} | Form Konfirmasi Tugas Tata Tertib</title
+	>
+	<meta
+		name="description"
+		content="Mempermudah konfirmasi petugas tata tertib untuk jadwal misa."
+	/>
 </svelte:head>
 
 <Breadcrumb class="mb-4	">
@@ -176,19 +179,7 @@
 
 {#if showForm}
 	<h1 class="mb-6 text-xl font-semibold">Konfirmasi Petugas Tata Tertib</h1>
-	<form
-		method="POST"
-		class="mb-6"
-		onsubmit={(e) => {
-			e.preventDefault();
-			const sanitizedUshers = ushers.map((usher) => ({
-				...usher,
-				name: sanitizeName(usher.name)
-			}));
-			ushers = sanitizedUshers;
-			(e.target as HTMLFormElement).submit();
-		}}
-	>
+	<form method="POST" class="mb-6" onsubmit={handleSubmit}>
 		<input type="hidden" name="churchId" value={data.church.id} />
 		<input type="hidden" name="eventDate" value={selectedEventDate} />
 		<input type="hidden" name="eventId" value={selectedEventId || ''} />

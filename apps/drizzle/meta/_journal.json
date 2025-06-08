@@ -1,69 +1,20 @@
 {
-  "version": "7",
-  "dialect": "sqlite",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "6",
-      "when": 1735469290126,
-      "tag": "0000_calm_nuke",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1738286873279,
-      "tag": "0001_gigantic_talon",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1738727302897,
-      "tag": "0002_special_nemesis",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1740015694524,
-      "tag": "0003_silky_iron_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1740530736120,
-      "tag": "0004_wise_shatterstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1740709674712,
-      "tag": "0005_past_callisto",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1741832775778,
-      "tag": "0006_black_shinobi_shaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1747313712797,
-      "tag": "0007_odd_reptil",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1747318372735,
-      "tag": "0008_pink_fat_cobra",
-      "breakpoints": true
-    }
-  ]
+	"version": "5",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "5",
+			"when": 1710831600000,
+			"tag": "0000_square_kate_bishop",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "5",
+			"when": 1710831600000,
+			"tag": "0001_add_lingkungan_id",
+			"breakpoints": true
+		}
+	]
 }

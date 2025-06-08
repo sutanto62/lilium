@@ -1,8 +1,10 @@
-import type { Actions, PageServerLoad } from './$types';
-import { signIn, providerMap } from '$src/auth';
+import { providerMap, signIn } from '$src/auth';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
+	await statsigService.use();
 	const session = await event.locals.auth();
 	const callbackUrl = event.url.searchParams.get('callbackUrl') || '/admin';
 

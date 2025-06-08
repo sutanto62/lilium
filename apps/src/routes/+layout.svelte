@@ -1,11 +1,7 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import Footer from '$components/Footer.svelte';
+	import NavigationAdmin from '$components/NavigationAdmin.svelte';
 	import '$src/app.css';
-	import { initStatsig } from '$src/lib/utils/analytic';
-
-	if (browser) {
-		initStatsig();
-	}
 </script>
 
 <svelte:head>
@@ -18,5 +14,10 @@
 	/>
 </svelte:head>
 
-<!-- IMPORTANT: Do not add <main> or <div> tags in page content as they are already provided by the layout -->
-<slot />
+<NavigationAdmin />
+<main class="mx-auto bg-gray-50 dark:bg-gray-900">
+	<div class="container mx-auto px-4 pt-20 dark:bg-gray-900 lg:px-0">
+		<slot />
+	</div>
+</main>
+<Footer />

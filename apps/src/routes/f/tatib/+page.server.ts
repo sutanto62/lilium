@@ -7,7 +7,7 @@ import { repo } from '$lib/server/db';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
-import { initStatsig } from '$src/lib/utils/analytic';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -27,13 +27,16 @@ const queueManager = QueueManager.getInstance();
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
 export const load: PageServerLoad = async (event) => {
-	const statsigClient = await initStatsig();
-	statsigClient?.logEvent("tatib_page_view", "tatib_page_view", {
-		church_id: event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID,
-	})
-	await statsigClient?.flush();
+	await statsigService.logEvent('tatib_view_server', 'load');
 
+	// Get church ID from cookie
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
+
+	// Show form if not no_saturday_sunday
+	const isNoSaturdaySunday = await statsigService.checkGate('no_saturday_sunday');
+	const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+	const isWeekday = [1, 2, 3, 4, 5].includes(today);
+	const showForm = !isNoSaturdaySunday || isWeekday;
 
 	let church: Church | null = null;
 	church = await repo.findChurchById(churchId);
@@ -49,7 +52,7 @@ export const load: PageServerLoad = async (event) => {
 		const [wilayahs, lingkungans, events] = await Promise.all([
 			churchService.getWilayahs(),
 			churchService.getLingkungans(),
-			eventService.getEventsByWeekNumber(weekNumber),
+			eventService.fetchEventsByWeekRange(weekNumber),
 		]);
 
 		// Return unique events date sort ascending
@@ -65,7 +68,8 @@ export const load: PageServerLoad = async (event) => {
 			eventsDate: eventsDate,
 			success: false,
 			assignedUshers: [],
-			formData: null
+			formData: null,
+			showForm
 		};
 		return returnData;
 	} catch (err) {
@@ -131,7 +135,7 @@ export const actions = {
 
 		try {
 			// Get the mass ID from the event
-			const confirmedEvent = await eventService.getEventById(eventId)
+			const confirmedEvent = await eventService.fetchEventById(eventId)
 
 			// TODO: change to service
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([
@@ -171,7 +175,7 @@ export const actions = {
 			}
 
 			// Insert ushers into event
-			const createdUshers = await eventService.insertEventUshers(
+			const createdUshers = await eventService.assignEventUshers(
 				confirmedEvent.id,
 				ushersArray,
 				wilayahId,

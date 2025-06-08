@@ -1,7 +1,7 @@
-import { authHandle } from './auth';
-import { sequence } from '@sveltejs/kit/hooks';
-import { logger } from './lib/utils/logger';
+import { logger } from '$src/lib/utils/logger';
 import type { Handle } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
+import { authHandle } from './auth';
 
 /**
  * This file contains SvelteKit hooks that run on the server side.

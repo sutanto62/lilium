@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { env } from '$env/dynamic/public';
 	import { Card } from 'flowbite-svelte';
 	import { MailBoxOutline } from 'flowbite-svelte-icons';
 	import type { PageData } from './$types';
@@ -10,17 +11,18 @@
 <main class="mx-auto min-h-screen bg-gray-50 dark:bg-gray-900">
 	<div class="container mx-auto flex min-h-screen items-center justify-center px-4 py-8">
 		<div class="w-full max-w-md">
-			<Card class="mx-auto py-4 shadow-lg">
-				<div class="mb-8 flex items-center justify-center gap-3">
-					<a href="/" class="transition-transform hover:scale-105">
+			<Card class="mx-auto px-2 py-4 shadow-lg">
+				<div class="mb-8 flex items-center justify-center gap-2">
+					<a href="/">
 						<img
 							src="/images/lily-amongs-thorns.png"
-							class="h-12 w-12 sm:h-16 sm:w-16"
+							class="h-[100px] w-[100px]"
+							style="height: 100px; width: 100px;"
 							alt="LIS logo"
 						/>
 					</a>
 					<h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-						{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'}
+						{env.PUBLIC_SITE_TITLE || 'Lilium Inter Spinas'}
 					</h1>
 				</div>
 				<div class="flex w-full flex-col items-center justify-center gap-4">

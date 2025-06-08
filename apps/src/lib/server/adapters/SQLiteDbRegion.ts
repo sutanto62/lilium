@@ -25,7 +25,11 @@ export async function findLingkungans(
 export async function findLingkunganById(
 	db: ReturnType<typeof drizzle>,
 	id: string
-): Promise<Lingkungan | null> {
-	const result = await db.select().from(lingkungan).where(eq(lingkungan.id, id)).limit(1);
-	return result[0] as Lingkungan | null;
+): Promise<Lingkungan> {
+	const result = await db
+		.select()
+		.from(lingkungan)
+		.where(eq(lingkungan.id, id))
+		.limit(1);
+	return result[0] as Lingkungan;
 }

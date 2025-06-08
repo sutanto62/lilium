@@ -14,6 +14,21 @@ export interface Event {
 	description?: string | null;
 }
 
+export interface ChurchEventResponse {
+	id: string;
+	church: string;
+	churchCode?: string | null;
+	mass: string;
+	date: string;
+	weekNumber?: number | null;
+	createdAt?: number | null;
+	isComplete?: number | null; // 100% assigned ushers
+	active?: number | null;
+	type?: EventType | null;
+	code?: string | null;
+	description?: string | null;
+}
+
 export enum EventType {
 	MASS = 'mass',
 	FEAST = 'feast'
@@ -51,7 +66,7 @@ export interface EventListDetailResponse {
 }
 
 // formatted response: returned name instead of UUID
-export interface UsherByEvent {
+export interface UsherByEventResponse {
 	id: string;
 	event: string;
 	name: string;

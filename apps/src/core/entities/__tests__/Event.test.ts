@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Event, EventPicRequest, EventUsher, JadwalDetailResponse, UsherByEvent } from '../Event';
+import type { Event, EventPicRequest, EventUsher, JadwalDetailResponse, UsherByEventResponse } from '../Event';
 import { EventType } from '../Event';
 
 describe('Event Entity', () => {
@@ -93,7 +93,7 @@ describe('Event Entity', () => {
 
     describe('UsherByEvent Interface', () => {
         it('should create a valid UsherByEvent object', () => {
-            const usherByEvent: UsherByEvent = {
+            const usherByEvent: UsherByEventResponse = {
                 id: '1',
                 event: 'event-1',
                 name: 'John Doe',

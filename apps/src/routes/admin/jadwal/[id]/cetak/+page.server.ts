@@ -1,10 +1,13 @@
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
+    await statsigService.use();
+
     const { session } = await handlePageLoad(event, 'jadwal_cetak');
 
     if (!session) {
@@ -18,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
     const church = await churchService.getChurch();
 
     const eventService = new EventService(churchId);
-    const [jadwalDetail] = await Promise.all([eventService.getCetakJadwal(eventId)]);
+    const [jadwalDetail] = await Promise.all([eventService.fetchEventPrintSchedule(eventId)]);
 
     return {
         church,

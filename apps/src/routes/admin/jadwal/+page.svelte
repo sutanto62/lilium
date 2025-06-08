@@ -76,19 +76,19 @@
 	<ButtonGroup class="*:ring-primary-700!">
 		<Button
 			onclick={() => setFilter('confirmed')}
-			color={currentFilter === 'confirmed' ? 'primary' : 'alternative'}
+			color={currentFilter === 'confirmed' ? 'primary' : 'light'}
 		>
 			Sudah Konfirmasi
 		</Button>
 		<Button
 			onclick={() => setFilter('incomplete')}
-			color={currentFilter === 'incomplete' ? 'primary' : 'alternative'}
+			color={currentFilter === 'incomplete' ? 'primary' : 'light'}
 		>
 			Belum Lengkap
 		</Button>
 		<Button
 			onclick={() => setFilter('unconfirmed')}
-			color={currentFilter === 'unconfirmed' ? 'primary' : 'alternative'}
+			color={currentFilter === 'unconfirmed' ? 'primary' : 'light'}
 		>
 			Belum Konfirmasi
 		</Button>

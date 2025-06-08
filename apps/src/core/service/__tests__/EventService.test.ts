@@ -48,7 +48,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.getEventsByWeekNumber).mockResolvedValue(mockEvents);
 
-            const result = await eventService.getEventsByWeekNumber(12);
+            const result = await eventService.fetchEventsByWeekRange(12);
 
             expect(repo.getEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
             expect(result).toEqual(mockEvents);
@@ -67,7 +67,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.getEventsByWeekNumber).mockResolvedValue(mockEvents);
 
-            const result = await eventService.getEventsByWeekNumber(undefined, [12, 13]);
+            const result = await eventService.fetchEventsByWeekRange(undefined, [12, 13]);
 
             expect(repo.getEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
             expect(result).toEqual(mockEvents);
@@ -87,7 +87,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.getEventsByDateRange).mockResolvedValue(mockEvents);
 
-            const result = await eventService.getEventsByDateRange('2024-03-01', '2024-03-31');
+            const result = await eventService.fetchEventsByDateRange('2024-03-01', '2024-03-31');
 
             expect(repo.getEventsByDateRange).toHaveBeenCalledWith(mockChurchId, '2024-03-01', '2024-03-31');
             expect(result).toEqual(mockEvents);
@@ -105,7 +105,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.getEventById).mockResolvedValue(mockEvent);
 
-            const result = await eventService.getEventById('1');
+            const result = await eventService.fetchEventById('1');
 
             expect(repo.getEventById).toHaveBeenCalledWith('1');
             expect(result).toEqual(mockEvent);
@@ -132,7 +132,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.updateEventById).mockResolvedValue(mockEvent);
 
-            const result = await eventService.updateEventById('1', {
+            const result = await eventService.updateEvent('1', {
                 date: '2024-03-20',
                 code: 'M1',
                 description: 'Updated Mass'
@@ -143,14 +143,14 @@ describe('EventService', () => {
         });
 
         it('should throw error when code is missing', async () => {
-            await expect(eventService.updateEventById('1', {
+            await expect(eventService.updateEvent('1', {
                 date: '2024-03-20',
                 description: 'Updated Mass'
             })).rejects.toThrow('Kode tidak ditemukan');
         });
 
         it('should throw error when description is missing', async () => {
-            await expect(eventService.updateEventById('1', {
+            await expect(eventService.updateEvent('1', {
                 date: '2024-03-20',
                 code: 'M1'
             })).rejects.toThrow('Deskripsi tidak ditemukan');
@@ -176,7 +176,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.listUshers).mockResolvedValue(mockUshers);
 
-            const result = await eventService.getEventUshers('event-1');
+            const result = await eventService.fetchEventUshers('event-1');
 
             expect(repo.listUshers).toHaveBeenCalledWith('event-1');
             expect(result).toEqual(mockUshers);
@@ -196,7 +196,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.insertEvent).mockResolvedValue(mockEvent);
 
-            const result = await eventService.insertEvent({
+            const result = await eventService.createEvent({
                 church: 'church-1',
                 mass: 'mass-1',
                 date: '2024-03-20',
@@ -211,7 +211,7 @@ describe('EventService', () => {
         it('should throw error when insert fails', async () => {
             vi.mocked(repo.insertEvent).mockResolvedValue(null as unknown as Event);
 
-            await expect(eventService.insertEvent({
+            await expect(eventService.createEvent({
                 church: 'church-1',
                 mass: 'mass-1',
                 date: '2024-03-20',
@@ -239,7 +239,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.insertEventUshers).mockResolvedValue(true);
 
-            const result = await eventService.insertEventUshers(
+            const result = await eventService.assignEventUshers(
                 'event-1',
                 mockUshers,
                 'wilayah-1',
@@ -272,7 +272,7 @@ describe('EventService', () => {
 
             vi.mocked(repo.insertEventUshers).mockResolvedValue(false);
 
-            await expect(eventService.insertEventUshers(
+            await expect(eventService.assignEventUshers(
                 'event-1',
                 mockUshers,
                 'wilayah-1',
@@ -296,7 +296,7 @@ describe('EventService', () => {
         it('should remove event usher successfully', async () => {
             vi.mocked(repo.removeEventUsher).mockResolvedValue(true);
 
-            const result = await eventService.removeEventUsher('event-1', 'lingkungan-1');
+            const result = await eventService.removeUsherAssignment('event-1', 'lingkungan-1');
 
             expect(repo.removeEventUsher).toHaveBeenCalledWith('event-1', 'lingkungan-1');
             expect(result).toBe(true);

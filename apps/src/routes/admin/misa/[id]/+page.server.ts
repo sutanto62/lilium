@@ -1,5 +1,6 @@
 import { EventType } from '$core/entities/Event';
 import { EventService } from '$core/service/EventService';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { logger } from '$src/lib/utils/logger';
 import { fail, redirect } from '@sveltejs/kit';
@@ -7,6 +8,8 @@ import type { Actions, PageServerLoad } from './$types';
 
 
 export const load: PageServerLoad = async (event) => {
+    await statsigService.use();
+
     const { session } = await handlePageLoad(event, 'misa');
     if (!session) {
         throw redirect(302, '/signin');
@@ -17,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
     const eventService = new EventService(churchId);
 
     try {
-        const event = await eventService.getEventById(eventId);
+        const event = await eventService.fetchEventById(eventId);
         if (!event) {
             throw redirect(302, '/admin/misa');
         }
@@ -51,7 +54,7 @@ export const actions = {
         const eventActive = parseInt(data.get('active') as string);
 
         try {
-            await eventService.updateEventById(eventId, {
+            await eventService.updateEvent(eventId, {
                 date: eventDate,
                 code: eventCode,
                 description: eventDescription,

@@ -122,6 +122,10 @@ export class ChurchService {
 		return this.lingkungans;
 	}
 
+	async fetchLingkunganById(lingkunganId: string): Promise<Lingkungan> {
+		return await repo.getLingkunganById(lingkunganId);
+	}
+
 	async getPositionsByMass(massId: string): Promise<ChurchPosition[]> {
 		return await repo.getPositionsByMass(this.churchId, massId);
 	}

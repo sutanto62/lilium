@@ -9,8 +9,11 @@ import { AuthService } from '$core/service/AuthService';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { hasRole } from '$src/auth';
+import { statsigService } from '$src/lib/application/StatsigService';
 
 export const load: PageServerLoad = async (event) => {
+	await statsigService.use();
+
 	const { session } = await handlePageLoad(event, 'jadwal_detail');
 
 	if (!session) {
@@ -21,7 +24,7 @@ export const load: PageServerLoad = async (event) => {
 	const eventId = event.params.id;
 
 	const eventService = new EventService(churchId);
-	const [jadwalDetail] = await Promise.all([eventService.getJadwalDetail(eventId)]);
+	const [jadwalDetail] = await Promise.all([eventService.fetchEventSchedule(eventId)]);
 
 	// Get zones
 	const churchService = new ChurchService(churchId);
@@ -96,7 +99,7 @@ export const actions: Actions = {
 		}
 
 		const eventService = new EventService(churchId);
-		await eventService.insertEventPic(submittedPic);
+		await eventService.assignEventPic(submittedPic);
 
 		return { success: true };
 	},
@@ -122,7 +125,7 @@ export const actions: Actions = {
 		const eventService = new EventService(churchId);
 
 		if (hasRole(session, 'admin')) {
-			await eventService.removeEventUsher(eventId, lingkungan);
+			await eventService.removeUsherAssignment(eventId, lingkungan);
 			logger.info(`Event usher deleted: ${lingkungan}`);
 		}
 

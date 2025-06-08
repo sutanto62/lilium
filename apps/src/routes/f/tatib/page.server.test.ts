@@ -6,10 +6,11 @@ import { mass } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
 import { logger } from '$lib/utils/logger';
 import { validateUsherNames } from '$lib/utils/usherValidation';
+import { statsigService } from '$src/lib/application/StatsigService';
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, test, vi } from "vitest";
-import type { RouteParams } from './$types';
-import { actions } from './+page.server';
+import type { PageData, RouteParams } from './$types';
+import { actions, load } from './+page.server';
 
 // Mock dependencies
 vi.mock('$lib/server/db', () => ({
@@ -35,6 +36,15 @@ vi.mock('$lib/utils/FeatureFlag', () => ({
 vi.mock('$core/service/QueueManager', () => ({
 	QueueManager: {
 		getInstance: vi.fn()
+	}
+}));
+
+vi.mock('$src/lib/application/StatsigService', () => ({
+	statsigService: {
+		use: vi.fn(),
+		checkGate: vi.fn(),
+		logEvent: vi.fn(),
+		flush: vi.fn()
 	}
 }));
 
@@ -273,5 +283,46 @@ describe('validateUsherNames', () => {
 		const result = validateUsherNames(ushers);
 		logger.debug('Leading/trailing spaces test result:', result);
 		expect(result).toEqual({ isValid: true });
+	});
+});
+
+describe('load function', () => {
+	test('should return showForm true when Statsig gate is enabled and it is weekday', async () => {
+		vi.mocked(statsigService.checkGate).mockResolvedValue(true);
+
+		// Mock a weekday
+		const mockDate = new Date('2024-04-17'); // Wednesday
+		vi.setSystemTime(mockDate);
+
+		const result = await load({
+			cookies: { get: () => 'church1' }
+		} as any) as PageData;
+
+		expect(result.showForm).toBe(true);
+		expect(statsigService.checkGate).toHaveBeenCalledWith('show_tatib_form');
+	});
+
+	test('should return showForm false when Statsig gate is disabled', async () => {
+		vi.mocked(statsigService.checkGate).mockResolvedValue(false);
+
+		const result = await load({
+			cookies: { get: () => 'church1' }
+		} as any) as PageData;
+
+		expect(result.showForm).toBe(false);
+	});
+
+	test('should return showForm false on weekends even when Statsig gate is enabled', async () => {
+		vi.mocked(statsigService.checkGate).mockResolvedValue(true);
+
+		// Mock a weekend
+		const mockDate = new Date('2024-04-20'); // Saturday
+		vi.setSystemTime(mockDate);
+
+		const result = await load({
+			cookies: { get: () => 'church1' }
+		} as any) as PageData;
+
+		expect(result.showForm).toBe(false);
 	});
 });

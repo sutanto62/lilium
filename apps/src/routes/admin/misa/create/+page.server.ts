@@ -2,6 +2,7 @@ import type { Event as ChurchEvent, EventType } from "$core/entities/Event";
 import { ChurchService } from "$core/service/ChurchService";
 import { EventService } from "$core/service/EventService";
 import { hasRole } from "$src/auth";
+import { statsigService } from "$src/lib/application/StatsigService";
 import { handlePageLoad } from "$src/lib/server/pageHandler";
 import { logger } from "$src/lib/utils/logger";
 import type { RequestEvent } from "@sveltejs/kit";
@@ -9,6 +10,8 @@ import { fail } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async (event) => {
+    await statsigService.use();
+
     const { session } = await handlePageLoad(event, 'misa-create');
 
     if (!session) {
@@ -71,7 +74,7 @@ export const actions: Actions = {
         const eventService = new EventService(session?.user?.cid as string);
 
         try {
-            const insertedEvent = await eventService.insertEvent(newEvent);
+            const insertedEvent = await eventService.createEvent(newEvent);
             return {
                 success: true,
                 message: 'Misa berhasil dibuat'

@@ -1,3 +1,0 @@
-ALTER TABLE `event` ADD COLUMN IF NOT EXISTS `type` text DEFAULT 'mass' NOT NULL;
-ALTER TABLE `event` ADD COLUMN IF NOT EXISTS `code` text;
-ALTER TABLE `event` ADD COLUMN IF NOT EXISTS `description` text; 

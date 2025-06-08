@@ -3,11 +3,12 @@ import {
 	type CetakJadwalResponse,
 	type CetakJadwalSection,
 	type Event as ChurchEvent,
+	type ChurchEventResponse,
 	type EventPicRequest,
 	type EventUsher,
 	type JadwalDetailResponse,
 	type JadwalDetailZone,
-	type UsherByEvent
+	type UsherByEventResponse
 } from '$core/entities/Event';
 import {
 	church,
@@ -21,8 +22,9 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { logger } from '$src/lib/utils/logger';
 import { DatabaseError } from '$src/types/errors';
-import { and, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -448,10 +450,52 @@ export async function findEventUshers(
 	);
 }
 
+export async function findUshersByLingkungan(
+	db: ReturnType<typeof drizzle>,
+	eventId: string,
+	lingkunganId: string
+): Promise<UsherByEventResponse[]> {
+	const result = await db
+		.select({
+			id: event_usher.id,
+			event: event_usher.event,
+			name: event_usher.name,
+			zone: church_zone.name,
+			wilayah: wilayah.name,
+			lingkungan: lingkungan.name,
+			position: church_position.name,
+			isPpg: event_usher.isPpg,
+			isKolekte: event_usher.isKolekte,
+			createdAt: event_usher.createdAt
+		})
+		.from(event_usher)
+		.leftJoin(wilayah, eq(wilayah.id, event_usher.wilayah))
+		.leftJoin(lingkungan, eq(lingkungan.id, event_usher.lingkungan))
+		.leftJoin(church_position, eq(church_position.id, event_usher.position))
+		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
+		.where(and(eq(event_usher.event, eventId), eq(event_usher.lingkungan, lingkunganId)));
+
+	return result.map(
+		(row) =>
+			({
+				id: row.id,
+				event: row.event,
+				name: row.name,
+				zone: row.zone,
+				wilayah: row.wilayah,
+				lingkungan: row.lingkungan,
+				position: row.position,
+				isPpg: row.isPpg === 1 ? true : false,
+				isKolekte: row.isKolekte === 1 ? true : false,
+				createdAt: row.createdAt ?? 0
+			}) as UsherByEventResponse
+	);
+}
+
 export async function findUshersByEvent(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
-): Promise<UsherByEvent[]> {
+): Promise<UsherByEventResponse[]> {
 	const query = await db
 		.select({
 			id: event_usher.id,
@@ -834,24 +878,6 @@ export async function findEventUshersPosition(
 	eventId: string,
 	isPpg: boolean): Promise<string[]> {
 
-	// SELECT
-	// 	m.code,
-	// 	m.name,
-	// 	l.name,
-	// 	eu.name,
-	// 	eu.position_id,
-	// 	cp.name
-	// FROM "event_usher" eu
-	// LEFT JOIN "event" e ON e.id = eu.event_id
-	// LEFT JOIN "mass" m ON m.id = e.mass_id
-	// LEFT JOIN "lingkungan" l ON l.id = eu.lingkungan
-	// LEFT JOIN "church_position" cp ON cp.id = eu.position_id
-	// WHERE 
-	// 	eu.event_id = 'e0cfeccf-4819-408f-b4bb-a181816fcc5e'
-	// 	AND eu.is_kolekte = 1
-	// ORDER BY cp."sequence"
-	// ;
-
 	const query = await db.select({
 		position: event_usher.position
 	})
@@ -867,6 +893,73 @@ export async function findEventUshersPosition(
 		.orderBy(church_position.sequence);
 
 	return query.map(row => row.position).filter((pos): pos is string => pos !== null);
+}
+
+export async function findEventsByLingkungan(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	lingkunganId: string,
+	all?: boolean
+): Promise<ChurchEventResponse[]> {
+
+	const query = db
+		.select({
+			id: event.id,
+			church: church.name,
+			mass: mass.name,
+			date: event.date,
+			weekNumber: event.week_number,
+			createdAt: event.created_at,
+			isComplete: event.isComplete,
+			type: event.type,
+			code: event.code,
+			description: event.description,
+			active: event.active
+		})
+		.from(event)
+		.innerJoin(event_usher, eq(event_usher.event, event.id))
+		.innerJoin(church, eq(church.id, event.church_id))
+		.innerJoin(mass, eq(mass.id, event.mass_id))
+		.where(
+			and(
+				eq(event.church_id, churchId),
+				eq(event_usher.lingkungan, lingkunganId),
+				all ? undefined : eq(event.active, 1) // if all is true, then we don't need to filter by active
+			)
+		)
+		.groupBy(
+			event.id,
+			event.church_id,
+			event.mass_id,
+			event.date,
+			event.week_number,
+			event.created_at,
+			event.isComplete,
+			event.type,
+			event.code,
+			event.description,
+			event.active
+		)
+		.orderBy(desc(event.date));
+
+	const results = await query;
+
+	// Transform to ChurchEvent type
+	logger.debug(`results: ${JSON.stringify(results)}`);
+	return results.map(row => ({
+		id: row.id,
+		church: row.church,
+		mass: row.mass,
+		date: row.date,
+		weekNumber: row.weekNumber ?? undefined,
+		createdAt: row.createdAt ?? undefined,
+		isComplete: row.isComplete ?? 0,
+		type: row.type as EventType,
+		code: row.code ?? '',
+		description: row.description ?? '',
+		active: row.active ?? 1
+	}));
+
 }
 
 export async function findEventsByDateRange(

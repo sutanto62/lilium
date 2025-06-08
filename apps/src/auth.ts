@@ -1,10 +1,10 @@
+import { statsigService } from '$src/lib/application/StatsigService';
+import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
 import { SvelteKitAuth } from '@auth/sveltekit';
 import type { Provider } from '@auth/sveltekit/providers';
 import Google from '@auth/sveltekit/providers/google';
 import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
-import { repo } from './lib/server/db';
-import { identifyStatsigUser } from './lib/utils/analytic';
-import { logger } from './lib/utils/logger';
 
 const providers: Provider[] = [
 	MicrosoftEntraID({
@@ -49,7 +49,6 @@ export type UserRole = 'admin' | 'user' | 'visitor';
  * 3. Session is created with user details and role
  * 4. Unregistered users are flagged and limited to visitor role
  */
-
 export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 	trustHost: true,
 	providers: providers,
@@ -69,6 +68,7 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 						...token,
 						cid: '',
 						role: 'visitor',
+						lingkunganId: '',
 						unregistered: true
 					};
 				}
@@ -76,12 +76,14 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				token.id = user.id;
 				token.cid = import.meta.env.VITE_CHURCH_ID;
 				token.role = dbUser?.role ?? 'user';
+				token.lingkunganId = dbUser?.lingkunganId ?? '';
 
 				// Identify user in Statsig
 				if (user.id) {
-					await identifyStatsigUser(user.id, {
+					await statsigService.updateUser(user.id, {
 						email: user.email,
 						role: dbUser?.role,
+						lingkunganId: dbUser?.lingkunganId,
 						cid: import.meta.env.VITE_CHURCH_ID
 					});
 				}
@@ -108,12 +110,21 @@ export const { handle: authHandle, signIn, signOut } = SvelteKitAuth({
 				user: {
 					...session.user,
 					cid: token.cid as string,
-					role: token.role as string
+					role: token.role as string,
+					lingkunganId: token.lingkunganId as string
 				}
 			};
 		}
 	}
 });
+
+/**
+ * Checks if a user has a specific role or higher in the role hierarchy.
+ * 
+ * @param session - The user's session object that contains role information
+ * @param requiredRole - The minimum role required (admin, user, or visitor)
+ * @returns boolean - True if the user has the required role or higher, false otherwise
+ */
 
 export function hasRole(session: { user?: { role?: string } } | null, requiredRole: UserRole): boolean {
 	if (!session?.user?.role) return false;
@@ -128,6 +139,17 @@ export function hasRole(session: { user?: { role?: string } } | null, requiredRo
 	return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
 }
 
+/**
+ * Enforces role-based access control by checking if a session has the required role
+ *
+ * This function builds on hasRole() to provide a way to throw an error if the user
+ * doesn't have the necessary permissions, making it useful for guarding protected routes
+ * or operations.
+ *
+ * @param session - The user's session object, which contains role information
+ * @param requiredRole - The minimum role required to access the feature
+ * @throws Error if the user lacks the required role
+ */
 export function requireRole(session: { user?: { role?: string } } | null, requiredRole: UserRole): void {
 	if (!hasRole(session, requiredRole)) {
 		logger.error(`Insufficient permissions. Required role: ${requiredRole}`);

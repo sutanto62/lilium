@@ -1,3 +1,4 @@
+// TODO: Remove
 type FeatureFlag = boolean | string | number;
 
 /**

@@ -2,6 +2,7 @@ import type { Event } from '$core/entities/Event';
 import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { formatDate, getWeekNumber } from '$src/lib/utils/dateUtils';
@@ -24,6 +25,7 @@ interface EventWithUsherCounts extends Event {
  * @type {import('./$types').PageServerLoad}
  */
 export const load: PageServerLoad = async (event) => {
+	await statsigService.use();
 
 	// Check if the user is authenticated
 	const { session } = await handlePageLoad(event, 'jadwal');
@@ -66,7 +68,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 
 				// Fetch ushers for the event
-				const ushers = await eventService.getEventUshers(event.id);
+				const ushers = await eventService.fetchEventUshers(event.id);
 
 				// Calculate usher statistics
 				const requiredPositions = await churchService.getPositionsByMass(massDetails.mass);

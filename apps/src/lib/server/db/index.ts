@@ -1,4 +1,4 @@
-import { SQLiteAdapter } from '$adapters/SQLiteAdapter';
+import { SQLiteAdapter } from '$src/lib/server/adapters/SQLiteAdapter';
 import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
 import { logger } from '$src/lib/utils/logger';
 import { createClient } from '@libsql/client';

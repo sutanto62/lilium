@@ -12,6 +12,8 @@ export const user = sqliteTable('user', {
 		.references(() => church.id, { onDelete: 'cascade' })
 		.notNull()
 		.default('1'),
+	lingkunganId: text('lingkungan_id')
+		.references(() => lingkungan.id, { onDelete: 'cascade' }),
 	active: integer('active').notNull().default(1),
 	createdAt: integer('created_at')
 });

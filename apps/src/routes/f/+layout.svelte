@@ -1,20 +1,18 @@
 <script lang="ts">
-	import Footer from '$components/Footer.svelte';
-	import NavigationAdmin from '$components/NavigationAdmin.svelte';
+	import '$src/app.css';
 </script>
 
 <svelte:head>
-	<title>LIS Sola PETA | Solusi layanan PETA</title>
+	<title
+		>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'} | Form Konfirmasi Tugas Tata Tertib</title
+	>
 	<meta
 		name="description"
 		content="Membantu konfirmasi tugas Pelayanan dan Tata Tertib misa dan titik tugas."
 	/>
 </svelte:head>
 
-<NavigationAdmin />
-<main class="mx-auto bg-gray-50 dark:bg-gray-900">
-	<div class="container mx-auto px-4 py-8 pt-24 dark:bg-gray-900 md:pt-32 lg:px-0">
-		<slot />
-	</div>
-</main>
-<Footer />
+<!-- do not add main tag and navigation/footer components here -->
+<div class="container mx-auto px-4 pb-8 pt-8 dark:bg-gray-900 sm:pt-8 lg:px-0">
+	<slot />
+</div>

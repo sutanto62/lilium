@@ -1,9 +1,13 @@
 import type { Church } from '$core/entities/Schedule';
+import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
 import { error } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async (event) => {
+	// Use Statsig
+	await statsigService.use();
+
 	// Define church at cookie for app to use
 	const { cookies } = event;
 	const session = await event.locals.auth();
@@ -25,6 +29,7 @@ export const load: LayoutServerLoad = async (event) => {
 
 	return {
 		church: churchConfigured,
-		session: session
+		session: session,
+		success: true
 	};
 };

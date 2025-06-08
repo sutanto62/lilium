@@ -2,10 +2,11 @@ import type { User } from '$core/entities/Authentication';
 import type {
 	CetakJadwalResponse,
 	Event as ChurchEvent,
+	ChurchEventResponse,
 	EventPicRequest,
 	EventUsher,
 	JadwalDetailResponse,
-	UsherByEvent
+	UsherByEventResponse
 } from '$core/entities/Event';
 import type {
 	Church,
@@ -32,29 +33,36 @@ export interface ScheduleRepository {
 	// Region
 	getWilayahs: (churchId: string) => Promise<Wilayah[]>;
 	getLingkungans: (churchId: string) => Promise<Lingkungan[]>;
-	getLingkunganById: (id: string) => Promise<Lingkungan | null>;
+	getLingkunganById: (id: string) => Promise<Lingkungan>;
 
 	// TODO: change Promies<string[]> array of usher id
 	// Event
 	insertEvent: (event: ChurchEvent) => Promise<ChurchEvent>;
+
+	createEventPic: (pic: EventPicRequest) => Promise<boolean>;
+	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
+
+	// Ushers
+	listUshers(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
+	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
+	listUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
+	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
 	insertEventUshers: (
 		eventId: string,
 		ushers: EventUsher[],
 		wilayahId: string,
 		lingkunganId: string
 	) => Promise<boolean>;
-	createEventPic: (pic: EventPicRequest) => Promise<boolean>;
-	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
-	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
-	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
+
+
 	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
 	getEventsByWeekNumber(churchId: string, weekNumbers: number[], limit?: number): Promise<ChurchEvent[]>;
 	getEventsByDateRange(churchId: string, startDate: string, endDate: string): Promise<ChurchEvent[]>;
+	getEventsByLingkungan(churchId: string, lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
 	updateEventById(eventId: string, event: ChurchEvent): Promise<ChurchEvent>;
 	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
 	deactivateEvent(eventId: string): Promise<boolean>;
-	listUshers(eventId: string): Promise<UsherByEvent[]>; // formatted response
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
 	findEventById(id: string): Promise<ChurchEvent>; // formatted response
 	findEventByIdResponse(id: string): Promise<typeof event.$inferSelect | null>; // returned as it is

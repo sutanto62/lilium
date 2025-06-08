@@ -3,6 +3,7 @@ declare module '@auth/core/types' {
 	interface User {
 		cid?: string; // church id
 		role?: string;
+		lingkunganId?: string;
 		unregistered?: string;
 	}
 }
@@ -15,4 +16,5 @@ export interface User {
 	image?: string;
 	role?: string;
 	churchId?: string;
+	lingkunganId?: string;
 }

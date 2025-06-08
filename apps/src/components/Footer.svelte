@@ -37,7 +37,7 @@
 				<li class="mb-2">Versi saat ini v1.0.0.</li>
 			</ul>
 		</div>
-		<div class="grid grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-6">
+		<div class="flex justify-start gap-8 sm:justify-end">
 			<div>
 				<h2 class="mb-6 text-sm font-semibold uppercase text-gray-900 dark:text-white">
 					Tentang Kami
@@ -50,7 +50,7 @@
 			</div>
 		</div>
 	</div>
-	<hr class="my-6 border-gray-200 dark:border-gray-700 sm:mx-auto lg:my-8" />
+	<hr class="my-4 border-gray-200 dark:border-gray-700 sm:mx-auto" />
 	<div class="sm:flex sm:items-center sm:justify-between">
 		<DarkMode />
 		<FooterCopyright

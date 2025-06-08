@@ -12,14 +12,16 @@ import {
 	findEventByIdResponse,
 	findEvents,
 	findEventsByDateRange,
+	findEventsByLingkungan,
 	findEventsByWeekNumber,
 	findEventUshers,
 	findEventUshersPosition,
 	findUshersByEvent,
+	findUshersByLingkungan,
 	readJadwalDetail,
 	softDeleteEvent,
-	updateEventUshers,
-	updateEventById
+	updateEventById,
+	updateEventUshers
 } from './SQLiteDbEvent';
 import {
 	findChurchById,
@@ -33,7 +35,7 @@ import { findMassById, findMasses } from './SQLiteDbMass';
 import { findLingkunganById, findLingkungans, findWilayahs } from './SQLiteDbRegion';
 
 import type { Event as ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
-import type { Church, ChurchZone } from '$core/entities/Schedule';
+import type { Church, ChurchZone, Lingkungan } from '$core/entities/Schedule';
 import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
 
 // Adapter
@@ -54,7 +56,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 	// SQLiteDbRegion
 	getWilayahs = (churchId: string) => findWilayahs(this.db, churchId);
 	getLingkungans = (churchId: string) => findLingkungans(this.db, churchId);
-	getLingkunganById = (id: string) => findLingkunganById(this.db, id);
+	getLingkunganById = (id: string): Promise<Lingkungan> => findLingkunganById(this.db, id);
 
 	// SQLiteDbMass
 	getMasses = (churchId: string) => findMasses(this.db, churchId);
@@ -73,29 +75,39 @@ export class SQLiteAdapter implements ScheduleRepository {
 		findEventsByWeekNumber(this.db, churchId, weekNumber, limit);
 	getEventsByDateRange = (churchId: string, startDate: string, endDate: string) =>
 		findEventsByDateRange(this.db, churchId, startDate, endDate);
-	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
-		findEventUshers(this.db, eventId, lingkunganId, date);
-	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
-		findEventUshersPosition(this.db, eventId, isPpg);
+	getEventsByLingkungan = (churchId: string, lingkunganId: string, all?: boolean) =>
+		findEventsByLingkungan(this.db, churchId, lingkunganId, all);
+
+
 	findJadwalDetail = (eventId: string) => readJadwalDetail(this.db, eventId);
 	deactivateEvent = (eventId: string) => softDeleteEvent(this.db, eventId);
 
 	insertEvent = (event: ChurchEvent) =>
 		createEvent(this.db, event);
 	createEventPic = (request: EventPicRequest) => createEventPic(this.db, request);
-	insertEventUshers = (
-		eventId: string,
-		ushers: EventUsher[],
-		wilayahId: string,
-		lingkunganId: string
-	) => createEventUsher(this.db, eventId, ushers, wilayahId, lingkunganId);
-	listUshers = (eventId: string) => findUshersByEvent(this.db, eventId);
+
 	editEventUshers = (eventUshers: EventUsher[]) => updateEventUshers(this.db, eventUshers);
 	findEvent = (churchId: string, massId?: string, date?: string) =>
 		findEvent(this.db, churchId, massId, date);
 	findEventById = (id: string) => findEventByIdResponse(this.db, id);
 	findCetakJadwal = (eventId: string) => findCetakJadwal(this.db, eventId);
 	removeEventUsher = (eventId: string, lingkunganId: string) => deleteEventUsher(this.db, eventId, lingkunganId);
+
+	// Ushers
+	listUshers = (eventId: string) => findUshersByEvent(this.db, eventId);
+	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
+		findEventUshers(this.db, eventId, lingkunganId, date);
+	listUshersByLingkungan = (eventId: string, lingkunganId: string) =>
+		findUshersByLingkungan(this.db, eventId, lingkunganId);
+	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
+		findEventUshersPosition(this.db, eventId, isPpg);
+	insertEventUshers = (
+		eventId: string,
+		ushers: EventUsher[],
+		wilayahId: string,
+		lingkunganId: string
+	) => createEventUsher(this.db, eventId, ushers, wilayahId, lingkunganId);
+
 
 	// SQLiteDbFacility
 	getChurches = () => findChurches(this.db);

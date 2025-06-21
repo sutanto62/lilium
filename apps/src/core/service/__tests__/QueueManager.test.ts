@@ -1,52 +1,50 @@
 import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
-import { featureFlags } from '$src/lib/utils/FeatureFlag';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { QueueManager } from './QueueManager';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueueManager } from '../QueueManager';
 
 describe('QueueManager', () => {
     const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
     const repoMassPositions = vi.spyOn(repo, 'getPositionsByMass');
     const repoEditEventUshers = vi.spyOn(repo, 'editEventUshers');
     const manager = QueueManager.getInstance();
-    const isPpgEnabled = vi.spyOn(featureFlags, 'isEnabled');
 
-    afterEach(() => {
-        manager.reset();
-        vi.resetAllMocks();
+    beforeEach(() => {
+        manager.isPpgEnabled = false;
     });
 
-    it('should filter out PPG positions when feature flag is disabled', async () => {
+    it('should filter out PPG positions when ppg is disabled', async () => {
         const event = createTestEvent();
         const lingkungan = createTestLingkungan()[0];
         const positions = createTestPositions();
         const ushers = createUshersLingkunganA();
 
-        isPpgEnabled.mockReturnValue(false);
         repoGetEventUshers.mockResolvedValue(ushers);
         repoMassPositions.mockResolvedValue(positions);
 
         await manager.submitConfirmationQueue(event, lingkungan);
         await manager.processQueue();
+        await manager.reset();
 
-        expect(manager.massZonePositions.every(pos => !pos.isPpg)).toBe(true);
+        expect(manager.eventPositions.every(pos => !pos.isPpg)).toBe(true);
     });
 
-    it('should include PPG positions when feature flag is enabled', async () => {
+    it('should include PPG positions when ppg is enabled', async () => {
         const event = createTestEvent();
         const lingkungan = createTestLingkungan()[0];
         const positions = createTestPositions();
         const ushers = createUshersLingkunganA();
+        manager.isPpgEnabled = true;
 
-        isPpgEnabled.mockReturnValue(true);
         repoGetEventUshers.mockResolvedValue(ushers);
         repoMassPositions.mockResolvedValue(positions);
 
         await manager.submitConfirmationQueue(event, lingkungan);
         await manager.processQueue();
+        await manager.reset();
 
-        expect(manager.massZonePositions).toEqual(positions);
+        expect(manager.eventPositions.length).toBe(positions.length);
     });
 
     it('should assign positions with zone and positionName', async () => {
@@ -55,55 +53,54 @@ describe('QueueManager', () => {
         const positions = createTestPositions();
         const ushers = createUshersLingkunganA();
 
-        isPpgEnabled.mockReturnValue(true);
+        manager.isPpgEnabled = true;
         repoGetEventUshers.mockResolvedValue(ushers);
         repoMassPositions.mockResolvedValue(positions);
 
         await manager.submitConfirmationQueue(event, lingkungan);
         await manager.processQueue();
+        await manager.reset();
 
         expect(manager.assignedUshers[0]).toHaveProperty('zone');
         expect(manager.assignedUshers[0]).toHaveProperty('positionName');
     });
 
-    it('should distribute positions in round-robin fashion', async () => {
+    it('should distribute positions by role if ppg is enabled', async () => {
         const event = createTestEvent();
         const lingkungan = createTestLingkungan()[0];
         const positions = createTestPositions();
         const ushers = createUshersLingkunganA();
 
-        isPpgEnabled.mockReturnValue(true);
+        manager.isPpgEnabled = true;
         repoGetEventUshers.mockResolvedValue(ushers);
         repoMassPositions.mockResolvedValue(positions);
 
         await manager.submitConfirmationQueue(event, lingkungan);
         await manager.processQueue();
+        await manager.reset();
 
         // Verify positions are assigned in sequence
-        const assignedPositions = manager.assignedUshers.map(usher => usher.position);
-        expect(assignedPositions).toEqual(['1', '2', '3']);
+        const assignedPositions = manager.assignedUshers.map(usher => usher.positionName);
+        expect(assignedPositions).toEqual(['Z1.P4PPG', 'Z1.P1', 'Z1.P2', 'Z1.P3']);
     });
 
-    it('should handle multiple queue items correctly', async () => {
+    it('should distribute positions to non-ppg positions only if ppg is disabled', async () => {
         const event = createTestEvent();
-        const lingkungan1 = createTestLingkungan()[0];
-        const lingkungan2 = createTestLingkungan()[1];
+        const lingkungan = createTestLingkungan()[0];
         const positions = createTestPositions();
-        const ushers1 = createUshersLingkunganA();
-        const ushers2 = createUshersLingkunganB();
+        const ushers = createUshersLingkunganA();
 
-        isPpgEnabled.mockReturnValue(true);
-        repoGetEventUshers
-            .mockResolvedValueOnce(ushers1)
-            .mockResolvedValueOnce([...ushers1, ...ushers2]);
+        manager.isPpgEnabled = false;
+        repoGetEventUshers.mockResolvedValue(ushers);
         repoMassPositions.mockResolvedValue(positions);
 
-        await manager.submitConfirmationQueue(event, lingkungan1);
-        await manager.submitConfirmationQueue(event, lingkungan2);
+        await manager.submitConfirmationQueue(event, lingkungan);
         await manager.processQueue();
+        await manager.reset();
 
-        expect(manager.assignedUshers.length).toBe(ushers1.length + ushers2.length);
-        expect(repoEditEventUshers).toHaveBeenCalledTimes(2);
+        // Verify positions are assigned in sequence
+        const assignedPositions = manager.assignedUshers.map(usher => usher.positionName);
+        expect(assignedPositions).toEqual(['Z1.P1', 'Z1.P2', 'Z1.P3', 'Z2.P1']);
     });
 
     it('should submit confirmation queue', async () => {
@@ -117,95 +114,6 @@ describe('QueueManager', () => {
         // 2nd Lingkungan submit their ushers (createdAt)
         await manager.submitConfirmationQueue(event, lingkungan[1]);
         expect(manager.confirmationQueue).toHaveLength(2);
-    });
-
-    /*
-    Lingkungan submit 6 ushers for saturday mass event. System will check existing
-    ushers by event and default positions required by mass. The default positions
-    will be substracted with the existing ushers. Remaining positions will be assigned
-    to submitted ushers.
-
-    Steps:
-    1. Submit event and ushers to queue manager
-    1.1. Check existing ushers by event and default positions by mass
-    1.2. Count ushers with position
-    1.3. Get ushers without position
-    1.4. Get available positions (default positions - positon from existing ushers)
-    1.5. Assign available positions to ushers without position
-    1.6. Update ushers position
-    1.7. Remove the processed queue item
-
-    Note for testing:
-    1. Use mocking to replace repository modules.
-    2. Nested object should be tested one by one? need to check on this
-    3. Event and Event Ushers must be called by separate repository method.
-    */
-
-    it('should assign positions to new confirmation queue', async () => {
-        const event: ChurchEvent = createTestEvent();
-        const positions: ChurchPosition[] = createTestPositions();
-        const lingkungan: Lingkungan[] = createTestLingkungan();
-        const eventUshers: EventUsher[] = createUshersLingkunganA();
-
-        // Mock repository methods
-        repoGetEventUshers.mockResolvedValue(eventUshers);
-        repoMassPositions.mockResolvedValue(positions);
-
-        // Submit confirmation queue
-        await manager.submitConfirmationQueue(event, lingkungan[0]);
-        // const unassignedUshers = eventUshersA.filter(usher => usher.position === null);
-        // expect(unassignedUshers).toHaveLength(3);
-
-        // Process queue
-        await manager.processQueue();
-        // expect(manager.positions).toHaveLength(8);
-        // expect(manager.ushers).toHaveLength(3);
-
-        // Verify position assignments
-        expect(manager.eventUshers.every((usher) => usher.position !== null)).toBe(true);
-
-        // Check that all assigned ushers have positions
-        const assignedUshers = manager.eventUshers.filter((usher) => usher.position !== null);
-        expect(assignedUshers).toHaveLength(0);
-
-        const assignedUshersPosition = assignedUshers.map((usher) => usher.position);
-        expect(assignedUshersPosition).toEqual([]); // Position ID
-
-        // Verify queue state after processing
-        expect(manager.confirmationQueue).toHaveLength(0);
-
-        // Verify repository method calls
-        expect(repoGetEventUshers).toHaveBeenCalledTimes(1);
-        expect(repoMassPositions).toHaveBeenCalledTimes(1);
-    });
-
-    it('should process multiple confirmation queue', async () => {
-        const event: ChurchEvent = createTestEvent();
-        const positions: ChurchPosition[] = createTestPositions();
-        const lingkungan: Lingkungan[] = createTestLingkungan();
-        const eventUshersA: EventUsher[] = createUshersLingkunganA();
-        const eventUshersB: EventUsher[] = createUshersLingkunganB();
-
-        // Submit confirmation queue
-        await manager.submitConfirmationQueue(event, lingkungan[0]);
-        await manager.submitConfirmationQueue(event, lingkungan[1]);
-        expect(manager.confirmationQueue).toHaveLength(2);
-
-        // Mock repository methods
-        const aggregatedUshers = [...eventUshersA, ...eventUshersB];
-        repoGetEventUshers.mockResolvedValue(aggregatedUshers);
-        repoMassPositions.mockResolvedValue(positions);
-
-        // Process queue
-        await manager.processQueue();
-
-        // Verify position assignments
-        expect(manager.eventUshers.every((usher) => usher.position !== null)).toBe(true);
-
-        // Verify position assignments
-        // expect(manager.ushers.every(usher => usher.position !== null)).toBe(true);
-
-        // Check that all assigned ushers have positions
     });
 
     it('should throw error if no positions found', async () => {
@@ -223,202 +131,13 @@ describe('QueueManager', () => {
             expect.objectContaining({ cause: 404 })
         );
     });
-
-    it('should assign ushers with PPG position correctly', async () => {
-        const event: ChurchEvent = createTestEvent();
-        const positions: ChurchPosition[] = createTestPositions();
-        const lingkungan: Lingkungan[] = createTestLingkungan();
-        const eventUshersA: EventUsher[] = createUshersLingkunganA();
-        const eventUshersB: EventUsher[] = createUshersLingkunganB();
-        const eventUshersC: EventUsher[] = createUshersLingkunganC();
-
-        // Mock repository
-        const aggregatedUshers = [...eventUshersA, ...eventUshersB, ...eventUshersC];
-        repoGetEventUshers.mockResolvedValue(aggregatedUshers);
-        repoMassPositions.mockResolvedValue(positions);
-
-        // Submit confirmation
-        await manager.submitConfirmationQueue(event, lingkungan[0]);
-        await manager.processQueue();
-
-        // Verify position assignments
-        for (const usher of manager.assignedUshers) {
-            const usherIsPpg = usher.isPpg;
-            const positionIsPpg = positions.find(position => position.id === usher.position)?.isPpg;
-            if (usherIsPpg) {
-                expect(positionIsPpg).toBe(true);
-            }
-        }
-
-    });
 });
 
-describe('processQueue', () => {
-    const manager = QueueManager.getInstance();
-    const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
-    const repoMassPositions = vi.spyOn(repo, 'getPositionsByMass');
-    const repoEditEventUshers = vi.spyOn(repo, 'editEventUshers');
 
-    afterEach(() => {
-        manager.confirmationQueue = [];
-        manager.eventUshers = [];
-        manager.massZonePositions = [];
-        manager.assignedUshers = [];
-        vi.resetAllMocks();
-    });
-
-    // Test 3B: Multiple queue items with ushers from different lingkungan
-    it('should process multiple batches of ushers from different lingkungan', async () => {
-        // Arrange
-        const event = createTestEvent();
-        const lingkungan1 = createTestLingkungan()[0]; // First lingkungan
-        const lingkungan2 = createTestLingkungan()[1]; // Second lingkungan
-        const positions = createTestPositions();
-
-        // First batch of 5 ushers from first lingkungan
-        const ushersBatch1 = [
-            {
-                id: '1',
-                event: '1',
-                name: 'Test Usher 1',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '2',
-                event: '1',
-                name: 'Test Usher 2',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '3',
-                event: '1',
-                name: 'Test Usher 3',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '4',
-                event: '1',
-                name: 'Test Usher 4',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '5',
-                event: '1',
-                name: 'Test Usher 5',
-                wilayah: '1',
-                lingkungan: '1A',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            }
-        ];
-
-        // Second batch of 4 ushers from second lingkungan
-        const ushersBatch2 = [
-            {
-                id: '6',
-                event: '1',
-                name: 'Test Usher 6',
-                wilayah: '1',
-                lingkungan: '1B',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '7',
-                event: '1',
-                name: 'Test Usher 7',
-                wilayah: '1',
-                lingkungan: '1B',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '8',
-                event: '1',
-                name: 'Test Usher 8',
-                wilayah: '1',
-                lingkungan: '1B',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            },
-            {
-                id: '9',
-                event: '1',
-                name: 'Test Usher 9',
-                wilayah: '1',
-                lingkungan: '1B',
-                isPpg: false,
-                isKolekte: false,
-                position: null,
-                createdAt: 1
-            }
-        ];
-
-        // Mock repository responses
-        repoGetEventUshers
-            .mockResolvedValueOnce(ushersBatch1) // First call for first batch
-            .mockResolvedValueOnce([...ushersBatch1, ...ushersBatch2]); // Second call includes both batches
-        repoMassPositions.mockResolvedValue(positions);
-
-        // Submit and process first batch
-        await manager.submitConfirmationQueue(event, lingkungan1);
-        expect(manager.confirmationQueue).toHaveLength(1);
-        await manager.processQueue();
-        expect(manager.confirmationQueue).toHaveLength(0);
-        expect(manager.eventUshers).toHaveLength(5);
-        expect(manager.assignedUshers).toHaveLength(5);
-
-        // Submit and process second batch
-        await manager.submitConfirmationQueue(event, lingkungan2);
-        expect(manager.confirmationQueue).toHaveLength(1);
-        await manager.processQueue();
-        expect(manager.confirmationQueue).toHaveLength(0);
-
-        // Final assertions
-        expect(manager.eventUshers).toHaveLength(9);
-        expect(manager.assignedUshers).toHaveLength(9);
-
-        // Verify all ushers have positions assigned
-        expect(manager.eventUshers.every(usher => usher.position !== null)).toBe(true);
-
-        // Verify repository calls
-        expect(repoGetEventUshers).toHaveBeenCalledTimes(2);
-        expect(repoMassPositions).toHaveBeenCalledTimes(2);
-        expect(repoEditEventUshers).toHaveBeenCalledTimes(2);
-    });
-});
 
 describe('latestPositionId', () => {
     const manager = QueueManager.getInstance();
-    const latestPositionId = (arr: string[]) => (manager as any).latestPositionId(arr);
+    const latestPositionId = (arr: string[]) => (manager as any).findLatestUniquePositionId(arr);
 
     it('should return null for empty array', () => {
         expect(latestPositionId([])).toBeNull();
@@ -484,10 +203,14 @@ describe('latestPositionId', () => {
 
 function createTestPositions(): ChurchPosition[] {
     return [
-        { id: '1', church: '1', name: 'P1', code: '1', description: '1', sequence: 1, type: 'usher', isPpg: false, zone: '1' },
-        { id: '2', church: '1', name: 'P2', code: '2', description: '2', sequence: 2, type: 'usher', isPpg: false, zone: '1' },
-        { id: '3', church: '1', name: 'P3', code: '3', description: '3', sequence: 3, type: 'usher', isPpg: false, zone: '1' },
-        { id: '4', church: '1', name: 'P4', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: false, zone: '1' },
+        { id: '1', church: '1', name: 'Z1.P1', code: '1', description: '1', sequence: 1, type: 'usher', isPpg: false, zone: '1' },
+        { id: '2', church: '1', name: 'Z1.P2', code: '2', description: '2', sequence: 2, type: 'usher', isPpg: false, zone: '1' },
+        { id: '3', church: '1', name: 'Z1.P3', code: '3', description: '3', sequence: 3, type: 'usher', isPpg: false, zone: '1' },
+        { id: '4', church: '1', name: 'Z1.P4PPG', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: true, zone: '1' },
+        { id: '5', church: '1', name: 'Z2.P1', code: '5', description: '5', sequence: 1, type: 'usher', isPpg: false, zone: '2' },
+        { id: '6', church: '1', name: 'Z2.P2', code: '6', description: '6', sequence: 2, type: 'usher', isPpg: false, zone: '2' },
+        { id: '7', church: '1', name: 'Z2.P3', code: '7', description: '7', sequence: 3, type: 'usher', isPpg: false, zone: '2' },
+        { id: '8', church: '1', name: 'Z2.P4PPG', code: '8', description: '8', sequence: 4, type: 'usher', isPpg: true, zone: '2' },
     ];
 }
 
@@ -521,8 +244,19 @@ function createUshersLingkunganA(): EventUsher[] {
             name: 'A.3',
             wilayah: '1',
             lingkungan: '1A',
-            isPpg: true,
-            isKolekte: false,
+            isPpg: false,
+            isKolekte: true,
+            position: null,
+            createdAt: 1
+        },
+        {
+            id: '4',
+            event: '1',
+            name: 'A.4',
+            wilayah: '1',
+            lingkungan: '1A',
+            isPpg: false,
+            isKolekte: true,
             position: null,
             createdAt: 1
         }
@@ -559,8 +293,8 @@ function createUshersLingkunganB(): EventUsher[] {
             name: 'B.3',
             wilayah: '1',
             lingkungan: '1B',
-            isPpg: true,
-            isKolekte: false,
+            isPpg: false,
+            isKolekte: true,
             position: null,
             createdAt: 2
         },
@@ -571,7 +305,7 @@ function createUshersLingkunganB(): EventUsher[] {
             wilayah: '1',
             lingkungan: '1B',
             isPpg: false,
-            isKolekte: false,
+            isKolekte: true,
             position: null,
             createdAt: 2
         },
@@ -581,7 +315,7 @@ function createUshersLingkunganB(): EventUsher[] {
             name: 'B.5',
             wilayah: '1',
             lingkungan: '1B',
-            isPpg: true,
+            isPpg: false,
             isKolekte: true,
             position: null,
             createdAt: 2

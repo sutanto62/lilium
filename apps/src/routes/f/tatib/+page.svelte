@@ -179,6 +179,9 @@
 
 {#if showForm}
 	<h1 class="mb-6 text-xl font-semibold">Konfirmasi Petugas Tata Tertib</h1>
+	<p class="mb-4 text-sm text-gray-600">
+		Hari ini: <strong>{data.currentDay}</strong> • {data.formAvailabilityReason}
+	</p>
 	<form method="POST" class="mb-6" onsubmit={handleSubmit}>
 		<input type="hidden" name="churchId" value={data.church.id} />
 		<input type="hidden" name="eventDate" value={selectedEventDate} />
@@ -213,4 +216,8 @@
 {:else}
 	<h2 class="mb-6 text-2xl font-bold">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
 	<p>Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
+	<p class="mt-2 text-sm text-gray-600">
+		Hari ini: <strong>{data.currentDay}</strong><br />
+		{data.formAvailabilityReason}
+	</p>
 {/if}

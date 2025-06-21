@@ -22,7 +22,6 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { logger } from '$src/lib/utils/logger';
 import { DatabaseError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -945,7 +944,6 @@ export async function findEventsByLingkungan(
 	const results = await query;
 
 	// Transform to ChurchEvent type
-	logger.debug(`results: ${JSON.stringify(results)}`);
 	return results.map(row => ({
 		id: row.id,
 		church: row.church,

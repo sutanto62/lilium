@@ -4,7 +4,6 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { QueueManager } from '$core/service/QueueManager';
 import { repo } from '$lib/server/db';
-import { featureFlags } from '$lib/utils/FeatureFlag';
 import { getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
@@ -16,6 +15,41 @@ let churchService: ChurchService;
 let eventService: EventService;
 
 const queueManager = QueueManager.getInstance();
+
+/**
+ * Determines if the usher confirmation form should be shown based on:
+ * 1. Feature flag 'no_saturday_sunday' - if enabled, only show on weekdays
+ * 2. Current day of week - weekdays (Mon-Fri) are always allowed
+ * 
+ * @returns {Promise<boolean>} True if form should be shown, false otherwise
+ */
+async function shouldShowUsherForm(): Promise<boolean> {
+	const isNoSaturdaySundayEnabled = await statsigService.checkGate('no_saturday_sunday');
+
+	// If feature flag is disabled, always show form
+	if (!isNoSaturdaySundayEnabled) {
+		return true;
+	}
+
+	// If feature flag is enabled, only show on weekdays (Mon-Fri)
+	const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+	const isWeekday = [1, 2, 3, 4, 5].includes(today);
+	const currentDay = getCurrentDayName();
+
+	logger.info(`Form visibility check: day=${currentDay}, isWeekday=${isWeekday}, featureFlag=${isNoSaturdaySundayEnabled}`);
+
+	return isWeekday;
+}
+
+/**
+ * Gets the current day name for better logging and user feedback
+ * @returns {string} Day name in Indonesian
+ */
+function getCurrentDayName(): string {
+	const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+	const today = new Date().getDay();
+	return days[today];
+}
 
 /**
  * PageServerLoad function for the form-tatib page.
@@ -33,10 +67,7 @@ export const load: PageServerLoad = async (event) => {
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 
 	// Show form if not no_saturday_sunday
-	const isNoSaturdaySunday = await statsigService.checkGate('no_saturday_sunday');
-	const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-	const isWeekday = [1, 2, 3, 4, 5].includes(today);
-	const showForm = !isNoSaturdaySunday || isWeekday;
+	const showForm = await shouldShowUsherForm();
 
 	let church: Church | null = null;
 	church = await repo.findChurchById(churchId);
@@ -69,7 +100,9 @@ export const load: PageServerLoad = async (event) => {
 			success: false,
 			assignedUshers: [],
 			formData: null,
-			showForm
+			showForm,
+			currentDay: getCurrentDayName(),
+			formAvailabilityReason: showForm ? 'Form tersedia' : 'Form hanya tersedia pada hari kerja (Senin-Kamis)'
 		};
 		return returnData;
 	} catch (err) {
@@ -106,13 +139,15 @@ export const actions = {
 		}
 		const eventService = new EventService(churchId);
 
-		const submittedAt = new Date();
 		const formData = await request.formData();
 		const eventDate = formData.get('eventDate') as string;
 		const eventId = formData.get('eventId') as string;
 		const wilayahId = formData.get('wilayahId') as string;
 		const lingkunganId = formData.get('lingkunganId') as string;
 		const ushersString = formData.get('ushers') as string;
+
+		// Show form if not no_saturday_sunday
+		const showForm = await shouldShowUsherForm();
 
 		const formValues = {
 			eventDate,
@@ -123,9 +158,13 @@ export const actions = {
 		};
 
 		// Validate to reject entry if submittedAt weekday is Sunday, Friday, and Saturday
-		if (featureFlags.isEnabled('no_saturday_sunday') && [0, 5, 6].includes(submittedAt.getDay())) {
-			logger.warn(`lingkungan ${lingkunganId} tried to confirm at closed window.`)
-			return fail(422, { error: 'Batas konfirmasi tugas Senin s.d. Kamis', formData: formValues });
+		if (!showForm) {
+			const currentDay = getCurrentDayName();
+			logger.warn(`lingkungan ${lingkunganId} tried to confirm at closed window on ${currentDay}`);
+			return fail(422, {
+				error: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Kamis. Hari ini: ${currentDay}`,
+				formData: formValues
+			});
 		}
 
 		// Validate mandatory input 

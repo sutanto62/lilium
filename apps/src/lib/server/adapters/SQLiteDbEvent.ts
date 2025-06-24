@@ -574,7 +574,7 @@ export async function readJadwalDetail(
 		.leftJoin(church_position, eq(church_position.id, event_usher.position))
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
 		.where(eq(event_usher.event, eventId))
-		.orderBy(church_zone.sequence, lingkungan.sequence, event_usher.sequence);
+		.orderBy(church_zone.sequence, lingkungan.sequence, church_position.sequence);
 
 	// Get event PIC
 	const massEventPic = await db

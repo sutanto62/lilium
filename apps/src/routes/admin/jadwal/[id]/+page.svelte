@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
+	import { formatDate } from '$src/lib/utils/dateUtils';
 	import { Breadcrumb, BreadcrumbItem, Button, P, Toast } from 'flowbite-svelte';
 	import {
 		ArchiveOutline,
@@ -10,7 +11,6 @@
 		TrashBinOutline,
 		UsersOutline
 	} from 'flowbite-svelte-icons';
-
 	export let data;
 
 	$: jadwalDetail = data.jadwalDetail;
@@ -36,7 +36,9 @@
 	</BreadcrumbItem>
 </Breadcrumb>
 
-<h1 class="my-4 text-xl font-bold">{jadwalDetail.mass}</h1>
+<h1 class="my-4 text-xl font-bold">
+	{formatDate(jadwalDetail.date ?? '', 'long')} - {jadwalDetail.mass}
+</h1>
 
 <div class="flex flex-col gap-4">
 	<ul class="flex gap-4 text-sm font-light text-gray-500">

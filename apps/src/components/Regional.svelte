@@ -78,7 +78,7 @@
 		<Select
 			class="mt-0"
 			id="select-feast"
-			items={filteredEvents.map((e) => ({ value: e.id, name: `${e.code} - ${e.description}` }))}
+			items={filteredEvents.map((e) => ({ value: e.id, name: `${e.description}` }))}
 			bind:value={selectedEventId}
 		/>
 	</Label>

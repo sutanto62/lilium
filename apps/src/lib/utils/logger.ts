@@ -20,12 +20,16 @@ const browserLogger = {
 let serverLogger = browserLogger; // Initialize with browser logger as fallback
 
 if (!browser) {
-	import('winston').then((winston) => {
+	try {
+		// Synchronous import for better reliability
+		const winston = require('winston');
 		const { format, transports } = winston;
-		const { combine, timestamp, label, printf } = format;
+		const { combine, timestamp, label, printf, errors } = format;
 
-		const myFormat = printf(({ level, message, label, timestamp }) => {
-			return `\x1b[90m${timestamp}\x1b[0m [${label}] ${level}: ${message}`;
+		const myFormat = printf(({ level, message, label, timestamp, stack }: any) => {
+			// Include stack trace for errors
+			const stackTrace = stack ? `\n${stack}` : '';
+			return `\x1b[90m${timestamp}\x1b[0m [${label}] ${level}: ${message}${stackTrace}`;
 		});
 
 		const shortTimestamp = timestamp({
@@ -36,14 +40,40 @@ if (!browser) {
 
 		serverLogger = winston.createLogger({
 			level: level,
-			format: combine(label({ label: 'lilium' }), shortTimestamp, myFormat),
+			format: combine(
+				errors({ stack: true }), // Include stack traces
+				label({ label: 'lilium' }),
+				shortTimestamp,
+				myFormat
+			),
 			transports: [
+				new transports.Console({
+					format: format.combine(format.colorize(), myFormat)
+				})
+			],
+			// Handle uncaught exceptions
+			exceptionHandlers: [
+				new transports.Console({
+					format: format.combine(format.colorize(), myFormat)
+				})
+			],
+			// Handle unhandled promise rejections
+			rejectionHandlers: [
 				new transports.Console({
 					format: format.combine(format.colorize(), myFormat)
 				})
 			]
 		});
-	});
+	} catch (error) {
+		// Fallback to console if Winston fails to load
+		console.error('Failed to initialize Winston logger:', error);
+		serverLogger = {
+			debug: console.debug,
+			info: console.info,
+			warn: console.warn,
+			error: console.error
+		};
+	}
 }
 
 // Export the appropriate logger based on environment

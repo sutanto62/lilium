@@ -19,10 +19,10 @@ const browserLogger = {
 // Server-side logger using Winston
 let serverLogger = browserLogger; // Initialize with browser logger as fallback
 
+// Only initialize Winston on the server side
 if (!browser) {
-	try {
-		// Synchronous import for better reliability
-		const winston = require('winston');
+	// Use dynamic import to avoid browser bundling issues
+	import('winston').then((winston) => {
 		const { format, transports } = winston;
 		const { combine, timestamp, label, printf, errors } = format;
 
@@ -64,7 +64,7 @@ if (!browser) {
 				})
 			]
 		});
-	} catch (error) {
+	}).catch((error) => {
 		// Fallback to console if Winston fails to load
 		console.error('Failed to initialize Winston logger:', error);
 		serverLogger = {
@@ -73,7 +73,7 @@ if (!browser) {
 			warn: console.warn,
 			error: console.error
 		};
-	}
+	});
 }
 
 // Export the appropriate logger based on environment

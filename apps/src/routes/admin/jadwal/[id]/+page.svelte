@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import { Breadcrumb, BreadcrumbItem, Button, P, Toast } from 'flowbite-svelte';
@@ -97,8 +98,9 @@
 						deleting = true;
 						return async ({ result, update }) => {
 							deleting = false;
-							if (result.type === 'success') {
+							if (result.type === 'redirect') {
 								isDeleteConfirmation = false;
+								await goto(result.location);
 							}
 						};
 					}}

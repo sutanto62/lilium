@@ -18,5 +18,36 @@ module.exports = {
     wait_ready: true,
     autorestart: true,
     vizion: false // Disabled git features for better performance
+  },
+  {
+    name: 'lilium-web-dev',
+    script: 'npm',
+    args: 'run dev',
+    instances: 1,
+    exec_mode: 'fork',
+    node_args: '-r dotenv/config',
+    env_file: '.env',
+    watch: true, // Enable file watching for development
+    ignore_watch: [
+      'node_modules',
+      '.svelte-kit',
+      'build',
+      'logs',
+      '*.log',
+      'db',
+      'drizzle'
+    ],
+    max_memory_restart: '1536M',
+    merge_logs: true,
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    max_restarts: 5,
+    min_uptime: '10s', // Shorter for development
+    listen_timeout: 8000,
+    kill_timeout: 5000,
+    source_map_support: true, // Enable source maps for development
+    instance_var: 'INSTANCE_ID',
+    wait_ready: true,
+    autorestart: true,
+    vizion: false
   }]
 }

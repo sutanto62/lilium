@@ -67,8 +67,11 @@ export const actions: Actions = {
 		const eventService = new EventService(churchId);
 
 		try {
-			await eventService.deactivateEvent(eventId);
-			logger.info(`event ${eventId} deactivated`);
+			logger.info(`Deactivating event ${eventId} by ${session?.user?.name}`);
+			const result = await eventService.deactivateEvent(eventId);
+			if (!result) {
+				throw ServiceError.database('Gagal menonaktifkan jadwal');
+			}
 		} catch (error) {
 			logger.error('Error deactivating event:', error);
 			throw ServiceError.database('Gagal menonaktifkan jadwal');
@@ -126,7 +129,7 @@ export const actions: Actions = {
 
 		if (hasRole(session, 'admin')) {
 			await eventService.removeUsherAssignment(eventId, lingkungan);
-			logger.info(`Event usher deleted: ${lingkungan}`);
+			logger.info(`Event usher deleted: ${lingkungan} by ${session?.user?.name}`);
 		}
 
 		return { success: true };

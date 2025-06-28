@@ -27,14 +27,25 @@ export const church = sqliteTable('church', {
 	createdAt: integer('created_at')
 });
 
-export const church_zone = sqliteTable('church_zone', {
+export const church_zone_group = sqliteTable('church_zone_group', {
 	id: text('id').primaryKey().unique().notNull(),
 	church: text('church_id').references(() => church.id, { onDelete: 'cascade' }),
 	name: text('name').notNull(),
 	code: text('code'),
 	description: text('description'),
 	sequence: integer('sequence'),
-	pic: text('name'),
+	active: integer('active').notNull().default(1),
+	createdAt: integer('created_at').default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const church_zone = sqliteTable('church_zone', {
+	id: text('id').primaryKey().unique().notNull(),
+	church: text('church_id').references(() => church.id, { onDelete: 'cascade' }),
+	church_zone_group: text('church_zone_group_id').references(() => church_zone_group.id, { onDelete: 'cascade' }),
+	name: text('name').notNull(),
+	code: text('code'),
+	description: text('description'),
+	sequence: integer('sequence'),
 	active: integer('active').notNull().default(1),
 	createdAt: integer('created_at')
 });
@@ -77,7 +88,6 @@ export const mass_zone = sqliteTable('mass_zone', {
 	zone: text('zone_id')
 		.references(() => church_zone.id, { onDelete: 'cascade' })
 		.notNull(),
-	is_active: integer('is_active').notNull().default(1),
 	sequence: integer('sequence').default(0),
 	active: integer('active').notNull().default(1),
 	createdAt: integer('created_at')
@@ -118,7 +128,6 @@ export const event = sqliteTable('event', {
 		.default(sql`CURRENT_TIMESTAMP`),
 	isComplete: integer('is_complete').notNull().default(0),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at'),
 	type: text('type', { enum: ['mass', 'feast'] }).notNull().default('mass'),
 	code: text('code'),
 	description: text('description')
@@ -137,7 +146,6 @@ export const event_zone_pic = sqliteTable('event_zone_pic', {
 	createdAt: integer('created_at')
 });
 
-// TODO: add created_at field - auto assignment position
 export const event_usher = sqliteTable('event_usher', {
 	id: text('id').primaryKey().unique().notNull(),
 	event: text('event_id')

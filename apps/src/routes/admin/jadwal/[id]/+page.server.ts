@@ -5,7 +5,6 @@ import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 // Services
 import { ServiceError } from '$core/errors/ServiceError';
-import { AuthService } from '$core/service/AuthService';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { hasRole } from '$src/auth';
@@ -29,9 +28,6 @@ export const load: PageServerLoad = async (event) => {
 	// Get zones
 	const churchService = new ChurchService(churchId);
 	const [zones] = await Promise.all([churchService.getZonesByEvent(eventId)]);
-
-	// Get users for PIC
-	const authService = new AuthService(churchId);
 
 	return {
 		jadwalDetail,

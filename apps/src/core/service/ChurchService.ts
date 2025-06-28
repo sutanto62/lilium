@@ -30,7 +30,8 @@ export class ChurchService {
 			id: '',
 			name: '',
 			code: '',
-			parish: ''
+			parish: '',
+			active: 1
 		};
 		this.churches = []; // Initialize churches array
 		this.zones = []; // Initialize zones array

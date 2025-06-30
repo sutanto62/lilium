@@ -33,13 +33,13 @@ export const load: PageServerLoad = async (event) => {
     const eventService = new EventService(churchId);
     const usherService = new UsherService(churchId);
     const churchService = new ChurchService(churchId);
-    const lingkungan = await churchService.fetchLingkunganById(lingkunganId);
-    const lingkunganEvents = await eventService.fetchEventsByLingkungan(lingkunganId, true);
+    const lingkungan = await churchService.retrieveLingkunganById(lingkunganId);
+    const lingkunganEvents = await eventService.retrieveEventsByLingkungan(lingkunganId, true);
 
     // Fetch ushers for each event
     const eventsWithUshers = await Promise.all(
         lingkunganEvents.map(async (event) => {
-            const ushers = await usherService.fetchEventUshersByLingkungan(event.id, lingkunganId);
+            const ushers = await usherService.retrieveEventUshersByLingkungan(event.id, lingkunganId);
 
             return {
                 ...event,

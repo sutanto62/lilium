@@ -39,7 +39,7 @@ export const load: PageServerLoad = async (event) => {
     // Fetch ushers for each event
     const eventsWithUshers = await Promise.all(
         lingkunganEvents.map(async (event) => {
-            const ushers = await usherService.fetchEventUshersByLingkungan(event.id, lingkunganId);
+            const ushers = await usherService.retrieveEventUshersByLingkungan(event.id, lingkunganId);
 
             return {
                 ...event,

@@ -11,7 +11,7 @@ export class UsherService {
      * @param eventId - The ID of the event
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
-    async fetchEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
+    async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
         return await repo.listUshers(eventId);
     }
 
@@ -21,7 +21,7 @@ export class UsherService {
      * @param lingkunganId - The ID of the lingkungan
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
-    async fetchEventUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]> {
+    async retrieveEventUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]> {
         return await repo.listUshersByLingkungan(eventId, lingkunganId);
     }
 
@@ -30,7 +30,7 @@ export class UsherService {
      * @param eventId - The ID of the event
      * @returns A promise that resolves to an array of EventUsher objects
      */
-    async fetchEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
+    async retrieveEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
         return await repo.getEventUshers(eventId);
     }
 
@@ -40,7 +40,7 @@ export class UsherService {
      * @param isPpg - Flag indicating if positions are for PPG
      * @returns A promise that resolves to an array of position strings
      */
-    async fetchEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
+    async retrieveEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
         return await repo.getEventUshersPosition(eventId, isPpg);
     }
 
@@ -70,7 +70,4 @@ export class UsherService {
             throw new Error('Sistem gagal mencatat petugas');
         }
     }
-
-
-
 }

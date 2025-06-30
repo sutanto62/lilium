@@ -185,7 +185,7 @@ export class EventService {
 	 * @returns A promise that resolves to an array of UsherByEvent objects
 	 */
 	async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
-		return this.usherService.fetchEventUshers(eventId);
+		return this.usherService.retrieveEventUshers(eventId);
 	}
 
 	/**
@@ -195,7 +195,7 @@ export class EventService {
 	 * @returns A promise that resolves to an array of EventUsher objects
 	 */
 	async retrieveEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
-		return this.usherService.fetchEventUsherAssignments(eventId);
+		return this.usherService.retrieveEventUsherAssignments(eventId);
 	}
 
 	/**
@@ -206,7 +206,7 @@ export class EventService {
 	 * @returns A promise that resolves to an array of position strings
 	 */
 	async retrieveEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
-		return this.usherService.fetchEventUshersPositions(eventId, isPpg);
+		return this.usherService.retrieveEventUshersPositions(eventId, isPpg);
 	}
 
 	/**

@@ -15,7 +15,7 @@ export const user = sqliteTable('user', {
 	lingkunganId: text('lingkungan_id')
 		.references(() => lingkungan.id, { onDelete: 'cascade' }),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const church = sqliteTable('church', {
@@ -24,7 +24,7 @@ export const church = sqliteTable('church', {
 	name: text('name').notNull(),
 	parish: text('parish'),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const church_zone_group = sqliteTable('church_zone_group', {
@@ -35,7 +35,7 @@ export const church_zone_group = sqliteTable('church_zone_group', {
 	description: text('description'),
 	sequence: integer('sequence'),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at').default(sql`CURRENT_TIMESTAMP`)
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const church_zone = sqliteTable('church_zone', {
@@ -47,7 +47,7 @@ export const church_zone = sqliteTable('church_zone', {
 	description: text('description'),
 	sequence: integer('sequence'),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const church_position = sqliteTable('church_position', {
@@ -60,7 +60,7 @@ export const church_position = sqliteTable('church_position', {
 	sequence: integer('sequence'),
 	type: text('type', { enum: ['usher', 'prodiakon', 'peta'] }).notNull(),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const mass = sqliteTable('mass', {
@@ -90,7 +90,7 @@ export const mass_zone = sqliteTable('mass_zone', {
 		.notNull(),
 	sequence: integer('sequence').default(0),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const wilayah = sqliteTable('wilayah', {
@@ -110,7 +110,7 @@ export const lingkungan = sqliteTable('lingkungan', {
 	wilayah: text('wilayah_id').references(() => wilayah.id, { onDelete: 'cascade' }),
 	church: text('church_id').references(() => church.id, { onDelete: 'cascade' }),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const event = sqliteTable('event', {
@@ -123,9 +123,7 @@ export const event = sqliteTable('event', {
 		.notNull(),
 	date: text('date').notNull(),
 	week_number: integer('week_number'),
-	created_at: integer('created_at')
-		.notNull()
-		.default(sql`CURRENT_TIMESTAMP`),
+	created_at: integer('created_at').default(sql`(unixepoch())`),
 	isComplete: integer('is_complete').notNull().default(0),
 	active: integer('active').notNull().default(1),
 	type: text('type', { enum: ['mass', 'feast'] }).notNull().default('mass'),
@@ -143,7 +141,7 @@ export const event_zone_pic = sqliteTable('event_zone_pic', {
 		.notNull(),
 	name: text('name'),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });
 
 export const event_usher = sqliteTable('event_usher', {
@@ -159,5 +157,5 @@ export const event_usher = sqliteTable('event_usher', {
 	isKolekte: integer('is_kolekte'),
 	sequence: integer('sequence'),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at')
+	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });

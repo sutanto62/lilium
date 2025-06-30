@@ -7,11 +7,6 @@ import { migrate } from 'drizzle-orm/libsql/migrator';
 const databaseUrl = process.env.VITE_DATABASE_URL || 'file:./db/lilium.db';
 const authToken = process.env.VITE_DATABASE_AUTH_TOKEN;
 
-if (!databaseUrl) {
-    console.error('Database URL is not set');
-    process.exit(1);
-}
-
 async function runMigrations() {
     try {
         const client = createClient({

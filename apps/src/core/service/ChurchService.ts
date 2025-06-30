@@ -48,7 +48,7 @@ export class ChurchService {
 		await Promise.all([this.fetchZones(), this.fetchMasses(), this.getLingkungans()]);
 	}
 
-	async getChurch(): Promise<Church> {
+	async fetchChurch(): Promise<Church> {
 		this.church = await repo.findChurchById(this.churchId);
 		return this.church;
 	}

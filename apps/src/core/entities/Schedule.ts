@@ -44,12 +44,11 @@ export interface ChurchZoneGroup {
 export interface ChurchZone {
 	id: string;
 	church: string;
-	group: string;
+	group: string | null;
 	name: string;
 	code: string | null;
 	description: string | null;
 	sequence: number | null;
-	pic: string | null;
 	active: number;
 }
 

@@ -27,7 +27,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Get zones
 	const churchService = new ChurchService(churchId);
-	const [zones] = await Promise.all([churchService.getZonesByEvent(eventId)]);
+	const [zones] = await Promise.all([churchService.retrieveZonesByEvent(eventId)]);
 
 	return {
 		jadwalDetail,

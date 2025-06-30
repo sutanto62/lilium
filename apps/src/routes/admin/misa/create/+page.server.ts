@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
     }
 
     const churchService = new ChurchService(churchId);
-    const masses = await churchService.getMasses();
+    const masses = await churchService.retrieveMasses();
 
     return {
         success: true,

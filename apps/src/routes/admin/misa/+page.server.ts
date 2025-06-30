@@ -45,7 +45,7 @@ export const actions = {
         const churchService = new ChurchService(churchId);
         const eventService = new EventService(churchId);
 
-        const masses = await churchService.getMasses();
+        const masses = await churchService.retrieveMasses();
 
         try {
             // Get current date and calculate next month's dates

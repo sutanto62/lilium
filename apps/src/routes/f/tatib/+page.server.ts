@@ -81,8 +81,8 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		const [wilayahs, lingkungans, events] = await Promise.all([
-			churchService.getWilayahs(),
-			churchService.getLingkungans(),
+			churchService.retrieveWilayahs(),
+			churchService.retrieveLingkungans(),
 			eventService.fetchEventsByWeekRange(weekNumber),
 		]);
 

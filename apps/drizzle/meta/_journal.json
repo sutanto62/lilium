@@ -1,20 +1,20 @@
 {
-	"version": "5",
-	"dialect": "sqlite",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "5",
-			"when": 1710831600000,
-			"tag": "0000_square_kate_bishop",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "5",
-			"when": 1710831600000,
-			"tag": "0001_add_lingkungan_id",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1751173243433,
+      "tag": "0000_normal_hannibal_king",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1751173602164,
+      "tag": "0001_chemical_moira_mactaggert",
+      "breakpoints": true
+    }
+  ]
 }

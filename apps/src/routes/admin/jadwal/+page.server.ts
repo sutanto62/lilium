@@ -51,8 +51,8 @@ export const load: PageServerLoad = async (event) => {
 	// Fetch masses and events concurrently
 	try {
 		const [fetchedMasses, massEvents] = await Promise.all([
-			churchService.getMasses(),
-			churchService.getEvents()
+			churchService.retrieveMasses(),
+			churchService.retrieveEvents()
 		]);
 
 		masses = fetchedMasses;
@@ -68,10 +68,10 @@ export const load: PageServerLoad = async (event) => {
 				}
 
 				// Fetch ushers for the event
-				const ushers = await eventService.fetchEventUshers(event.id);
+				const ushers = await eventService.retrieveEventUshers(event.id);
 
 				// Calculate usher statistics
-				const requiredPositions = await churchService.getPositionsByMass(massDetails.mass);
+				const requiredPositions = await churchService.retrievePositionsByMass(massDetails.mass);
 				const totalUshers = requiredPositions?.length ?? 0;
 				const confirmedUshers = ushers?.length ?? 0;
 				const totalPpg = ushers.filter((usher) => usher.isPpg).length;

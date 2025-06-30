@@ -7,6 +7,7 @@ if (!process.env.VITE_DATABASE_URL) throw new Error('Database URL is not set');
 export default defineConfig({
 	dialect: 'sqlite',
 	schema: './src/lib/server/db/schema.ts',
+	out: './drizzle',
 	dbCredentials: {
 		url: process.env.VITE_DATABASE_URL!,
 	},

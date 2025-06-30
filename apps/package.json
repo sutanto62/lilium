@@ -17,6 +17,7 @@
 		"test:coverage": "node --no-deprecation node_modules/.bin/vitest --coverage",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
+		"db:migrate:custom": "tsx scripts/migrate.ts",
 		"db:studio": "drizzle-kit studio",
 		"changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
 		"changelog:first": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"

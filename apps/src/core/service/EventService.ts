@@ -41,7 +41,7 @@ export class EventService {
 	 * @param limit - The maximum number of events to retrieve, omit to return all events
 	 * @returns A promise that resolves to an array of Event objects
 	 */
-	async fetchEventsByWeekRange(weekNumber?: number, weekNumbers?: number[], limit?: number): Promise<ChurchEvent[]> {
+	async retrieveEventsByWeekRange(weekNumber?: number, weekNumbers?: number[], limit?: number): Promise<ChurchEvent[]> {
 		const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
 		const events = await repo.getEventsByWeekNumber(this.churchId, upcomingWeeks, limit);
 		return events;
@@ -53,7 +53,7 @@ export class EventService {
 	 * @param endDate - The end date in ISO format (YYYY-MM-DD)
 	 * @returns A promise that resolves to an array of Event objects
 	 */
-	async fetchEventsByDateRange(startDate: string, endDate: string): Promise<ChurchEvent[]> {
+	async retrieveEventsByDateRange(startDate: string, endDate: string): Promise<ChurchEvent[]> {
 		return await repo.getEventsByDateRange(this.churchId, startDate, endDate);
 	}
 
@@ -63,7 +63,7 @@ export class EventService {
 	 * @param all - If true, all events will be returned, otherwise only active events will be returned
 	 * @returns A promise that resolves to an array of Event objects
 	 */
-	async fetchEventsByLingkungan(lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]> {
+	async retrieveEventsByLingkungan(lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]> {
 		return await repo.getEventsByLingkungan(this.churchId, lingkunganId, all);
 	}
 
@@ -72,7 +72,7 @@ export class EventService {
 	 * @param eventId - The ID of the event to retrieve
 	 * @returns A promise that resolves to the Event object
 	 */
-	async fetchEventById(eventId: string): Promise<ChurchEvent> {
+	async retrieveEventById(eventId: string): Promise<ChurchEvent> {
 		return await repo.getEventById(eventId);
 	}
 
@@ -141,7 +141,7 @@ export class EventService {
 	 * @throws Error if code or description is missing
 	 */
 	async updateEvent(eventId: string, event: Omit<ChurchEvent, 'id' | 'church' | 'churchCode' | 'mass'>): Promise<ChurchEvent> {
-		const existingEvent = await this.fetchEventById(eventId);
+		const existingEvent = await this.retrieveEventById(eventId);
 
 		let updatedEvent: ChurchEvent = {
 			...event,
@@ -184,8 +184,8 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to an array of UsherByEvent objects
 	 */
-	async fetchEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
-		return this.usherService.fetchEventUshers(eventId);
+	async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
+		return this.usherService.retrieveEventUshers(eventId);
 	}
 
 	/**
@@ -194,8 +194,8 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to an array of EventUsher objects
 	 */
-	async fetchEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
-		return this.usherService.fetchEventUsherAssignments(eventId);
+	async retrieveEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
+		return this.usherService.retrieveEventUsherAssignments(eventId);
 	}
 
 	/**
@@ -205,8 +205,8 @@ export class EventService {
 	 * @param isPpg - Flag indicating if positions are for PPG
 	 * @returns A promise that resolves to an array of position strings
 	 */
-	async fetchEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
-		return this.usherService.fetchEventUshersPositions(eventId, isPpg);
+	async retrieveEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
+		return this.usherService.retrieveEventUshersPositions(eventId, isPpg);
 	}
 
 	/**
@@ -247,7 +247,7 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to a JadwalDetailResponse object
 	 */
-	async fetchEventSchedule(eventId: string): Promise<JadwalDetailResponse> {
+	async retrieveEventSchedule(eventId: string): Promise<JadwalDetailResponse> {
 		return await repo.findJadwalDetail(eventId);
 	}
 
@@ -256,7 +256,7 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to a CetakJadwalResponse object
 	 */
-	async fetchEventPrintSchedule(eventId: string): Promise<CetakJadwalResponse> {
+	async retrieveEventPrintSchedule(eventId: string): Promise<CetakJadwalResponse> {
 		return await repo.findCetakJadwal(eventId);
 	}
 
@@ -264,7 +264,7 @@ export class EventService {
 	 * Retrieves a list of stub events (for testing/development)
 	 * @returns A promise that resolves to an array of stub Event objects
 	 */
-	async fetchStubEvents(): Promise<ChurchEvent[]> {
+	async retrieveStubEvents(): Promise<ChurchEvent[]> {
 		const stubEvents: ChurchEvent[] = [
 			{
 				id: '1',
@@ -304,7 +304,7 @@ export class EventService {
 	 * @param eventId - The ID of the event to retrieve
 	 * @returns A promise that resolves to the Event object with full details
 	 */
-	async fetchEventDetails(eventId: string): Promise<ChurchEvent> {
+	async retrieveEventDetails(eventId: string): Promise<ChurchEvent> {
 		return await repo.findEventById(eventId);
 	}
 
@@ -314,9 +314,9 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to an array of UsherByEvent objects
 	 */
-	async getEventUshersByEventId(eventId: string): Promise<UsherByEventResponse[]> {
+	async retrieveEventUshersByEventId(eventId: string): Promise<UsherByEventResponse[]> {
 		logger.warn('getEventUshersByEventId is deprecated. Use getEventUshers instead.');
-		return this.fetchEventUshers(eventId);
+		return this.retrieveEventUshers(eventId);
 	}
 
 

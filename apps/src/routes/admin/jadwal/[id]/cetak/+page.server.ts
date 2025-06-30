@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
     const church = await churchService.retrieveChurch();
 
     const eventService = new EventService(churchId);
-    const [jadwalDetail] = await Promise.all([eventService.fetchEventPrintSchedule(eventId)]);
+    const [jadwalDetail] = await Promise.all([eventService.retrieveEventPrintSchedule(eventId)]);
 
     return {
         church,

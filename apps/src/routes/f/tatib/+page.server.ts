@@ -83,7 +83,7 @@ export const load: PageServerLoad = async (event) => {
 		const [wilayahs, lingkungans, events] = await Promise.all([
 			churchService.retrieveWilayahs(),
 			churchService.retrieveLingkungans(),
-			eventService.fetchEventsByWeekRange(weekNumber),
+			eventService.retrieveEventsByWeekRange(weekNumber),
 		]);
 
 		// Return unique events date sort ascending
@@ -174,7 +174,7 @@ export const actions = {
 
 		try {
 			// Get the mass ID from the event
-			const confirmedEvent = await eventService.fetchEventById(eventId)
+			const confirmedEvent = await eventService.retrieveEventById(eventId)
 
 			// TODO: change to service
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([

@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 
     const weekNumbers = getWeekNumbers(1);
 
-    const events = await eventService.fetchEventsByWeekRange(undefined, weekNumbers);
+    const events = await eventService.retrieveEventsByWeekRange(undefined, weekNumbers);
 
     return {
         wilayahs: [],
@@ -56,7 +56,7 @@ export const actions = {
             // Check if events for next month already exist
             const startDate = nextMonth.toISOString().split('T')[0];
             const endDate = lastDayOfNextMonth.toISOString().split('T')[0];
-            const existingEvents = await eventService.fetchEventsByDateRange(startDate, endDate);
+            const existingEvents = await eventService.retrieveEventsByDateRange(startDate, endDate);
 
             if (existingEvents && existingEvents.length > 0) {
                 logger.warn('Events for next month already exist');

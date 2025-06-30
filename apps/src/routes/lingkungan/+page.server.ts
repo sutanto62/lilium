@@ -34,7 +34,7 @@ export const load: PageServerLoad = async (event) => {
     const usherService = new UsherService(churchId);
     const churchService = new ChurchService(churchId);
     const lingkungan = await churchService.retrieveLingkunganById(lingkunganId);
-    const lingkunganEvents = await eventService.fetchEventsByLingkungan(lingkunganId, true);
+    const lingkunganEvents = await eventService.retrieveEventsByLingkungan(lingkunganId, true);
 
     // Fetch ushers for each event
     const eventsWithUshers = await Promise.all(

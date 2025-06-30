@@ -68,7 +68,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 
 				// Fetch ushers for the event
-				const ushers = await eventService.fetchEventUshers(event.id);
+				const ushers = await eventService.retrieveEventUshers(event.id);
 
 				// Calculate usher statistics
 				const requiredPositions = await churchService.retrievePositionsByMass(massDetails.mass);

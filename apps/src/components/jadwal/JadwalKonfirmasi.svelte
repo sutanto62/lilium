@@ -18,14 +18,42 @@
 	import type { ChurchZone } from '$core/entities/Schedule';
 	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 
-	export let rows;
-	export let openRow;
-	export let toggleRow;
-	export let zones: ChurchZone[];
+	// Svelte 5: Use $props() for component props
+	const { rows, openRow, toggleRow, zones } = $props<{
+		rows: any[];
+		openRow: number | null;
+		toggleRow: (index: number) => void;
+		zones: ChurchZone[];
+	}>();
 
-	let defaultModal = false;
-	let selectedZoneId: string | null = null;
-	let eventZonePic = '';
+	// Svelte 5: Use $state() for reactive state
+	let defaultModal = $state(false);
+	let selectedZoneId = $state<string | null>(null);
+	let eventZonePic = $state('');
+
+	// Svelte 5: Use $derived() for computed values
+	const zoneOptions = $derived(
+		zones.map((e: ChurchZone) => ({ value: e.id ?? '', name: e.name ?? '' }))
+	);
+
+	// Svelte 5: Event handlers with proper typing
+	function handleToggleRow(index: number, event: Event) {
+		// Prevent event bubbling when clicking on buttons
+		if ((event.target as HTMLElement).closest('button')) {
+			return;
+		}
+		toggleRow(index);
+	}
+
+	function handleAddPic(event: Event) {
+		event.stopPropagation();
+		defaultModal = true;
+	}
+
+	function handleSubmitPic(event: SubmitEvent) {
+		// Form submission logic can be handled here if needed
+		// The form will still submit to the server action
+	}
 </script>
 
 <Table>
@@ -44,8 +72,7 @@
 	</TableHead>
 	<TableBody class="divide-y">
 		{#each rows as jadwalDetaillZone, i}
-			<!-- TODO: prevent open on tambah pic click -->
-			<TableBodyRow class="hover:bg-gray-100" onclick={() => toggleRow(i)}>
+			<TableBodyRow class="hover:bg-gray-100" onclick={(event) => handleToggleRow(i, event)}>
 				<TableBodyCell class="px-2 align-top"
 					>{jadwalDetaillZone.name}
 					<ol class="block lg:hidden">
@@ -59,8 +86,7 @@
 								<li>PIC: {pic}</li>
 							{/each}
 						{:else}
-							<!-- 1 zone 1 pic -->
-							<Button size="xs" onclick={() => (defaultModal = true)}>Tambah PIC</Button>
+							<Button size="xs" onclick={(event: Event) => handleAddPic(event)}>Tambah PIC</Button>
 						{/if}
 					</ol>
 				</TableBodyCell>
@@ -80,8 +106,9 @@
 										<li>PIC: {pic}</li>
 									{/each}
 								{:else}
-									<!-- 1 zone 1 pic -->
-									<Button size="xs" onclick={() => (defaultModal = true)}>Tambah PIC</Button>
+									<Button size="xs" onclick={(event: Event) => handleAddPic(event)}
+										>Tambah PIC</Button
+									>
 								{/if}
 							</ol>
 						</div>
@@ -116,7 +143,7 @@
 					id="zone"
 					name="zone"
 					class="mt-2"
-					items={zones.map((e) => ({ value: e.id ?? '', name: e.name ?? '' }))}
+					items={zoneOptions}
 					bind:value={selectedZoneId}
 					placeholder="Pilih Zona"
 					required

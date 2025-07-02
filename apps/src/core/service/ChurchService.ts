@@ -30,7 +30,8 @@ export class ChurchService {
 			id: '',
 			name: '',
 			code: '',
-			parish: ''
+			parish: '',
+			active: 1
 		};
 		this.churches = []; // Initialize churches array
 		this.zones = []; // Initialize zones array
@@ -44,10 +45,10 @@ export class ChurchService {
 	 * Initializes the ChurchService by fetching zones and masses concurrently.
 	 */
 	async initialize(): Promise<void> {
-		await Promise.all([this.fetchZones(), this.fetchMasses(), this.getLingkungans()]);
+		await Promise.all([this.fetchZones(), this.fetchMasses(), this.retrieveLingkungans()]);
 	}
 
-	async getChurch(): Promise<Church> {
+	async retrieveChurch(): Promise<Church> {
 		this.church = await repo.findChurchById(this.churchId);
 		return this.church;
 	}
@@ -70,7 +71,7 @@ export class ChurchService {
 	 * Retrieves the list of masses for the church, initializing if necessary.
 	 * @returns A promise that resolves to an array of Mass objects.
 	 */
-	async getMasses(): Promise<Mass[]> {
+	async retrieveMasses(): Promise<Mass[]> {
 		await this.initialize();
 		return this.masses;
 	}
@@ -79,7 +80,7 @@ export class ChurchService {
 	 * Retrieves the list of zones for the church, initializing if necessary.
 	 * @returns A promise that resolves to an array of ChurchZone objects.
 	 */
-	async getZones(): Promise<ChurchZone[]> {
+	async retrieveZones(): Promise<ChurchZone[]> {
 		await this.initialize();
 		return this.zones;
 	}
@@ -89,7 +90,7 @@ export class ChurchService {
 	 * @param massId The ID of the mass to filter zones by
 	 * @returns A promise that resolves to an array of ChurchZone objects for the given mass
 	 */
-	async getZonesByEvent(eventId: string): Promise<ChurchZone[]> {
+	async retrieveZonesByEvent(eventId: string): Promise<ChurchZone[]> {
 		const zones = await repo.getZonesByEvent(this.churchId, eventId);
 		return zones;
 	}
@@ -99,7 +100,7 @@ export class ChurchService {
 	 * Retrieves the list of events for the church from the repository.
 	 * @returns A promise that resolves to an array of Event objects.
 	 */
-	async getEvents(limit?: number): Promise<Event[]> {
+	async retrieveEvents(limit?: number): Promise<Event[]> {
 		this.events = await repo.getEvents(this.churchId, limit);
 		return this.events;
 	}
@@ -108,7 +109,7 @@ export class ChurchService {
 	 * Retrieves the list of wilayahs (regions) for the church from the repository.
 	 * @returns A promise that resolves to an array of Wilayah objects.
 	 */
-	async getWilayahs(): Promise<Wilayah[]> {
+	async retrieveWilayahs(): Promise<Wilayah[]> {
 		this.wilayahs = await repo.getWilayahs(this.churchId);
 		return this.wilayahs;
 	}
@@ -117,16 +118,16 @@ export class ChurchService {
 	 * Retrieves the list of lingkungans (sub-regions) for the church from the repository.
 	 * @returns A promise that resolves to an array of Lingkungan objects.
 	 */
-	async getLingkungans(): Promise<Lingkungan[]> {
+	async retrieveLingkungans(): Promise<Lingkungan[]> {
 		this.lingkungans = await repo.getLingkungans(this.churchId);
 		return this.lingkungans;
 	}
 
-	async fetchLingkunganById(lingkunganId: string): Promise<Lingkungan> {
+	async retrieveLingkunganById(lingkunganId: string): Promise<Lingkungan> {
 		return await repo.getLingkunganById(lingkunganId);
 	}
 
-	async getPositionsByMass(massId: string): Promise<ChurchPosition[]> {
+	async retrievePositionsByMass(massId: string): Promise<ChurchPosition[]> {
 		return await repo.getPositionsByMass(this.churchId, massId);
 	}
 }

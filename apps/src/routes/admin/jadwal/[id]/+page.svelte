@@ -12,19 +12,20 @@
 		TrashBinOutline,
 		UsersOutline
 	} from 'flowbite-svelte-icons';
-	export let data;
 
-	$: jadwalDetail = data.jadwalDetail;
-	$: zones = data.zones;
+	let { data } = $props();
 
-	let openRow: number | null = null;
-	let isDeleteConfirmation = false;
+	let jadwalDetail = $derived(data.jadwalDetail);
+	let zones = $derived(data.zones);
+
+	let openRow = $state<number | null>(null);
+	let isDeleteConfirmation = $state(false);
+	let deleting = $state(false);
 
 	const toggleRow = (i: number) => {
 		openRow = openRow === i ? null : i;
 	};
 
-	let deleting = false;
 	// let defaultModal = false;
 </script>
 

@@ -14,7 +14,8 @@ export async function findChurchById(db: ReturnType<typeof drizzle>, id: string)
 		id: result[0]?.id ?? '',
 		name: result[0]?.name ?? '',
 		code: result[0]?.code ?? '',
-		parish: result[0]?.parish ?? ''
+		parish: result[0]?.parish ?? '',
+		active: result[0]?.active ?? 1
 	};
 }
 
@@ -51,13 +52,24 @@ export async function findZonesByEvent(
 	const massZones = await db
 		.select()
 		.from(mass_zone)
-		.where(eq(mass_zone.mass, resultEvent[0].mass_id))
+		.where(
+			and(
+				eq(mass_zone.mass, resultEvent[0].mass_id),
+				eq(mass_zone.active, 1)
+			)
+		)
 		.orderBy(mass_zone.sequence);
 
 	const churchZones = await db
 		.select()
 		.from(church_zone)
-		.where(inArray(church_zone.id, massZones.map((zone) => zone.zone)))
+		.where(
+			and(
+				eq(church_zone.church, churchId),
+				inArray(church_zone.id, massZones.map((zone) => zone.zone)),
+				eq(church_zone.active, 1)
+			)
+		)
 		.orderBy(church_zone.sequence);
 
 	return churchZones.map((zone) => ({
@@ -92,7 +104,8 @@ export async function findPositionByChurch(
 		description: position.church_position.description,
 		isPpg: position.church_position.isPpg ? true : false,
 		sequence: position.church_position.sequence,
-		type: position.church_position.type
+		type: position.church_position.type,
+		active: position.church_position.active
 	}));
 }
 
@@ -129,10 +142,11 @@ export async function findPositionByMass(
 		.leftJoin(mass_zone, eq(mass_zone.zone, church_zone.id))
 		.where(
 			and(
-				eq(church_position.zone, church_zone.id),
 				eq(mass_zone.mass, massId),
 				eq(church_zone.church, churchId),
-				eq(church_position.active, 1)
+				eq(church_position.active, 1),
+				eq(church_zone.active, 1),
+				eq(mass_zone.active, 1)
 			)
 		)
 		.orderBy(mass_zone.sequence, church_zone.sequence, church_position.sequence);
@@ -146,10 +160,8 @@ export async function findPositionByMass(
 		description: position.church_position.description,
 		isPpg: position.church_position.isPpg ? true : false,
 		sequence: position.church_position.sequence,
-		type: position.church_position.type
+		type: position.church_position.type,
+		active: position.church_position.active
 	}));
-}
-function debug(result: { church_zone: { name: string; description: string | null; church: string | null; id: string; code: string | null; sequence: number | null; pic: string | null; }; mass_zone: { id: string; sequence: number | null; mass: string; zone: string; is_active: number; }; }[]) {
-	throw new Error('Function not implemented.');
 }
 

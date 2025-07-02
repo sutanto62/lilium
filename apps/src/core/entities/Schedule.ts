@@ -19,7 +19,7 @@ export interface MassZone {
 	id: string;
 	mass: string;
 	zone: string;
-	isActive: boolean;
+	active: number;
 	sequence: number;
 }
 
@@ -28,16 +28,28 @@ export interface Church {
 	name: string;
 	code: string;
 	parish: string | null;
+	active: number;
 }
 
-export interface ChurchZone {
+export interface ChurchZoneGroup {
 	id: string;
 	church: string;
 	name: string;
 	code: string | null;
 	description: string | null;
 	sequence: number | null;
-	pic: string | null;
+	active: number;
+}
+
+export interface ChurchZone {
+	id: string;
+	church: string;
+	group: string | null;
+	name: string;
+	code: string | null;
+	description: string | null;
+	sequence: number | null;
+	active: number;
 }
 
 export interface ChurchPosition {
@@ -50,6 +62,7 @@ export interface ChurchPosition {
 	isPpg: boolean | false;
 	sequence: number | null;
 	type: string;
+	active: number;
 }
 
 export interface Wilayah {
@@ -58,6 +71,7 @@ export interface Wilayah {
 	code: string | null;
 	sequence: number | null;
 	church: string | null;
+	active: number;
 }
 
 export interface Lingkungan {
@@ -66,6 +80,7 @@ export interface Lingkungan {
 	wilayah: string | null;
 	sequence: number | null;
 	church: string | null;
+	active: number;
 }
 
 export interface Usher {

@@ -20,7 +20,7 @@ export const load: PageServerLoad = async (event) => {
     const eventService = new EventService(churchId);
 
     try {
-        const event = await eventService.fetchEventById(eventId);
+        const event = await eventService.retrieveEventById(eventId);
         if (!event) {
             throw redirect(302, '/admin/misa');
         }

@@ -175,6 +175,8 @@ export const actions = {
 		try {
 			// Get the mass ID from the event
 			const confirmedEvent = await eventService.retrieveEventById(eventId)
+			logger.info(`tatib: confirmedEvent: ${confirmedEvent.id}`);
+			logger.info(`tatib: confirmedEvent: ${confirmedEvent.mass}`);
 
 			// TODO: change to service
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([

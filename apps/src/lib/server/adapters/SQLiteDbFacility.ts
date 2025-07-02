@@ -31,11 +31,12 @@ export async function findZonesByChurch(
 	return result.map((zone) => ({
 		id: zone.id,
 		church: zone.church ?? '',
+		group: zone.church_zone_group ?? null,
 		name: zone.name,
 		code: zone.code,
 		description: zone.description,
 		sequence: zone.sequence,
-		pic: zone.pic
+		active: zone.active
 	}));
 }
 
@@ -62,11 +63,12 @@ export async function findZonesByEvent(
 	return churchZones.map((zone) => ({
 		id: zone.id,
 		church: zone.church ?? '',
+		group: zone.church_zone_group ?? null,
 		name: zone.name,
 		code: zone.code,
 		description: zone.description,
 		sequence: zone.sequence,
-		pic: zone.pic
+		active: zone.active
 	}));
 }
 

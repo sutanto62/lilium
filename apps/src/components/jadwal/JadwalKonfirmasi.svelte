@@ -108,7 +108,7 @@
 
 <!-- PIC modal for adding pic to zone -->
 <Modal title="Tambah PIC" bind:open={defaultModal}>
-	<form method="POST" action="?/updatePic">
+	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPic}>
 		<div class="mb-4 grid gap-4 sm:grid-cols-1">
 			<div>
 				<Label for="zone" class="mb-2">Zona Tugas</Label>

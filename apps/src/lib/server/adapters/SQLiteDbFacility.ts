@@ -1,6 +1,5 @@
 import type { Church, ChurchPosition, ChurchZone } from '$core/entities/Schedule';
 import { church, church_position, church_zone, event, mass_zone } from '$src/lib/server/db/schema';
-import { logger } from '$src/lib/utils/logger';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 
@@ -50,8 +49,6 @@ export async function findZonesByEvent(
 
 	const resultEvent = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
 
-	logger.debug(`resultEvent: ${JSON.stringify(resultEvent[0].mass_id)}`);
-
 	const massZones = await db
 		.select()
 		.from(mass_zone)
@@ -68,8 +65,6 @@ export async function findZonesByEvent(
 		return [];
 	}
 
-	logger.debug(`zoneIds: ${JSON.stringify(zoneIds)}`);
-
 	const churchZones = await db
 		.select()
 		.from(church_zone)
@@ -81,8 +76,6 @@ export async function findZonesByEvent(
 			)
 		)
 		.orderBy(church_zone.sequence);
-
-	logger.debug(`churchZones: ${JSON.stringify(churchZones.map((zone) => zone.name))}`);
 
 	return churchZones.map((zone) => ({
 		id: zone.id,
@@ -154,11 +147,10 @@ export async function findPositionByMass(
 		.leftJoin(mass_zone, eq(mass_zone.zone, church_zone.id))
 		.where(
 			and(
+				eq(church_position.zone, church_zone.id),
 				eq(mass_zone.mass, massId),
 				eq(church_zone.church, churchId),
-				eq(church_position.active, 1),
-				eq(church_zone.active, 1),
-				eq(mass_zone.active, 1)
+				eq(church_position.active, 1)
 			)
 		)
 		.orderBy(mass_zone.sequence, church_zone.sequence, church_position.sequence);

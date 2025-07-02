@@ -1,5 +1,6 @@
 import type { Church, ChurchPosition, ChurchZone } from '$core/entities/Schedule';
 import { church, church_position, church_zone, event, mass_zone } from '$src/lib/server/db/schema';
+import { logger } from '$src/lib/utils/logger';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 
@@ -49,6 +50,8 @@ export async function findZonesByEvent(
 
 	const resultEvent = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
 
+	logger.debug(`resultEvent: ${JSON.stringify(resultEvent[0].mass_id)}`);
+
 	const massZones = await db
 		.select()
 		.from(mass_zone)
@@ -60,17 +63,26 @@ export async function findZonesByEvent(
 		)
 		.orderBy(mass_zone.sequence);
 
+	const zoneIds = massZones.map((zone) => zone.zone);
+	if (zoneIds.length === 0) {
+		return [];
+	}
+
+	logger.debug(`zoneIds: ${JSON.stringify(zoneIds)}`);
+
 	const churchZones = await db
 		.select()
 		.from(church_zone)
 		.where(
 			and(
 				eq(church_zone.church, churchId),
-				inArray(church_zone.id, massZones.map((zone) => zone.zone)),
+				inArray(church_zone.id, zoneIds),
 				eq(church_zone.active, 1)
 			)
 		)
 		.orderBy(church_zone.sequence);
+
+	logger.debug(`churchZones: ${JSON.stringify(churchZones.map((zone) => zone.name))}`);
 
 	return churchZones.map((zone) => ({
 		id: zone.id,

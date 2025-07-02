@@ -152,6 +152,9 @@ export class QueueManager {
 			// Remove the processed queue item
 			this.confirmationQueue.shift();
 			this.assignedUshers = [...this.assignedUshers, ...newAssignedUshers];
+
+			// Sort assigned ushers by name for consistent display order
+			this.assignedUshers.sort((a, b) => a.name.localeCompare(b.name));
 		}
 	}
 

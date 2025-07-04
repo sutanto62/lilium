@@ -5,15 +5,16 @@ import {
 	type Event as ChurchEvent,
 	type ChurchEventResponse,
 	type EventPicRequest,
+	type EventScheduleResponse,
+	type EventScheduleRows,
 	type EventUsher,
-	type JadwalDetailResponse,
-	type JadwalDetailZone,
 	type UsherByEventResponse
 } from '$core/entities/Event';
 import {
 	church,
 	church_position,
 	church_zone,
+	church_zone_group,
 	event,
 	event_usher,
 	event_zone_pic,
@@ -22,7 +23,7 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { DatabaseError } from '$src/types/errors';
+import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
@@ -97,6 +98,23 @@ export async function createEventUsher(
 	return true;
 }
 
+
+
+
+/**
+ * Creates a person in charge (PIC) for an event OR event zone
+ * 
+ * @param db - The database instance
+ * @param request - The event PIC request containing event ID, zone ID, and PIC name
+ * @returns A promise that resolves to true if the PIC was successfully created
+ * 
+ * @example
+ * const result = await createEventPic(db, {
+ *   event: "event-uuid",
+ *   zone: "Gereja" or "Gereja Balkon Samping"
+ *   name: "John Doe"
+ * });
+ */
 export async function createEventPic(
 	db: ReturnType<typeof drizzle>,
 	request: EventPicRequest
@@ -124,7 +142,16 @@ export async function createEventPic(
 //     await Promise.all(updates);
 // }
 
-export async function updateEventUshers(
+/**
+ * Updates positions for multiple event ushers
+ * 
+ * @param db - The database instance
+ * @param eventUshers - Array of EventUsher objects with updated positions
+ * @returns Promise resolving to update result with success status and count
+ * @throws {DatabaseError} When database operation fails
+ * @throws {ValidationError} When input validation fails
+ */
+export async function editEventUshers(
 	db: ReturnType<typeof drizzle>,
 	eventUshers: EventUsher[]
 ): Promise<{ success: boolean; updatedCount: number }> {
@@ -132,19 +159,22 @@ export async function updateEventUshers(
 		return { success: true, updatedCount: 0 };
 	}
 
-	const updates = eventUshers.map((item) => {
-		return db
-			.update(event_usher)
-			.set({ position: item.position, })
-			.where(eq(event_usher.id, item.id));
+	// Validate each usher has required fields
+	for (const usher of eventUshers) {
+		if (!usher.id || !usher.name) {
+			throw new ValidationError('Invalid usher data: missing required fields');
+		}
+	}
+
+	await db.transaction(async (tx) => {
+		for (const item of eventUshers) {
+			await tx.update(event_usher)
+				.set({ position: item.position })
+				.where(eq(event_usher.id, item.id));
+		}
 	});
 
-	try {
-		await Promise.all(updates);
-		return { success: true, updatedCount: eventUshers.length };
-	} catch (error) {
-		throw new Error('Failed to update event ushers');
-	}
+	return { success: true, updatedCount: eventUshers.length };
 }
 
 export async function deleteEventUsher(
@@ -491,6 +521,7 @@ export async function findUshersByLingkungan(
 	);
 }
 
+// TODO: Add pagination
 export async function findUshersByEvent(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
@@ -513,7 +544,12 @@ export async function findUshersByEvent(
 		.leftJoin(lingkungan, eq(lingkungan.id, event_usher.lingkungan))
 		.leftJoin(church_position, eq(church_position.id, event_usher.position))
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
-		.where(eq(event_usher.event, eventId))
+		.where(
+			and(
+				eq(event_usher.event, eventId),
+				eq(event_usher.active, 1)
+			)
+		)
 		.orderBy(event_usher.createdAt, church_zone.sequence, church_position.sequence);
 
 	// Transform number to boolean
@@ -526,10 +562,10 @@ export async function findUshersByEvent(
 	return result;
 }
 
-export async function readJadwalDetail(
+export async function findEventSchedule(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
-): Promise<JadwalDetailResponse> {
+): Promise<EventScheduleResponse> {
 
 	// Get mass event
 	const massEvent = await db
@@ -556,10 +592,14 @@ export async function readJadwalDetail(
 	}
 
 	// Get event ushers
+	// TODO: could we use fetchEventUshers instead? lingkunganId is required
 	const massEventUsher = await db
 		.select({
 			id: church_zone.id,
 			zone: church_zone.name,
+			eventUsherId: event_usher.id,
+			groupId: church_zone.church_zone_group,
+			group: church_zone_group.name,
 			wilayah: wilayah.name,
 			lingkunganId: lingkungan.id,
 			lingkungan: lingkungan.name,
@@ -573,6 +613,7 @@ export async function readJadwalDetail(
 		.leftJoin(lingkungan, eq(lingkungan.id, event_usher.lingkungan))
 		.leftJoin(church_position, eq(church_position.id, event_usher.position))
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, church_zone.church_zone_group))
 		.where(eq(event_usher.event, eventId))
 		.orderBy(church_zone.sequence, lingkungan.sequence, church_position.sequence);
 
@@ -590,13 +631,15 @@ export async function readJadwalDetail(
 
 	// Define the type for our accumulator (reducer)
 	interface ZoneAccumulator {
-		[key: string]: JadwalDetailZone;
+		[key: string]: EventScheduleRows;
 	}
 
 	// Transforms result to rows: JadwalDetailZone
 	const groupedByZone = massEventUsher.reduce((acc: ZoneAccumulator, r) => {
-		const zoneName = r.zone || 'Non Zona';
-		const zoneId = r.id || '';
+
+		const zoneName = r.group || 'Non Zona';
+		const zoneId = r.groupId || '';
+
 		if (!acc[zoneName]) {
 			acc[zoneName] = {
 				id: zoneId,
@@ -685,6 +728,7 @@ export async function softDeleteEvent(
 		.catch(() => false);
 }
 
+// TODO: refactor business logic to service
 export async function findCetakJadwal(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
@@ -704,8 +748,8 @@ export async function findCetakJadwal(
 
 	// Process data into required format
 	const rowsUshers = processUshersByZone(massEventUsher, massEventPic);
-	const rowsKolekte = processSpecialUshers(massEventUsher.filter(usher => usher.isKolekte === 1), 'Menghitung uang kolekte');
-	const rowsPpg = processSpecialUshers(massEventUsher.filter(usher => usher.isPpg === 1), 'Menghitung uang amplop PPG');
+	const rowsKolekte = processSpecialUshers(massEventUsher.filter(usher => usher.isKolekte === 1), 'Kolekte', 'Menghitung uang kolekte');
+	const rowsPpg = processSpecialUshers(massEventUsher.filter(usher => usher.isPpg === 1), 'PPG', 'Menghitung uang amplop PPG');
 
 	return {
 		...massEvent,
@@ -765,6 +809,7 @@ async function fetchEventUshers(db: ReturnType<typeof drizzle>, eventId: string)
 	return await db
 		.select({
 			id: church_zone.id,
+			group: church_zone_group.name,
 			zone: church_zone.name,
 			wilayah: wilayah.name,
 			lingkungan: lingkungan.name,
@@ -779,7 +824,8 @@ async function fetchEventUshers(db: ReturnType<typeof drizzle>, eventId: string)
 		.leftJoin(lingkungan, eq(lingkungan.id, event_usher.lingkungan))
 		.leftJoin(church_position, eq(church_position.id, event_usher.position))
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
-		.orderBy(church_zone.sequence, church_position.sequence)
+		.leftJoin(church_zone_group, eq(church_zone_group.id, church_zone.church_zone_group))
+		.orderBy(church_position.sequence)
 		.where(eq(event_usher.event, eventId));
 }
 
@@ -803,7 +849,7 @@ function processUshersByZone(ushers: any[], pics: any[]): CetakJadwalSection[] {
 	}
 
 	const rowsUshersData = ushers.reduce((acc: CetakAccumulator, r) => {
-		const zone = r.zone || 'Non Zona';
+		const zone = r.group || 'Non Zona';
 
 		if (!acc[zone]) {
 			acc[zone] = {
@@ -845,13 +891,13 @@ function processUshersByZone(ushers: any[], pics: any[]): CetakJadwalSection[] {
 	// });
 }
 
-function processSpecialUshers(ushers: any[], zoneName: string): CetakJadwalSection[] {
+function processSpecialUshers(ushers: any[], zoneGroupName: string, zoneName: string): CetakJadwalSection[] {
 	if (ushers.length === 0) {
 		return [];
 	}
 
 	const section: CetakJadwalSection = {
-		zone: zoneName,
+		zone: zoneGroupName,
 		pic: '',
 		rowSpan: ushers.length,
 		ushers: ushers.map(createUsherEntry)

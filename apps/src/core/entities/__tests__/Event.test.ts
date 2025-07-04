@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Event, EventPicRequest, EventUsher, JadwalDetailResponse, UsherByEventResponse } from '../Event';
+import type { Event, EventPicRequest, EventScheduleResponse, EventUsher, UsherByEventResponse } from '../Event';
 import { EventType } from '../Event';
 
 describe('Event Entity', () => {
@@ -122,7 +122,7 @@ describe('Event Entity', () => {
 
     describe('JadwalDetailResponse Interface', () => {
         it('should create a valid JadwalDetailResponse object', () => {
-            const jadwalDetailResponse: JadwalDetailResponse = {
+            const jadwalDetailResponse: EventScheduleResponse = {
                 id: '1',
                 church: 'Church Name',
                 mass: 'Mass Name',

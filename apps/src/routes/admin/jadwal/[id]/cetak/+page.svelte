@@ -4,10 +4,10 @@
 
 	export let data;
 
-	$: mass = data.jadwalDetail;
-	$: zones = mass.listUshers;
-	$: kolekte = mass.listKolekte;
-	$: ppg = mass.listPpg;
+	$: event = data.jadwalDetail;
+	$: zones = event.listUshers;
+	$: kolekte = event.listKolekte;
+	$: ppg = event.listPpg;
 	$: church = data.church;
 
 	async function downloadImage() {
@@ -25,8 +25,8 @@
 
 			// Create temporary link element
 			const link = document.createElement('a');
-			link.download = `jadwal_${mass.date?.replace(/\s+/g, '_')}_${
-				mass.date ? new Date(mass.date).toISOString().split('T')[0] : 'undated'
+			link.download = `jadwal_${event.date?.replace(/\s+/g, '_')}_${
+				event.date ? new Date(event.date).toISOString().split('T')[0] : 'undated'
 			}.png`;
 			link.href = dataUrl;
 
@@ -62,10 +62,10 @@
 		<h1
 			class="mb-0 text-xl font-bold leading-none tracking-tight text-gray-900 dark:text-white md:text-xl lg:text-2xl"
 		>
-			Misa {mass.mass}
+			Misa {event.mass}
 			<br />
-			{mass.date
-				? new Date(mass.date).toLocaleDateString('id-ID', {
+			{event.date
+				? new Date(event.date).toLocaleDateString('id-ID', {
 						weekday: 'long',
 						year: 'numeric',
 						month: 'long',
@@ -77,7 +77,7 @@
 			<h2 class="mb-2 font-bold">CATATAN:</h2>
 			<ol class="max-w-full list-inside list-decimal space-y-1" style="margin-left: 2rem">
 				<li>
-					Petugas TATIB dan PM wajib hadir {mass.briefingTime ?? 'sesuai instruksi'} sebelum Misa untuk
+					Petugas TATIB dan PM wajib hadir {event.briefingTime ?? 'sesuai instruksi'} sebelum Misa untuk
 					briefing
 				</li>
 				<li>
@@ -126,6 +126,9 @@
 					</tr>
 				{/each}
 			{/each}
+			<tr class="bg-green-300">
+				<td colspan="6" class="border border-black">PIC Tatib PETA</td>
+			</tr>
 			<tr class="bg-yellow-300">
 				<td colspan="6" class="border border-black">Setelah selesai perayaan Misa Ekaristi</td>
 			</tr>

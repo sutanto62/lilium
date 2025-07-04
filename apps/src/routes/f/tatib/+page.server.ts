@@ -131,7 +131,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions = {
 	default: async ({ request, cookies }) => {
-		logger.info('event ushers confirmation is starting')
+		logger.info('confirming ushers ...')
 
 		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {

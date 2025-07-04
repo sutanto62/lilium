@@ -62,50 +62,50 @@ const createMockRequestEvent = (formData: FormData) => ({
 	isSubRequest: false
 } as unknown as RequestEvent<RouteParams, '/f/tatib'>);
 
-test('should return 400 if massId is missing', async () => {
+test('should return 422 if massId is missing', async () => {
 	const formData = new FormData();
 	formData.append('wilayahId', 'wilayah1');
 	formData.append('lingkunganId', 'lingkungan1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Mohon lengkapi semua isian.' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Mohon lengkapi semua isian.' } });
 });
 
-test('should return 400 if wilayahId is missing', async () => {
+test('should return 422 if wilayahId is missing', async () => {
 	const formData = new FormData();
 	formData.append('massId', 'mass1');
 	formData.append('lingkunganId', 'lingkungan1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Mohon lengkapi semua isian.' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Mohon lengkapi semua isian.' } });
 });
 
-test('should return 400 if lingkunganId is missing', async () => {
+test('should return 422 if lingkunganId is missing', async () => {
 	const formData = new FormData();
 	formData.append('massId', 'mass1');
 	formData.append('wilayahId', 'wilayah1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Mohon lengkapi semua isian.' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Mohon lengkapi semua isian.' } });
 });
 
-test('should return 400 if ushers is missing', async () => {
+test('should return 422 if ushers is missing', async () => {
 	const formData = new FormData();
 	formData.append('massId', 'mass1');
 	formData.append('wilayahId', 'wilayah1');
 	formData.append('lingkunganId', 'lingkungan1');
 
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Mohon lengkapi semua isian.' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Mohon lengkapi semua isian.' } });
 });
 
-test('should return 400 if all fields are missing', async () => {
+test('should return 422 if all fields are missing', async () => {
 	const formData = new FormData();
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Mohon lengkapi semua isian.' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Mohon lengkapi semua isian.' } });
 });
 
 // Tests for weekend restrictions
@@ -121,7 +121,7 @@ test('should reject submission on weekends when feature flag is enabled', async 
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Batas konfirmasi tugas Senin s.d. Kamis' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Batas konfirmasi tugas Senin s.d. Kamis' } });
 });
 
 // Tests for error handling
@@ -147,14 +147,16 @@ test('should handle queue processing errors', async () => {
 		isPpg: false,
 		sequence: 1,
 		type: 'usher',
-		zone: 'Zone 1'
+		zone: 'Zone 1',
+		active: 1
 	};
 	const mockLingkungan: Lingkungan = {
 		id: 'lingkungan1',
 		name: 'Lingkungan 1',
 		wilayah: 'wilayah1',
 		sequence: 1,
-		church: 'church1'
+		church: 'church1',
+		active: 1
 	};
 	const mockQueueManager = {
 		submitConfirmationQueue: vi.fn().mockResolvedValue(undefined),
@@ -179,7 +181,7 @@ test('should handle queue processing errors', async () => {
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
 	const result = await actions.default(createMockRequestEvent(formData));
-	expect(result).toEqual({ status: 400, data: { error: 'Batas konfirmasi tugas Senin s.d. Kamis' } });
+	expect(result).toEqual({ status: 422, data: { error: 'Batas konfirmasi tugas Senin s.d. Kamis' } });
 });
 
 describe('validateUsherNames', () => {
@@ -248,13 +250,13 @@ describe('validateUsherNames', () => {
 		});
 	});
 
-	test('should reject names with abbreviation character', () => {
+	test('should reject names with dots', () => {
 		const ushers = [createMockUsher('John S. Doe')];
 		const result = validateUsherNames(ushers);
 
 		expect(result).toEqual({
 			isValid: false,
-			error: 'Nama petugas tidak boleh mengandung singkatan 1 huruf: John S. Doe'
+			error: 'Nama petugas tidak boleh mengandung titik: John S. Doe'
 		});
 	});
 

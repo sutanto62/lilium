@@ -31,7 +31,7 @@ export class UsherService {
      * @returns A promise that resolves to an array of EventUsher objects
      */
     async retrieveEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
-        return await repo.getEventUshers(eventId);
+        return await repo.findEventUshers(eventId);
     }
 
     /**

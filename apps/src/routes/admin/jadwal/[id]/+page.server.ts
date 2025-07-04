@@ -23,15 +23,16 @@ export const load: PageServerLoad = async (event) => {
 	const eventId = event.params.id;
 
 	const eventService = new EventService(churchId);
-	const [jadwalDetail] = await Promise.all([eventService.retrieveEventSchedule(eventId)]);
+	const [eventDetail] = await Promise.all([eventService.retrieveEventSchedule(eventId)]);
 
 	// Get zones
 	const churchService = new ChurchService(churchId);
-	const [zones] = await Promise.all([churchService.retrieveZonesByEvent(eventId)]);
+	// const [zones] = await Promise.all([churchService.retrieveZonesByEvent(eventId)]);
+	const zoneGroups = await churchService.retrieveZoneGroupsByEvent(eventId);
 
 	return {
-		jadwalDetail,
-		zones,
+		eventDetail,
+		zones: zoneGroups,
 		wilayahs: [],
 		lingkungans: [],
 		events: [],

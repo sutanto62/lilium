@@ -17,20 +17,22 @@ CREATE TABLE `church_position` (
 	`sequence` integer,
 	`type` text NOT NULL,
 	`active` integer DEFAULT 1 NOT NULL,
-	`created_at` integer,
+	`created_at` integer default (unixepoch()),
 	FOREIGN KEY (`church_zone_id`) REFERENCES `church_zone`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `church_zone` (
 	`id` text PRIMARY KEY NOT NULL,
 	`church_id` text,
+	`church_zone_group_id` text,
 	`name` text,
 	`code` text,
 	`description` text,
 	`sequence` integer,
 	`active` integer DEFAULT 1 NOT NULL,
-	`created_at` integer,
-	FOREIGN KEY (`church_id`) REFERENCES `church`(`id`) ON UPDATE no action ON DELETE cascade
+	`created_at` integer default (unixepoch()),
+	FOREIGN KEY (`church_id`) REFERENCES `church`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`church_zone_group_id`) REFERENCES `church_zone_group`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
 CREATE TABLE `event` (

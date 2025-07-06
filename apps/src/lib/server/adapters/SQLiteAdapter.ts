@@ -5,6 +5,7 @@ import {
 	createEventPic,
 	createEventUsher,
 	deleteEventUsher,
+	editEventUshers,
 	findCetakJadwal,
 	findEvent,
 	findEventByChurch,
@@ -14,20 +15,20 @@ import {
 	findEventsByDateRange,
 	findEventsByLingkungan,
 	findEventsByWeekNumber,
+	findEventSchedule,
 	findEventUshers,
 	findEventUshersPosition,
 	findUshersByEvent,
 	findUshersByLingkungan,
-	readJadwalDetail,
 	softDeleteEvent,
-	updateEventById,
-	updateEventUshers
+	updateEventById
 } from './SQLiteDbEvent';
 import {
 	findChurchById,
 	findChurches,
 	findPositionByChurch,
 	findPositionByMass,
+	findZoneGroupsByEvent,
 	findZonesByChurch,
 	findZonesByEvent
 } from './SQLiteDbFacility';
@@ -79,14 +80,14 @@ export class SQLiteAdapter implements ScheduleRepository {
 		findEventsByLingkungan(this.db, churchId, lingkunganId, all);
 
 
-	findJadwalDetail = (eventId: string) => readJadwalDetail(this.db, eventId);
+	findEventSchedule = (eventId: string) => findEventSchedule(this.db, eventId);
 	deactivateEvent = (eventId: string) => softDeleteEvent(this.db, eventId);
 
 	insertEvent = (event: ChurchEvent) =>
 		createEvent(this.db, event);
 	createEventPic = (request: EventPicRequest) => createEventPic(this.db, request);
 
-	editEventUshers = (eventUshers: EventUsher[]) => updateEventUshers(this.db, eventUshers);
+	editEventUshers = (eventUshers: EventUsher[]) => editEventUshers(this.db, eventUshers);
 	findEvent = (churchId: string, massId?: string, date?: string) =>
 		findEvent(this.db, churchId, massId, date);
 	findEventById = (id: string) => findEventByIdResponse(this.db, id);
@@ -95,7 +96,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	// Ushers
 	listUshers = (eventId: string) => findUshersByEvent(this.db, eventId);
-	getEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
+	findEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
 	listUshersByLingkungan = (eventId: string, lingkunganId: string) =>
 		findUshersByLingkungan(this.db, eventId, lingkunganId);
@@ -115,6 +116,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	getZones = (id: string): Promise<ChurchZone[]> => findZonesByChurch(this.db, id);
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
+	getZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
 	findPositionByChurch = (id: string) => findPositionByChurch(this.db, id);
 
 	// Authentication

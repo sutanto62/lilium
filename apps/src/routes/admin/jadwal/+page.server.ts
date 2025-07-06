@@ -1,7 +1,7 @@
 import type { Event } from '$core/entities/Event';
 import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
-import { EventService } from '$core/service/EventService';
+import { UsherService } from '$core/service/UsherService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
@@ -46,7 +46,7 @@ export const load: PageServerLoad = async (event) => {
 
 	// Initialize services
 	const churchService = new ChurchService(churchId);
-	const eventService = new EventService(churchId);
+	const usherService = new UsherService(churchId);
 
 	// Fetch masses and events concurrently
 	try {
@@ -68,7 +68,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 
 				// Fetch ushers for the event
-				const ushers = await eventService.retrieveEventUshers(event.id);
+				const ushers = await usherService.retrieveEventUshers(event.id);
 
 				// Calculate usher statistics
 				const requiredPositions = await churchService.retrievePositionsByMass(massDetails.mass);

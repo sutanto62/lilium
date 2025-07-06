@@ -1,6 +1,6 @@
-import type { Church, ChurchPosition, ChurchZone } from '$core/entities/Schedule';
-import { church, church_position, church_zone, event, mass_zone } from '$src/lib/server/db/schema';
-import { and, eq, inArray } from 'drizzle-orm';
+import type { Church, ChurchPosition, ChurchZone, ChurchZoneGroup } from '$core/entities/Schedule';
+import { church, church_position, church_zone, church_zone_group, event, mass, mass_zone } from '$src/lib/server/db/schema';
+import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 
 export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Church[]> {
@@ -41,51 +41,100 @@ export async function findZonesByChurch(
 	}));
 }
 
+export async function findZoneGroupsByEvent(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	eventId: string
+): Promise<ChurchZoneGroup[]> {
+	const result = await db
+		.select()
+		.from(church_zone_group)
+		.where(eq(church_zone_group.church, churchId))
+		.orderBy(church_zone_group.sequence);
+
+	return result.map((group) => ({
+		id: group.id,
+		church: group.church ?? '',
+		name: group.name,
+		code: group.code,
+		description: group.description,
+		sequence: group.sequence,
+		active: group.active,
+	}));
+}
+
 export async function findZonesByEvent(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	eventId: string
 ): Promise<ChurchZone[]> {
 
-	const resultEvent = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
+	// const resultEvent = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
+	// logger.debug(`resultEvent: ${JSON.stringify(resultEvent)}`);
 
-	const massZones = await db
-		.select()
-		.from(mass_zone)
-		.where(
-			and(
-				eq(mass_zone.mass, resultEvent[0].mass_id),
-				eq(mass_zone.active, 1)
-			)
-		)
-		.orderBy(mass_zone.sequence);
+	// const massZones = await db
+	// 	.select()
+	// 	.from(mass_zone)
+	// 	.where(
+	// 		and(
+	// 			eq(mass_zone.mass, resultEvent[0].mass_id),
+	// 			eq(mass_zone.active, 1)
+	// 		)
+	// 	)
+	// 	.orderBy(mass_zone.sequence);
 
-	const zoneIds = massZones.map((zone) => zone.zone);
-	if (zoneIds.length === 0) {
-		return [];
-	}
+	// const zoneIds = massZones.map((zone) => zone.zone);
+	// if (zoneIds.length === 0) {
+	// 	return [];
+	// }
 
-	const churchZones = await db
-		.select()
-		.from(church_zone)
-		.where(
-			and(
-				eq(church_zone.church, churchId),
-				inArray(church_zone.id, zoneIds),
-				eq(church_zone.active, 1)
-			)
-		)
+	// const churchZones = await db
+	// 	.select()
+	// 	.from(church_zone)
+	// 	.where(
+	// 		and(
+	// 			eq(church_zone.church, churchId),
+	// 			inArray(church_zone.id, zoneIds),
+	// 			eq(church_zone.active, 1)
+	// 		)
+	// 	)
+	// 	.orderBy(church_zone.sequence);
+
+	// logger.debug(`churchZones: ${churchZones.map((zone) => zone.name).join(', ')}`);
+
+	const zones = await db
+		.select({
+			id: church_zone.id,
+			church: church_zone.church,
+			group: church_zone_group.name,
+			name: church_zone.name,
+			code: church_zone.code,
+			description: church_zone.description,
+			sequence: church_zone.sequence,
+			active: church_zone.active
+		})
+		.from(event)
+		.leftJoin(mass, eq(event.mass_id, mass.id))
+		.rightJoin(mass_zone, eq(mass_zone.mass, mass.id))
+		.leftJoin(church_zone, eq(church_zone.id, mass_zone.zone))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, church_zone.church_zone_group))
+		.where(and(
+			eq(event.id, eventId),
+			eq(church_zone.church, churchId),
+			eq(mass_zone.active, 1),
+			eq(church_zone.active, 1)
+		))
 		.orderBy(church_zone.sequence);
 
-	return churchZones.map((zone) => ({
-		id: zone.id,
+	return zones.map((zone) => ({
+		id: zone.id ?? '',
 		church: zone.church ?? '',
-		group: zone.church_zone_group ?? null,
-		name: zone.name,
-		code: zone.code,
-		description: zone.description,
-		sequence: zone.sequence,
-		active: zone.active
+		group: zone.group,
+		name: zone.name ?? '',
+		code: zone.code ?? '',
+		description: zone.description ?? '',
+		sequence: zone.sequence ?? 0,
+		active: zone.active ?? 0
 	}));
 }
 
@@ -144,16 +193,17 @@ export async function findPositionByMass(
 		.select()
 		.from(church_position)
 		.leftJoin(church_zone, eq(church_position.zone, church_zone.id))
+		.leftJoin(church_zone_group, eq(church_zone.church_zone_group, church_zone_group.id))
 		.leftJoin(mass_zone, eq(mass_zone.zone, church_zone.id))
 		.where(
 			and(
-				eq(church_position.zone, church_zone.id),
-				eq(mass_zone.mass, massId),
 				eq(church_zone.church, churchId),
-				eq(church_position.active, 1)
+				eq(mass_zone.mass, massId),
+				eq(church_position.active, 1),
+				eq(mass_zone.active, 1)
 			)
 		)
-		.orderBy(mass_zone.sequence, church_zone.sequence, church_position.sequence);
+		.orderBy(church_position.sequence);
 
 	return result.map((position) => ({
 		id: position.church_position.id,

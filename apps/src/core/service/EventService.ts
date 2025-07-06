@@ -3,8 +3,8 @@ import type {
 	Event as ChurchEvent,
 	ChurchEventResponse,
 	EventPicRequest,
+	EventScheduleResponse,
 	EventUsher,
-	JadwalDetailResponse,
 	UsherByEventResponse
 } from '$core/entities/Event';
 import { EventType } from '$core/entities/Event';
@@ -17,7 +17,7 @@ import { UsherService } from './UsherService';
 
 /**
  * Service class for managing church events and related operations
- * Use of Facade Pattern with Service Layer Pattern for specific domain
+ * Use of Facade Pattern (temporarily) with Service Layer Pattern for specific domain
  */
 export class EventService {
 	churchId: string;
@@ -180,7 +180,7 @@ export class EventService {
 
 	/**
 	 * Retrieves formatted usher assignments for a specific event
-	 * @deprecated Use usherService.fetchEventUshers instead
+	 * @deprecated Use usherService.retrieveEventUshers instead
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to an array of UsherByEvent objects
 	 */
@@ -247,8 +247,8 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to a JadwalDetailResponse object
 	 */
-	async retrieveEventSchedule(eventId: string): Promise<JadwalDetailResponse> {
-		return await repo.findJadwalDetail(eventId);
+	async retrieveEventSchedule(eventId: string): Promise<EventScheduleResponse> {
+		return await repo.findEventSchedule(eventId);
 	}
 
 	/**
@@ -319,18 +319,6 @@ export class EventService {
 		return this.retrieveEventUshers(eventId);
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
 	/**
 	 * @deprecated Use predefined event confirmation instead
 	 * Confirms or creates a new church event
@@ -346,10 +334,6 @@ export class EventService {
 
 		return await this.createEvent(event);
 	}
-
-
-
-
 
 	/**
 	 * Assigns a person in charge (PIC) to an event

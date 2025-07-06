@@ -15,7 +15,7 @@
 	} from 'flowbite-svelte';
 
 	import JadwalKonfirmasiDetail from '$components/jadwal/JadwalKonfirmasiDetail.svelte';
-	import type { ChurchZone } from '$core/entities/Schedule';
+	import type { ChurchZoneGroup } from '$core/entities/Schedule';
 	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 
 	// Svelte 5: Use $props() for component props
@@ -23,17 +23,18 @@
 		rows: any[];
 		openRow: number | null;
 		toggleRow: (index: number) => void;
-		zones: ChurchZone[];
+		zones: ChurchZoneGroup[];
 	}>();
 
 	// Svelte 5: Use $state() for reactive state
-	let defaultModal = $state(false);
+	let defaultModalPicZone = $state(false);
+	let defaultModalPicEvent = $state(false);
 	let selectedZoneId = $state<string | null>(null);
 	let eventZonePic = $state('');
 
 	// Svelte 5: Use $derived() for computed values
 	const zoneOptions = $derived(
-		zones.map((e: ChurchZone) => ({ value: e.id ?? '', name: e.name ?? '' }))
+		zones.map((e: ChurchZoneGroup) => ({ value: e.id ?? '', name: e.name ?? '' }))
 	);
 
 	// Svelte 5: Event handlers with proper typing
@@ -47,10 +48,15 @@
 
 	function handleAddPic(event: Event) {
 		event.stopPropagation();
-		defaultModal = true;
+		defaultModalPicZone = true;
 	}
 
-	function handleSubmitPic(event: SubmitEvent) {
+	function handleSubmitPicZone(event: SubmitEvent) {
+		// Form submission logic can be handled here if needed
+		// The form will still submit to the server action
+	}
+
+	function handleSubmitPicEvent(event: SubmitEvent) {
 		// Form submission logic can be handled here if needed
 		// The form will still submit to the server action
 	}
@@ -133,9 +139,19 @@
 	</TableBody>
 </Table>
 
+<Modal title="Tambah PIC Misa" bind:open={defaultModalPicZone}>
+	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPicEvent}>
+		<div class="mb-4 grid gap-4 sm:grid-cols-1">
+			<div>
+				<Label for="pic" class="mb-2">PIC Misa</Label>
+			</div>
+		</div>
+	</form>
+</Modal>
+
 <!-- PIC modal for adding pic to zone -->
-<Modal title="Tambah PIC" bind:open={defaultModal}>
-	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPic}>
+<Modal title="PIC Zona" bind:open={defaultModalPicZone}>
+	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPicZone}>
 		<div class="mb-4 grid gap-4 sm:grid-cols-1">
 			<div>
 				<Label for="zone" class="mb-2">Zona Tugas</Label>

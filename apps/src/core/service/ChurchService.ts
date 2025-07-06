@@ -3,11 +3,13 @@ import type {
 	Church,
 	ChurchPosition,
 	ChurchZone,
+	ChurchZoneGroup,
 	Lingkungan,
 	Mass,
 	Wilayah
 } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
 
 /**
  * ChurchService is a class responsible for managing church-related data,
@@ -93,6 +95,26 @@ export class ChurchService {
 	async retrieveZonesByEvent(eventId: string): Promise<ChurchZone[]> {
 		const zones = await repo.getZonesByEvent(this.churchId, eventId);
 		return zones;
+	}
+
+	async retrieveZoneGroupsByEvent(eventId: string): Promise<ChurchZoneGroup[]> {
+		const dummyGroup = {
+			id: '',
+			church: this.churchId,
+			name: 'Global',
+			code: '',
+			description: '',
+			sequence: 0,
+			active: 1,
+		};
+		const zoneGroups = await repo.getZoneGroupsByEvent(this.churchId, eventId);
+
+		// Add dummy zone group for PIC mass
+		if (zoneGroups.length > 0) {
+			zoneGroups.unshift(dummyGroup);
+		}
+
+		return zoneGroups;
 	}
 
 	// TODO: move to event service

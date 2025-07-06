@@ -203,14 +203,14 @@ describe('latestPositionId', () => {
 
 function createTestPositions(): ChurchPosition[] {
     return [
-        { id: '1', church: '1', name: 'Z1.P1', code: '1', description: '1', sequence: 1, type: 'usher', isPpg: false, zone: '1' },
-        { id: '2', church: '1', name: 'Z1.P2', code: '2', description: '2', sequence: 2, type: 'usher', isPpg: false, zone: '1' },
-        { id: '3', church: '1', name: 'Z1.P3', code: '3', description: '3', sequence: 3, type: 'usher', isPpg: false, zone: '1' },
-        { id: '4', church: '1', name: 'Z1.P4PPG', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: true, zone: '1' },
-        { id: '5', church: '1', name: 'Z2.P1', code: '5', description: '5', sequence: 1, type: 'usher', isPpg: false, zone: '2' },
-        { id: '6', church: '1', name: 'Z2.P2', code: '6', description: '6', sequence: 2, type: 'usher', isPpg: false, zone: '2' },
-        { id: '7', church: '1', name: 'Z2.P3', code: '7', description: '7', sequence: 3, type: 'usher', isPpg: false, zone: '2' },
-        { id: '8', church: '1', name: 'Z2.P4PPG', code: '8', description: '8', sequence: 4, type: 'usher', isPpg: true, zone: '2' },
+        { id: '1', church: '1', name: 'Z1.P1', code: '1', description: '1', sequence: 1, type: 'usher', isPpg: false, zone: '1', active: 1 },
+        { id: '2', church: '1', name: 'Z1.P2', code: '2', description: '2', sequence: 2, type: 'usher', isPpg: false, zone: '1', active: 1 },
+        { id: '3', church: '1', name: 'Z1.P3', code: '3', description: '3', sequence: 3, type: 'usher', isPpg: false, zone: '1', active: 1 },
+        { id: '4', church: '1', name: 'Z1.P4PPG', code: '4', description: '4', sequence: 4, type: 'usher', isPpg: true, zone: '1', active: 1 },
+        { id: '5', church: '1', name: 'Z2.P1', code: '5', description: '5', sequence: 1, type: 'usher', isPpg: false, zone: '2', active: 1 },
+        { id: '6', church: '1', name: 'Z2.P2', code: '6', description: '6', sequence: 2, type: 'usher', isPpg: false, zone: '2', active: 1 },
+        { id: '7', church: '1', name: 'Z2.P3', code: '7', description: '7', sequence: 3, type: 'usher', isPpg: false, zone: '2', active: 1 },
+        { id: '8', church: '1', name: 'Z2.P4PPG', code: '8', description: '8', sequence: 4, type: 'usher', isPpg: true, zone: '2', active: 1 },
     ];
 }
 
@@ -408,9 +408,9 @@ function createUshersLingkunganC(): EventUsher[] {
 
 function createTestLingkungan(): Lingkungan[] {
     return [
-        { id: '1A', name: '1A', wilayah: '1', sequence: 1, church: '1' },
-        { id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1' },
-        { id: '1C', name: '1C', wilayah: '1', sequence: 1, church: '1' },
+        { id: '1A', name: '1A', wilayah: '1', sequence: 1, church: '1', active: 1 },
+        { id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1', active: 1 },
+        { id: '1C', name: '1C', wilayah: '1', sequence: 1, church: '1', active: 1 },
     ];
 }
 

@@ -8,6 +8,7 @@
 		ArchiveOutline,
 		CashOutline,
 		ExclamationCircleSolid,
+		PenOutline,
 		PrinterOutline,
 		TrashBinOutline,
 		UsersOutline
@@ -15,7 +16,7 @@
 
 	let { data } = $props();
 
-	let jadwalDetail = $derived(data.jadwalDetail);
+	let eventDetail = $derived(data.eventDetail);
 	let zones = $derived(data.zones);
 
 	let openRow = $state<number | null>(null);
@@ -33,13 +34,13 @@
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
-	<BreadcrumbItem href={`/admin/jadwal/${jadwalDetail.id}`}>
-		{jadwalDetail.mass}
+	<BreadcrumbItem>
+		{eventDetail.mass}
 	</BreadcrumbItem>
 </Breadcrumb>
 
 <h1 class="my-4 text-xl font-bold">
-	{formatDate(jadwalDetail.date ?? '', 'long')} - {jadwalDetail.mass}
+	{formatDate(eventDetail.date ?? '', 'long')} - {eventDetail.mass}
 </h1>
 
 <div class="flex flex-col gap-4">
@@ -60,9 +61,12 @@
 			<TrashBinOutline class="me-2 h-5 w-5" />
 			{deleting ? 'Menghapus...' : 'Hapus Misa'}
 		</Button>
+		<Button type="submit" size="xs" color="light" class="alternative">
+			<PenOutline class="me-2 h-5 w-5" />Tambah PIC
+		</Button>
 		<Button
 			size="xs"
-			onclick={() => window.open(`/admin/jadwal/${jadwalDetail.id}/cetak`, '_blank')}
+			onclick={() => window.open(`/admin/jadwal/${eventDetail.id}/cetak`, '_blank')}
 		>
 			<PrinterOutline class="me-2 h-5 w-5" /> Cetak
 		</Button>
@@ -70,8 +74,8 @@
 </div>
 
 <div class="mt-4">
-	{#if jadwalDetail.rows && jadwalDetail.rows.length > 0}
-		<JadwalKonfirmasi rows={jadwalDetail.rows} {openRow} {toggleRow} {zones} />
+	{#if eventDetail.rows && eventDetail.rows.length > 0}
+		<JadwalKonfirmasi rows={eventDetail.rows} {openRow} {toggleRow} {zones} />
 	{:else}
 		<p>Data tidak ditemukan</p>
 	{/if}
@@ -89,7 +93,7 @@
 				</h1>
 				<P class="mb-3 text-sm font-light">
 					Lingkungan tidak akan dapat melakukan konfirmasi untuk tugas tata tertib pada misa <strong
-						>{jadwalDetail.mass}</strong
+						>{eventDetail.mass}</strong
 					>.
 				</P>
 				<form

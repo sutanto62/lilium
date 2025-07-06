@@ -4,14 +4,15 @@ import type {
 	Event as ChurchEvent,
 	ChurchEventResponse,
 	EventPicRequest,
+	EventScheduleResponse,
 	EventUsher,
-	JadwalDetailResponse,
 	UsherByEventResponse
 } from '$core/entities/Event';
 import type {
 	Church,
 	ChurchPosition,
 	ChurchZone,
+	ChurchZoneGroup,
 	Lingkungan,
 	Mass,
 	Wilayah,
@@ -44,7 +45,7 @@ export interface ScheduleRepository {
 
 	// Ushers
 	listUshers(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
-	getEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
+	findEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
 	listUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
 	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
 	insertEventUshers: (
@@ -61,7 +62,7 @@ export interface ScheduleRepository {
 	getEventsByLingkungan(churchId: string, lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]>;
 	getEventById(id: string): Promise<ChurchEvent>;
 	updateEventById(eventId: string, event: ChurchEvent): Promise<ChurchEvent>;
-	findJadwalDetail(eventId: string): Promise<JadwalDetailResponse>;
+	findEventSchedule(eventId: string): Promise<EventScheduleResponse>;
 	deactivateEvent(eventId: string): Promise<boolean>;
 	findEvent(churchId: string, massId?: string, date?: string): Promise<typeof event.$inferSelect>;
 	findEventById(id: string): Promise<ChurchEvent>; // formatted response
@@ -75,6 +76,7 @@ export interface ScheduleRepository {
 	findChurchById(id: string): Promise<Church>;
 	getZones(id: string): Promise<ChurchZone[]>;
 	getZonesByEvent(churchId: string, eventId: string): Promise<ChurchZone[]>;
+	getZoneGroupsByEvent(churchId: string, eventId: string): Promise<ChurchZoneGroup[]>;
 	findPositionByChurch(id: string): Promise<ChurchPosition[]>;
 	getPositionsByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;
 	// findPositionByMass(churchId: string, massId: string)

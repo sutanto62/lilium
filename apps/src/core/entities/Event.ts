@@ -62,7 +62,7 @@ export interface EventListDetailResponse {
 	zoneUshers: number;
 	zonePpg: number;
 	zoneKolekte: number;
-	items: JadwalDetailZone[];
+	items: EventScheduleRows[];
 }
 
 // formatted response: returned name instead of UUID
@@ -79,15 +79,15 @@ export interface UsherByEventResponse {
 	createdAt: number | null;
 }
 
-export interface JadwalDetailResponse {
+export interface EventScheduleResponse {
 	id: string;
 	church: string | null;
 	mass: string | null;
 	date: string | null;
-	rows: JadwalDetailZone[] | null;
+	rows: EventScheduleRows[] | null;
 }
 
-export interface JadwalDetailZone {
+export interface EventScheduleRows {
 	id: string;
 	name: string | null;
 	lingkungan: string[];
@@ -95,17 +95,17 @@ export interface JadwalDetailZone {
 	zoneUshers: number;
 	zonePpg: number;
 	zoneKolekte: number;
-	detail: JadwalDetailLingkungan[] | null;
+	detail: EventScheduleLingkungan[] | null;
 }
 
-export interface JadwalDetailLingkungan {
+export interface EventScheduleLingkungan {
 	name: string;
 	zone: string;
 	id: string;
-	ushers: JadwalDetailUsher[];
+	ushers: EventScheduleLingkunganUsher[];
 }
 
-export interface JadwalDetailUsher {
+export interface EventScheduleLingkunganUsher {
 	name: string;
 	position: string;
 	isPpg: boolean;

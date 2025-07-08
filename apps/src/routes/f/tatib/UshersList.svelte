@@ -3,6 +3,7 @@
 </script>
 
 <script lang="ts">
+	import { page } from '$app/state';
 	import {
 		Alert,
 		Button,
@@ -20,6 +21,7 @@
 
 	import type { Usher } from '$core/entities/Schedule';
 	import { UserAddSolid } from 'flowbite-svelte-icons';
+	import UsherListShortcut from './UsherListShortcut.svelte';
 
 	// Props
 	let {
@@ -78,6 +80,10 @@
 	// 		return usher;
 	// 	});
 	// }
+
+	let session = $derived(page.data?.session);
+	let isAdmin = $derived(session?.user?.role === 'admin');
+	console.log(isAdmin);
 
 	let selectedRole = $state<'PPG' | 'Kolekte' | null>(null);
 	let screenMinWidth = $state(640);
@@ -181,29 +187,14 @@
 		<div class="text-left text-lg font-semibold">
 			Petugas
 			<p class="mt-1 text-sm font-normal">
-				Mohon isi petugas sesuai dengan persyaratan (8 orang dan 3 Kolekte)
+				Mohon isi petugas sesuai dengan persyaratan (8 orang, 2 PPG dan 3 Kolekte)
 			</p>
 		</div>
 
-		<Button
-			color="primary"
-			size="xs"
-			onclick={() => {
-				// Fill in 8 usher names
-				ushers = [
-					{ name: 'Satu', isPpg: false, isKolekte: true, sequence: 0 },
-					{ name: 'Dua', isPpg: false, isKolekte: true, sequence: 1 },
-					{ name: 'Tiga', isPpg: false, isKolekte: true, sequence: 2 },
-					{ name: 'Empat', isPpg: true, isKolekte: false, sequence: 3 },
-					{ name: 'Lima', isPpg: true, isKolekte: false, sequence: 4 },
-					{ name: 'Enam', isPpg: false, isKolekte: false, sequence: 5 },
-					{ name: 'Tujuh', isPpg: false, isKolekte: false, sequence: 6 },
-					{ name: 'Delapan', isPpg: false, isKolekte: false, sequence: 7 }
-				];
-			}}
-		>
-			<UserAddSolid class="mr-2" /> Simulasi
-		</Button>
+		{#if isAdmin}
+			<UsherListShortcut bind:ushers />
+		{/if}
+
 		<Button color="primary" size="xs" onclick={addUsher}>
 			<UserAddSolid class="mr-2" /> Petugas
 		</Button>

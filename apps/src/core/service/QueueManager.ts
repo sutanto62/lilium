@@ -94,11 +94,8 @@ export class QueueManager {
 	async processQueue(): Promise<void> {
 
 		this.assignedUshers = [];
-		logger.debug(`isRoundRobinEnabled: ${this.isRoundRobinEnabled}`);
 
 		for (const batch of this.confirmationQueue) {
-			logger.debug(`Processing queue for event ${batch.event.id}`);
-
 			// 1. Get mass zone positions by event. 
 			this.massZonePositions = await repo.getPositionsByMass(batch.event.church, batch.event.mass);
 
@@ -124,15 +121,9 @@ export class QueueManager {
 			const eupLatestPpgPositionId = this.findLatestUniquePositionId(this.eventUshers.filter(usher => usher.isPpg).map(usher => usher.position || ''));
 			this.nextIndexPpg = this.nextPositionIndex(eupLatestPpgPositionId || '', ppgPositions.map(position => position.id)); // should be 1 if latest position id is Z1.P4PPG
 
-			logger.debug(`QueueManager:next index non-ppg: ${this.nextIndexNonPpg}`);
-			logger.debug(`QueueManager:next index ppg: ${this.nextIndexPpg}`);
-
 			// 4. Distribute position to ushers based on roles
 			const assignedUshers = this.eventUshers.filter((usher) => usher.position !== null);
 			const unassignedUshers = this.eventUshers.filter((usher) => usher.position === null);
-
-			logger.debug(`nonPpgPositions: ${nonPpgPositions.map(position => position.name).join(', ')}`);
-			logger.debug(`ppgPositions: ${ppgPositions.map(position => position.name).join(', ')}`);
 
 			const newAssignedUshers = await this.distributePositionsByRole(
 				unassignedUshers,
@@ -171,7 +162,6 @@ export class QueueManager {
 			if (this.eventUshers.length > 0) {
 				try {
 					const result = await repo.editEventUshers(this.eventUshers);
-					logger.debug(`Updated ${result.updatedCount} ushers for event ${batch.event.id}`);
 				} catch (error) {
 					logger.error(`Error updating event ushers: ${error}`);
 					throw ServiceError.database('Failed to update event ushers', { originalError: error });
@@ -215,6 +205,7 @@ export class QueueManager {
 		ppgPositions: ChurchPosition[],
 		nonPpgPositions: ChurchPosition[]
 	): Promise<AssignedEventUsher[]> {
+
 		const assignedUshers: AssignedEventUsher[] = [];
 
 		// Separate ushers by role
@@ -233,8 +224,12 @@ export class QueueManager {
 
 		// Helper function to get available positions (excluding already assigned ones)
 		const getAvailablePositions = (allPositions: ChurchPosition[], assignedPositions: string[]): ChurchPosition[] => {
+			if (this.isRoundRobinEnabled) {
+				return allPositions;
+			}
 			return allPositions.filter(position => !assignedPositions.includes(position.id));
 		};
+
 		if (this.isPpgEnabled) {
 			// Get currently assigned positions for this event
 			const assignedPositions = this.eventUshers
@@ -245,12 +240,8 @@ export class QueueManager {
 			const availablePpgPositions = getAvailablePositions(ppgPositions, assignedPositions);
 			const availableNonPpgPositions = getAvailablePositions(nonPpgPositions, assignedPositions);
 
-			logger.debug(`Available PPG positions: ${availablePpgPositions.map(p => p.name).join(', ')}`);
-			logger.debug(`Available non-PPG positions: ${availableNonPpgPositions.map(p => p.name).join(', ')}`);
-
 			// 1a. Assign PPG ushers to available PPG positions
-			logger.debug(`Assigning PPG ushers to available PPG positions`);
-			let pppUshersIndex = 0;
+			let pppUshersIndex = this.isRoundRobinEnabled ? this.nextIndexPpg : 0;
 			for (const usher of ppgUshers) {
 				if (availablePpgPositions.length === 0) {
 					logger.warn(`  no available PPG positions for PPG usher: ${usher.name}`);
@@ -264,7 +255,6 @@ export class QueueManager {
 				}
 
 				const position = availablePpgPositions[positionIndex];
-				logger.debug(`  assigning ppg usher: ${usher.name} to position: ${position.name}`);
 				pppUshersIndex += 1;
 				this.nextIndexPpg += 1; // keep for next round-robin fixing 
 
@@ -278,8 +268,7 @@ export class QueueManager {
 			}
 
 			// 1b. Assign Non PPG ushers to available non-PPG positions
-			logger.debug(`Assigning non-PPG ushers to available non-PPG positions`);
-			let nonPppUshersIndex = 0;
+			let nonPppUshersIndex = this.isRoundRobinEnabled ? this.nextIndexNonPpg : 0;
 			for (const usher of nonPpgUshers) {
 				if (availableNonPpgPositions.length === 0) {
 					logger.warn(`  no available non-PPG positions for Kolekte usher: ${usher.name}`);
@@ -293,7 +282,6 @@ export class QueueManager {
 				}
 
 				const position = availableNonPpgPositions[positionIndex];
-				logger.debug(`  assigning kolekte usher: ${usher.name} to zone: ${position.zone} position: ${position.name}`);
 				nonPppUshersIndex += 1;
 				this.nextIndexNonPpg += 1; // keep for next round-robin fixing 
 
@@ -317,8 +305,6 @@ export class QueueManager {
 			// Get available positions (excluding already assigned ones)
 			const availableNonPpgPositions = getAvailablePositions(nonPpgPositions, assignedPositions);
 
-			logger.debug(`Available non-PPG positions: ${availableNonPpgPositions.map(p => p.id).join(', ')}`);
-
 			for (const usher of allUshers) {
 				if (availableNonPpgPositions.length === 0) {
 					logger.warn(`No available non-PPG positions for usher: ${usher.name}`);
@@ -332,7 +318,6 @@ export class QueueManager {
 				}
 
 				const position = availableNonPpgPositions[positionIndex];
-				logger.debug(`  assigning usher: ${usher.name} to zone: ${position.zone} position: ${position.name}`);
 				this.nextIndexNonPpg += 1;
 
 				assignedUshers.push({

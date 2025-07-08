@@ -38,10 +38,14 @@ class StatsigService {
             new StatsigSessionReplayPlugin(),
             new StatsigAutoCapturePlugin()
         ] : [];
+        const environment = {
+            tier: import.meta.env.DEV ? 'development' : 'production'
+        };
         this.client = new StatsigClient(import.meta.env.VITE_STATSIG_CLIENT_KEY, {
-            userID: 'anonymous'
+            userID: 'anonymous',
         }, {
-            plugins
+            plugins,
+            environment
         });
     }
 

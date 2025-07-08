@@ -83,7 +83,6 @@
 
 	let session = $derived(page.data?.session);
 	let isAdmin = $derived(session?.user?.role === 'admin');
-	console.log(isAdmin);
 
 	let selectedRole = $state<'PPG' | 'Kolekte' | null>(null);
 	let screenMinWidth = $state(640);

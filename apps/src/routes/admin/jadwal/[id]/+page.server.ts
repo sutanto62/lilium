@@ -82,8 +82,8 @@ export const actions: Actions = {
 	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
 	 */
 	updatePic: async (event: RequestEvent) => {
-		const session = await event.locals.auth();
-		const churchId = session?.user?.cid ?? '';
+		const session = await event.locals.auth(); // why?
+		const churchId = session?.user?.cid ?? ''; // why?
 		const eventId = event.params.id;
 
 		if (!churchId) {

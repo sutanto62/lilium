@@ -23,6 +23,7 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { logger } from '$src/lib/utils/logger';
 import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -122,10 +123,11 @@ export async function createEventPic(
 	const values = {
 		id: uuidv4(),
 		event: request.event,
-		zone: request.zone,
+		zone_group: request.zone,
 		name: request.name,
-		createdAt: new Date().getTime()
 	}
+
+	logger.debug(`repo:createEventPic: ${JSON.stringify(values)}`);
 
 	await db.insert(event_zone_pic).values(values);
 	return true;
@@ -626,7 +628,7 @@ export async function findEventSchedule(
 			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
-		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
+		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
 
 	// Define the type for our accumulator (reducer)
@@ -838,7 +840,7 @@ async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
 			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
-		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
+		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
 }
 

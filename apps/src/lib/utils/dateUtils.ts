@@ -90,4 +90,13 @@ export function getWeekNumbers(weeks: number = 1, date?: string): number[] {
 	return Array.from({ length: weeks + 1 }, (_, i) => currentWeekNumber + i);
 }
 
+/**
+ * Get the Unix epoch time in seconds.
+ * Sync with sqlite3 database unixepoch() function.
+ * 
+ * @returns The Unix epoch time in seconds.
+ */
+export function getUnixEpoch(): number {
+	return new Date().getTime() / 1000;
+}
 

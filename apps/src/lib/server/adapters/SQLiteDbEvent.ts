@@ -564,6 +564,7 @@ export async function findUshersByEvent(
 	return result;
 }
 
+// TODO: move repo's logic to eventService.retrieveEventSchedule
 export async function findEventSchedule(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
@@ -575,7 +576,8 @@ export async function findEventSchedule(
 			id: event.id,
 			church: church.name,
 			mass: mass.name,
-			date: event.date
+			date: event.date,
+			description: event.description
 		})
 		.from(event)
 		.leftJoin(church, eq(church.id, event.church_id))
@@ -589,6 +591,7 @@ export async function findEventSchedule(
 			church: '',
 			mass: '',
 			date: '',
+			description: '',
 			rows: []
 		};
 	}
@@ -619,17 +622,23 @@ export async function findEventSchedule(
 		.where(eq(event_usher.event, eventId))
 		.orderBy(church_zone.sequence, lingkungan.sequence, church_position.sequence);
 
-	// Get event PIC
+	// TODO: refactor to service
 	const massEventPic = await db
 		.select({
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
-			zone: church_zone.name,
-			name: event_zone_pic.name
+			zone: church_zone_group.name,
+			name: event_zone_pic.name,
 		})
 		.from(event_zone_pic)
-		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone_group))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
+
+
+	// Add PIC to event
+	const massPic = massEventPic.filter((pic) => pic.zone === 'Global');
+	massEvent[0].description = massPic.map((pic) => pic.name).join(', ');
+	logger.debug(`mass event description: ${massEvent[0].description.length}`);
 
 	// Define the type for our accumulator (reducer)
 	interface ZoneAccumulator {
@@ -655,7 +664,7 @@ export async function findEventSchedule(
 			};
 		}
 
-		// Add pic
+		// Add PIC to zone 
 		if (massEventPic.length > 0) {
 			acc[zoneName].pic = massEventPic
 				.filter((pic) => pic.zone === zoneName)
@@ -709,7 +718,8 @@ export async function findEventSchedule(
 		id: '',
 		church: '',
 		mass: '',
-		date: ''
+		date: '',
+		description: ''
 	};
 
 	return {

@@ -84,6 +84,7 @@ export interface EventScheduleResponse {
 	church: string | null;
 	mass: string | null;
 	date: string | null;
+	description: string | null;
 	rows: EventScheduleRows[] | null;
 }
 

@@ -97,7 +97,7 @@ export class ChurchService {
 	}
 
 	async retrieveZoneGroupsByEvent(eventId: string): Promise<ChurchZoneGroup[]> {
-		const zoneGroups = await repo.getZoneGroupsByEvent(this.churchId, eventId);
+		const zoneGroups = await repo.findZoneGroupsByEvent(this.churchId, eventId);
 		return zoneGroups;
 	}
 

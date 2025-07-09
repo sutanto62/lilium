@@ -19,7 +19,8 @@
 	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 
 	// Svelte 5: Use $props() for component props
-	const { rows, openRow, toggleRow, zones } = $props<{
+	const { description, rows, openRow, toggleRow, zones } = $props<{
+		description: string;
 		rows: any[];
 		openRow: number | null;
 		toggleRow: (index: number) => void;
@@ -77,6 +78,15 @@
 		</TableHeadCell>
 	</TableHead>
 	<TableBody class="divide-y">
+		<TableBodyRow>
+			{#if description.length == 0}
+				<TableBodyCell colspan={5} class="px-2 align-top">
+					<Button size="xs" onclick={(event: Event) => handleAddPic(event)}>Tambah PIC Misa</Button>
+				</TableBodyCell>
+			{:else}
+				<TableBodyCell colspan={5} class="px-2 align-top">PIC Misa: {description}</TableBodyCell>
+			{/if}
+		</TableBodyRow>
 		{#each rows as jadwalDetaillZone, i}
 			<TableBodyRow class="hover:bg-gray-100" onclick={(event) => handleToggleRow(i, event)}>
 				<TableBodyCell class="px-2 align-top"
@@ -91,8 +101,10 @@
 							{#each jadwalDetaillZone.pic as pic}
 								<li>PIC: {pic}</li>
 							{/each}
-						{:else}
-							<Button size="xs" onclick={(event: Event) => handleAddPic(event)}>Tambah PIC</Button>
+						{:else if jadwalDetaillZone.name !== 'Non Zona'}
+							<Button size="xs" onclick={(event: Event) => handleAddPic(event)}
+								>Tambah PIC Zona</Button
+							>
 						{/if}
 					</ol>
 				</TableBodyCell>
@@ -111,9 +123,9 @@
 									{#each jadwalDetaillZone.pic as pic}
 										<li>PIC: {pic}</li>
 									{/each}
-								{:else}
+								{:else if jadwalDetaillZone.name !== 'Non Zona'}
 									<Button size="xs" onclick={(event: Event) => handleAddPic(event)}
-										>Tambah PIC</Button
+										>Tambah PIC Zona</Button
 									>
 								{/if}
 							</ol>

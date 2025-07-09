@@ -8,7 +8,6 @@
 		ArchiveOutline,
 		CashOutline,
 		ExclamationCircleSolid,
-		PenOutline,
 		PrinterOutline,
 		TrashBinOutline,
 		UsersOutline
@@ -61,9 +60,6 @@
 			<TrashBinOutline class="me-2 h-5 w-5" />
 			{deleting ? 'Menghapus...' : 'Hapus Misa'}
 		</Button>
-		<Button type="submit" size="xs" color="light" class="alternative">
-			<PenOutline class="me-2 h-5 w-5" />Tambah PIC
-		</Button>
 		<Button
 			size="xs"
 			onclick={() => window.open(`/admin/jadwal/${eventDetail.id}/cetak`, '_blank')}
@@ -75,7 +71,13 @@
 
 <div class="mt-4">
 	{#if eventDetail.rows && eventDetail.rows.length > 0}
-		<JadwalKonfirmasi rows={eventDetail.rows} {openRow} {toggleRow} {zones} />
+		<JadwalKonfirmasi
+			description={eventDetail.description ?? ''}
+			rows={eventDetail.rows}
+			{openRow}
+			{toggleRow}
+			{zones}
+		/>
 	{:else}
 		<p>Data tidak ditemukan</p>
 	{/if}

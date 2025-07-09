@@ -754,6 +754,7 @@ export async function findCetakJadwal(
 
 	// Get event PIC
 	const massEventPic = await fetchEventPics(db, eventId);
+	const massPic = massEventPic.filter((pic) => pic.zone === 'Global');
 
 	// Process data into required format
 	const rowsUshers = processUshersByZone(massEventUsher, massEventPic);
@@ -762,6 +763,7 @@ export async function findCetakJadwal(
 
 	return {
 		...massEvent,
+		pic: massPic.map((pic) => pic.name).join(', ') || '',
 		listUshers: rowsUshers,
 		listPpg: rowsPpg,
 		listKolekte: rowsKolekte
@@ -804,6 +806,7 @@ function createEmptyCetakJadwalResponse(): CetakJadwalResponse {
 	return {
 		church: null,
 		mass: null,
+		pic: null,
 		date: null,
 		weekday: null,
 		time: null,
@@ -839,16 +842,19 @@ async function fetchEventUshers(db: ReturnType<typeof drizzle>, eventId: string)
 }
 
 async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
-	return await db
+	const result = await db
 		.select({
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
-			zone: church_zone.name,
+			zone: church_zone_group.name,
 			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
 		.leftJoin(church_zone_group, eq(church_zone_group.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
+	logger.debug(`fetchEventPics ${result.map(r => r.name)}`)
+	return result;
+
 }
 
 function processUshersByZone(ushers: any[], pics: any[]): CetakJadwalSection[] {

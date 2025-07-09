@@ -117,6 +117,7 @@ export interface EventScheduleLingkunganUsher {
 export interface CetakJadwalResponse {
 	church: string | null;
 	mass: string | null;
+	pic: string | null;
 	date: string | null;
 	weekday: string | null;
 	time: string | null;

@@ -127,8 +127,6 @@ export async function createEventPic(
 		name: request.name,
 	}
 
-	logger.debug(`repo:createEventPic: ${JSON.stringify(values)}`);
-
 	await db.insert(event_zone_pic).values(values);
 	return true;
 }
@@ -637,8 +635,7 @@ export async function findEventSchedule(
 
 	// Add PIC to event
 	const massPic = massEventPic.filter((pic) => pic.zone === 'Global');
-	massEvent[0].description = massPic.map((pic) => pic.name).join(', ');
-	logger.debug(`mass event description: ${massEvent[0].description.length}`);
+	massEvent[0].description = massPic.map((pic) => pic.name).join(', ') || '';
 
 	// Define the type for our accumulator (reducer)
 	interface ZoneAccumulator {
@@ -850,7 +847,7 @@ async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
 			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
-		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone_group))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
 }
 

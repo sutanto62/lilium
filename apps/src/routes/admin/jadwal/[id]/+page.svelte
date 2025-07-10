@@ -2,11 +2,23 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
+	import type { ChurchZoneGroup } from '$core/entities/Schedule.js';
 	import { formatDate } from '$src/lib/utils/dateUtils';
-	import { Breadcrumb, BreadcrumbItem, Button, P, Toast } from 'flowbite-svelte';
+	import {
+		Breadcrumb,
+		BreadcrumbItem,
+		Button,
+		Input,
+		Label,
+		Modal,
+		P,
+		Select,
+		Toast
+	} from 'flowbite-svelte';
 	import {
 		ArchiveOutline,
 		CashOutline,
+		CirclePlusSolid,
 		ExclamationCircleSolid,
 		PrinterOutline,
 		TrashBinOutline,
@@ -20,13 +32,30 @@
 
 	let openRow = $state<number | null>(null);
 	let isDeleteConfirmation = $state(false);
+	let defaultModalPicZone = $state(false);
+	let selectedZoneId = $state<string | null>(null);
+	let eventZonePic = $state('');
 	let deleting = $state(false);
 
 	const toggleRow = (i: number) => {
 		openRow = openRow === i ? null : i;
 	};
 
+	const zoneOptions = $derived(
+		zones.map((e: ChurchZoneGroup) => ({ value: e.id ?? '', name: e.name ?? '' }))
+	);
+
 	// let defaultModal = false;
+
+	function handleAddPic(event: Event) {
+		event.stopPropagation();
+		defaultModalPicZone = true;
+	}
+
+	function handleSubmitPicZone(event: SubmitEvent) {
+		// Form submission logic can be handled here if needed
+		// The form will still submit to the server action
+	}
 </script>
 
 <Breadcrumb class="mb-4	">
@@ -49,6 +78,9 @@
 		<li class="flex items-center gap-2"><CashOutline class="size-4" /> <span>Kolekte</span></li>
 	</ul>
 	<div class="flex justify-end gap-2">
+		<Button color="alternative" size="xs" onclick={(event: Event) => handleAddPic(event)}
+			><CirclePlusSolid class="me-2 h-4 w-4" /> PIC Zona</Button
+		>
 		<Button
 			onclick={() => (isDeleteConfirmation = true)}
 			type="submit"
@@ -135,3 +167,37 @@
 		</Toast>
 	</div>
 {/if}
+
+<!-- PIC modal for adding pic to zone -->
+<Modal title="PIC Zona" bind:open={defaultModalPicZone}>
+	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPicZone}>
+		<div class="mb-4 grid gap-4 sm:grid-cols-1">
+			<div>
+				<Label for="zone" class="mb-2">Zona</Label>
+				<Select
+					id="zone"
+					name="zone"
+					class="mt-2"
+					items={zoneOptions}
+					bind:value={selectedZoneId}
+					placeholder="Pilih Zona"
+					required
+				/>
+			</div>
+			<div>
+				<Label for="pic" class="mb-2">Tulis nama</Label>
+				<Input
+					type="text"
+					id="pic"
+					name="pic"
+					placeholder="Pisahkan nama petugas dengan koma bila lebih dari 1"
+					required
+					bind:value={eventZonePic}
+				/>
+			</div>
+		</div>
+		<div class="flex justify-end">
+			<Button type="submit" class="w-28">Simpan</Button>
+		</div>
+	</form>
+</Modal>

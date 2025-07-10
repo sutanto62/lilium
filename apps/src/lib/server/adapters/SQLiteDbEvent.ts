@@ -23,7 +23,6 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
-import { logger } from '$src/lib/utils/logger';
 import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -852,7 +851,6 @@ async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
 		.from(event_zone_pic)
 		.leftJoin(church_zone_group, eq(church_zone_group.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
-	logger.debug(`fetchEventPics ${result.map(r => r.name)}`)
 	return result;
 
 }

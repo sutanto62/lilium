@@ -1,10 +1,5 @@
 <script lang="ts">
 	import {
-		Button,
-		Input,
-		Label,
-		Modal,
-		Select,
 		Table,
 		TableBody,
 		TableBodyCell,
@@ -29,14 +24,6 @@
 
 	// Svelte 5: Use $state() for reactive state
 	let defaultModalPicZone = $state(false);
-	let defaultModalPicEvent = $state(false);
-	let selectedZoneId = $state<string | null>(null);
-	let eventZonePic = $state('');
-
-	// Svelte 5: Use $derived() for computed values
-	const zoneOptions = $derived(
-		zones.map((e: ChurchZoneGroup) => ({ value: e.id ?? '', name: e.name ?? '' }))
-	);
 
 	// Svelte 5: Event handlers with proper typing
 	function handleToggleRow(index: number, event: Event) {
@@ -50,16 +37,6 @@
 	function handleAddPic(event: Event) {
 		event.stopPropagation();
 		defaultModalPicZone = true;
-	}
-
-	function handleSubmitPicZone(event: SubmitEvent) {
-		// Form submission logic can be handled here if needed
-		// The form will still submit to the server action
-	}
-
-	function handleSubmitPicEvent(event: SubmitEvent) {
-		// Form submission logic can be handled here if needed
-		// The form will still submit to the server action
 	}
 </script>
 
@@ -79,13 +56,7 @@
 	</TableHead>
 	<TableBody class="divide-y">
 		<TableBodyRow>
-			{#if description.length == 0}
-				<TableBodyCell colspan={5} class="px-2 align-top">
-					<Button size="xs" onclick={(event: Event) => handleAddPic(event)}>Tambah PIC Misa</Button>
-				</TableBodyCell>
-			{:else}
-				<TableBodyCell colspan={5} class="px-2 align-top">PIC Misa: {description}</TableBodyCell>
-			{/if}
+			<TableBodyCell colspan={5} class="px-2 align-top">PIC Misa: {description}</TableBodyCell>
 		</TableBodyRow>
 		{#each rows as jadwalDetaillZone, i}
 			<TableBodyRow class="hover:bg-gray-100" onclick={(event) => handleToggleRow(i, event)}>
@@ -101,10 +72,6 @@
 							{#each jadwalDetaillZone.pic as pic}
 								<li>PIC: {pic}</li>
 							{/each}
-						{:else if jadwalDetaillZone.name !== 'Non Zona'}
-							<Button size="xs" onclick={(event: Event) => handleAddPic(event)}
-								>Tambah PIC Zona</Button
-							>
 						{/if}
 					</ol>
 				</TableBodyCell>
@@ -123,10 +90,6 @@
 									{#each jadwalDetaillZone.pic as pic}
 										<li>PIC: {pic}</li>
 									{/each}
-								{:else if jadwalDetaillZone.name !== 'Non Zona'}
-									<Button size="xs" onclick={(event: Event) => handleAddPic(event)}
-										>Tambah PIC Zona</Button
-									>
 								{/if}
 							</ol>
 						</div>
@@ -150,47 +113,3 @@
 		{/each}
 	</TableBody>
 </Table>
-
-<Modal title="Tambah PIC Misa" bind:open={defaultModalPicZone}>
-	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPicEvent}>
-		<div class="mb-4 grid gap-4 sm:grid-cols-1">
-			<div>
-				<Label for="pic" class="mb-2">PIC Misa</Label>
-			</div>
-		</div>
-	</form>
-</Modal>
-
-<!-- PIC modal for adding pic to zone -->
-<Modal title="PIC Zona" bind:open={defaultModalPicZone}>
-	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPicZone}>
-		<div class="mb-4 grid gap-4 sm:grid-cols-1">
-			<div>
-				<Label for="zone" class="mb-2">Zona Tugas</Label>
-				<Select
-					id="zone"
-					name="zone"
-					class="mt-2"
-					items={zoneOptions}
-					bind:value={selectedZoneId}
-					placeholder="Pilih Zona"
-					required
-				/>
-			</div>
-			<div>
-				<Label for="pic" class="mb-2">PIC Peta</Label>
-				<Input
-					type="text"
-					id="pic"
-					name="pic"
-					placeholder="Tulis nama. Gunakan koma bila lebih dari 1"
-					required
-					bind:value={eventZonePic}
-				/>
-			</div>
-		</div>
-		<div class="flex justify-end">
-			<Button type="submit" class="w-28">Simpan</Button>
-		</div>
-	</form>
-</Modal>

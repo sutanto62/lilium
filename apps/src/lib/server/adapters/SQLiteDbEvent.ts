@@ -122,9 +122,8 @@ export async function createEventPic(
 	const values = {
 		id: uuidv4(),
 		event: request.event,
-		zone: request.zone,
+		zone_group: request.zone,
 		name: request.name,
-		createdAt: new Date().getTime()
 	}
 
 	await db.insert(event_zone_pic).values(values);
@@ -562,6 +561,7 @@ export async function findUshersByEvent(
 	return result;
 }
 
+// TODO: move repo's logic to eventService.retrieveEventSchedule
 export async function findEventSchedule(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
@@ -573,7 +573,8 @@ export async function findEventSchedule(
 			id: event.id,
 			church: church.name,
 			mass: mass.name,
-			date: event.date
+			date: event.date,
+			description: event.description
 		})
 		.from(event)
 		.leftJoin(church, eq(church.id, event.church_id))
@@ -587,6 +588,7 @@ export async function findEventSchedule(
 			church: '',
 			mass: '',
 			date: '',
+			description: '',
 			rows: []
 		};
 	}
@@ -617,17 +619,22 @@ export async function findEventSchedule(
 		.where(eq(event_usher.event, eventId))
 		.orderBy(church_zone.sequence, lingkungan.sequence, church_position.sequence);
 
-	// Get event PIC
+	// TODO: refactor to service
 	const massEventPic = await db
 		.select({
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
-			zone: church_zone.name,
-			name: event_zone_pic.name
+			zone: church_zone_group.name,
+			name: event_zone_pic.name,
 		})
 		.from(event_zone_pic)
-		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
+
+
+	// Add PIC to event
+	const massPic = massEventPic.filter((pic) => pic.zone === 'Global');
+	massEvent[0].description = massPic.map((pic) => pic.name).join(', ') || '';
 
 	// Define the type for our accumulator (reducer)
 	interface ZoneAccumulator {
@@ -653,7 +660,7 @@ export async function findEventSchedule(
 			};
 		}
 
-		// Add pic
+		// Add PIC to zone 
 		if (massEventPic.length > 0) {
 			acc[zoneName].pic = massEventPic
 				.filter((pic) => pic.zone === zoneName)
@@ -707,7 +714,8 @@ export async function findEventSchedule(
 		id: '',
 		church: '',
 		mass: '',
-		date: ''
+		date: '',
+		description: ''
 	};
 
 	return {
@@ -745,6 +753,7 @@ export async function findCetakJadwal(
 
 	// Get event PIC
 	const massEventPic = await fetchEventPics(db, eventId);
+	const massPic = massEventPic.filter((pic) => pic.zone === 'Global');
 
 	// Process data into required format
 	const rowsUshers = processUshersByZone(massEventUsher, massEventPic);
@@ -753,6 +762,7 @@ export async function findCetakJadwal(
 
 	return {
 		...massEvent,
+		pic: massPic.map((pic) => pic.name).join(', ') || '',
 		listUshers: rowsUshers,
 		listPpg: rowsPpg,
 		listKolekte: rowsKolekte
@@ -795,6 +805,7 @@ function createEmptyCetakJadwalResponse(): CetakJadwalResponse {
 	return {
 		church: null,
 		mass: null,
+		pic: null,
 		date: null,
 		weekday: null,
 		time: null,
@@ -830,16 +841,18 @@ async function fetchEventUshers(db: ReturnType<typeof drizzle>, eventId: string)
 }
 
 async function fetchEventPics(db: ReturnType<typeof drizzle>, eventId: string) {
-	return await db
+	const result = await db
 		.select({
 			id: event_zone_pic.id,
 			event: event_zone_pic.event,
-			zone: church_zone.name,
+			zone: church_zone_group.name,
 			name: event_zone_pic.name
 		})
 		.from(event_zone_pic)
-		.leftJoin(church_zone, eq(church_zone.id, event_zone_pic.zone))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, event_zone_pic.zone_group))
 		.where(eq(event_zone_pic.event, eventId));
+	return result;
+
 }
 
 function processUshersByZone(ushers: any[], pics: any[]): CetakJadwalSection[] {

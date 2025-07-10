@@ -136,12 +136,12 @@ export const event_zone_pic = sqliteTable('event_zone_pic', {
 	event: text('event_id')
 		.references(() => event.id, { onDelete: 'cascade' })
 		.notNull(),
-	zone: text('zone_id')
-		.references(() => church_zone.id, { onDelete: 'cascade' })
+	zone_group: text('zone_group_id')
+		.references(() => church_zone_group.id, { onDelete: 'cascade' })
 		.notNull(),
-	name: text('name'),
 	active: integer('active').notNull().default(1),
-	createdAt: integer('created_at').default(sql`(unixepoch())`)
+	createdAt: integer('created_at').default(sql`(unixepoch())`),
+	name: text('name')
 });
 
 export const event_usher = sqliteTable('event_usher', {

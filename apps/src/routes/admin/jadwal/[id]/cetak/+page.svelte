@@ -127,7 +127,7 @@
 				{/each}
 			{/each}
 			<tr class="bg-green-300">
-				<td colspan="6" class="border border-black">PIC Tatib PETA</td>
+				<td colspan="6" class="border border-black">PIC Misa: {event.pic}</td>
 			</tr>
 			<tr class="bg-yellow-300">
 				<td colspan="6" class="border border-black">Setelah selesai perayaan Misa Ekaristi</td>

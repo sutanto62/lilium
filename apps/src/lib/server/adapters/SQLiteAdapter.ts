@@ -116,7 +116,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	getZones = (id: string): Promise<ChurchZone[]> => findZonesByChurch(this.db, id);
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
-	getZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
+	findZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
 	findPositionByChurch = (id: string) => findPositionByChurch(this.db, id);
 
 	// Authentication

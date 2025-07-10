@@ -49,7 +49,12 @@ export async function findZoneGroupsByEvent(
 	const result = await db
 		.select()
 		.from(church_zone_group)
-		.where(eq(church_zone_group.church, churchId))
+		.where(
+			and(
+				eq(church_zone_group.church, churchId),
+				eq(church_zone_group.active, 1)
+			)
+		)
 		.orderBy(church_zone_group.sequence);
 
 	return result.map((group) => ({

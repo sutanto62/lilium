@@ -248,6 +248,7 @@ export class EventService {
 	 * @returns A promise that resolves to a JadwalDetailResponse object
 	 */
 	async retrieveEventSchedule(eventId: string): Promise<EventScheduleResponse> {
+		// TODO: move repo's logic here
 		return await repo.findEventSchedule(eventId);
 	}
 

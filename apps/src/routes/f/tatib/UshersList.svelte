@@ -146,7 +146,8 @@
 	let numberOfKolekte = $derived(ushers.filter((p: Usher) => p.isKolekte).length);
 	let numberOfUsher = $derived(ushers.length);
 	$effect(() => {
-		isSubmitable = numberOfPpg >= 0 && numberOfKolekte >= 3 && numberOfUsher >= 6;
+		// Updated validation: exactly 2 PPG, exactly 3 Kolekte, minimum 6 ushers
+		isSubmitable = numberOfPpg === 2 && numberOfKolekte === 3 && numberOfUsher >= 6;
 	});
 
 	// Reset

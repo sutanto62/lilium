@@ -1,6 +1,25 @@
 import type { EventUsher } from '$core/entities/Event';
 
 export function validateUsherNames(ushers: EventUsher[]): { isValid: boolean; error?: string } {
+    // Validate role requirements first
+    const numberOfPpg = ushers.filter(u => u.isPpg).length;
+    const numberOfKolekte = ushers.filter(u => u.isKolekte).length;
+    const totalUshers = ushers.length;
+
+    // Check role requirements
+    if (numberOfPpg !== 2) {
+        return { isValid: false, error: `Jumlah PPG harus tepat 2 orang, saat ini: ${numberOfPpg} orang` };
+    }
+
+    if (numberOfKolekte !== 3) {
+        return { isValid: false, error: `Jumlah Kolekte harus tepat 3 orang, saat ini: ${numberOfKolekte} orang` };
+    }
+
+    if (totalUshers < 6) {
+        return { isValid: false, error: `Jumlah petugas minimal 6 orang, saat ini: ${totalUshers} orang` };
+    }
+
+    // Validate names
     const usherNames = ushers.map(u => u.name);
     const uniqueNames = new Set(usherNames);
 

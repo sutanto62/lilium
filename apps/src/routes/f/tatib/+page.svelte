@@ -70,9 +70,12 @@
 	}
 
 	async function validateUshers(usherList: Usher[]): Promise<boolean> {
-		const hasEnoughKolekte = usherList.filter((usher) => usher.isKolekte).length >= 3;
+		const numberOfPpg = usherList.filter((usher) => usher.isPpg).length;
+		const numberOfKolekte = usherList.filter((usher) => usher.isKolekte).length;
+		const hasExactPpg = numberOfPpg === 2;
+		const hasExactKolekte = numberOfKolekte === 3;
 		const hasMinimumUshers = usherList.length >= 6;
-		const isValid = hasEnoughKolekte && hasMinimumUshers;
+		const isValid = hasExactPpg && hasExactKolekte && hasMinimumUshers;
 
 		if (isSubmitted) {
 			await statsigService.logEvent(
@@ -80,8 +83,12 @@
 				isValid ? 'valid' : 'invalid',
 				page.data.session || undefined,
 				{
-					has_enough_kolekte: hasEnoughKolekte,
-					has_minimum_ushers: hasMinimumUshers
+					has_exact_ppg: hasExactPpg,
+					has_exact_kolekte: hasExactKolekte,
+					has_minimum_ushers: hasMinimumUshers,
+					number_of_ppg: numberOfPpg,
+					number_of_kolekte: numberOfKolekte,
+					total_ushers: usherList.length
 				}
 			);
 		}

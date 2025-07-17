@@ -58,13 +58,13 @@ export class UsherService {
         ushers: EventUsher[],
         wilayahId: string,
         lingkunganId: string
-    ): Promise<boolean> {
+    ): Promise<number> {
         try {
-            const result = await repo.insertEventUshers(eventId, ushers, wilayahId, lingkunganId);
-            if (!result) {
-                return false;
+            const createdDate = await repo.insertEventUshers(eventId, ushers, wilayahId, lingkunganId);
+            if (!createdDate) {
+                return 0;
             }
-            return true;
+            return createdDate;
         } catch (error) {
             logger.error('Gagal menambahkan petugas pada tugas misa:', error);
             throw new Error('Sistem gagal mencatat petugas');

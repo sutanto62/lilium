@@ -3,8 +3,9 @@ import type { Church } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { QueueManager } from '$core/service/QueueManager';
+import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
-import { getWeekNumber } from '$lib/utils/dateUtils';
+import { epochToDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
@@ -131,30 +132,29 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions = {
 	default: async ({ request, cookies }) => {
-		logger.info('confirming ushers ...')
-
 		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' }); // check session cookie
 		}
-		const eventService = new EventService(churchId);
+		// const eventService = new EventService(churchId);
+		const usherService = new UsherService(churchId);
 
 		const formData = await request.formData();
-		const eventDate = formData.get('eventDate') as string;
-		const eventId = formData.get('eventId') as string;
+		const scheduledDate = formData.get('eventDate') as string;
+		const scheduledEventId = formData.get('eventId') as string;
 		const wilayahId = formData.get('wilayahId') as string;
 		const lingkunganId = formData.get('lingkunganId') as string;
-		const ushersString = formData.get('ushers') as string;
+		const ushersJson = formData.get('ushers') as string;
 
 		// Show form if not no_saturday_sunday
 		const showForm = await shouldShowUsherForm();
 
 		const formValues = {
-			eventDate,
-			eventId,
+			eventDate: scheduledDate,
+			eventId: scheduledEventId,
 			wilayahId,
 			lingkunganId,
-			ushers: ushersString
+			ushers: ushersJson
 		};
 
 		// Validate to reject entry if submittedAt weekday is Sunday, Friday, and Saturday
@@ -168,15 +168,13 @@ export const actions = {
 		}
 
 		// Validate mandatory input 
-		if ((!eventId) || !wilayahId || !lingkunganId || !ushersString) {
+		if ((!scheduledEventId) || !wilayahId || !lingkunganId || !ushersJson) {
 			return fail(422, { error: 'Mohon lengkapi semua isian.', formData: formValues });
 		}
 
 		try {
 			// Get the mass ID from the event
-			const confirmedEvent = await eventService.retrieveEventById(eventId)
-			logger.info(`tatib: confirmedEvent: ${confirmedEvent.id}`);
-			logger.info(`tatib: confirmedEvent: ${confirmedEvent.mass}`);
+			const confirmedEvent = await eventService.retrieveEventById(scheduledEventId)
 
 			// TODO: change to service
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([
@@ -204,7 +202,7 @@ export const actions = {
 			// Validate ushers
 			let ushersArray: EventUsher[];
 			try {
-				ushersArray = JSON.parse(ushersString);
+				ushersArray = JSON.parse(ushersJson);
 			} catch (err) {
 				logger.warn(`failed to parse ushers list`);
 				return fail(422, { error: 'Gagal parsing data petugas' });
@@ -212,11 +210,12 @@ export const actions = {
 
 			const validation = validateUsherNames(ushersArray);
 			if (!validation.isValid) {
+				logger.warn(`invalid ushers list: ${validation.error}`);
 				return fail(422, { error: validation.error, formData: formValues });
 			}
 
 			// Insert ushers into event
-			const createdUshers = await eventService.assignEventUshers(
+			const createdDate = await usherService.assignEventUshers(
 				confirmedEvent.id,
 				ushersArray,
 				wilayahId,
@@ -224,7 +223,7 @@ export const actions = {
 			);
 
 			// Validate double input by lingkungan
-			if (!createdUshers) {
+			if (createdDate === 0) {
 				logger.warn(`invalid lngkungan ${lingkunganId} input`)
 				return fail(400, {
 					error: 'Lingkungan sudah melakukan konfirmasi tugas'
@@ -243,6 +242,7 @@ export const actions = {
 			}
 
 			// Return ushers position to client
+			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${epochToDate(createdDate)}`);
 			return { success: true, json: { ushers: queueManager.assignedUshers } };
 		} catch (err) {
 			logger.warn('failed creating event:', err);

@@ -53,7 +53,7 @@ export interface ScheduleRepository {
 		ushers: EventUsher[],
 		wilayahId: string,
 		lingkunganId: string
-	) => Promise<boolean>;
+	) => Promise<number>;
 
 
 	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;

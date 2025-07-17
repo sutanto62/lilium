@@ -100,3 +100,14 @@ export function getUnixEpoch(): number {
 	return new Date().getTime() / 1000;
 }
 
+
+/**
+ * Convert Unix epoch time (in seconds) to ISO date string.
+ * 
+ * @param epoch - The Unix epoch time in seconds
+ * @returns ISO 8601 formatted date string
+ */
+export function epochToDate(epoch: number): string {
+	return new Date(epoch).toISOString();
+}
+

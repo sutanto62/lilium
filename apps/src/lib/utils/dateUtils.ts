@@ -102,9 +102,9 @@ export function getUnixEpoch(): number {
 
 
 /**
- * Convert Unix epoch time (in seconds) to ISO date string.
+ * Convert Unix epoch time (in milliseconds) to ISO date string.
  * 
- * @param epoch - The Unix epoch time in seconds
+ * @param epoch - The Unix epoch time in milliseconds
  * @returns ISO 8601 formatted date string
  */
 export function epochToDate(epoch: number): string {

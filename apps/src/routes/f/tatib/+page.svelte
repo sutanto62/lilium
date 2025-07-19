@@ -69,6 +69,21 @@
 			.join(' ');
 	}
 
+	// Transform text and convert <strong> tags to asterisks
+	function transformText(text: string): string {
+		return text
+			.replace(/<strong>/g, '*')
+			.replace(/<\/strong>/g, '*')
+			.replace(/<br>/g, '\r\n')
+			.replace(/<\/p>/g, '\r\n\r\n')
+			.replace(/<\/li>/g, '\r\n')
+			.replace(/<p[^>]*>/g, '') // Remove opening <p> tags
+			.replace(/<ol[^>]*>/g, '') // Remove opening <ol> tags
+			.replace(/<[^>]*>/g, '') // Remove all other HTML tags
+			.replace(/\r\n\s+/g, '\r\n') // Clean up spaces after line breaks
+			.trim();
+	}
+
 	async function validateUshers(usherList: Usher[]): Promise<boolean> {
 		const numberOfPpg = usherList.filter((usher) => usher.isPpg).length;
 		const numberOfKolekte = usherList.filter((usher) => usher.isKolekte).length;
@@ -107,7 +122,7 @@
 		const element = document.getElementById(id);
 		if (element) {
 			try {
-				await navigator.clipboard.writeText(element.innerText);
+				await navigator.clipboard.writeText(transformText(element.innerHTML));
 				await statsigService.logEvent('tatib_view', 'copy_to_clipboard');
 			} catch (error) {
 				console.error('Failed to copy text: ', error);
@@ -165,8 +180,12 @@
 {#if form?.success}
 	<Alert color="green" class="mb-4 text-black">
 		<div id="copy-usher">
-			<span class="font-medium">Terima kasih!: </span>
-			Berikut adalah petugas tata tertib yang telah dikonfirmasi:
+			<p class="font-medium">
+				Konfirmasi lingkungan: <strong>{form?.json.lingkungan}</strong> <br />
+				Misa: <strong>{form?.json.mass}</strong><br />
+				Tanggal Tugas: <strong>{form?.json.event}</strong>
+			</p>
+			<p class="font-medium">Petugas:</p>
 			{#if form?.json.ushers.length === 0}
 				<p>Hubungi admin untuk penentuan posisi petugas secara manual.</p>
 			{:else}
@@ -176,6 +195,8 @@
 					{/each}
 				</ol>
 			{/if}
+			<br />
+			Tanggal konfirmasi: {form?.json.submitted} <br />
 		</div>
 		<Button color="blue" class="mt-4" onclick={() => copyToClipboard('copy-usher')}>
 			<ClipboardCleanSolid class="mr-2 h-5 w-5" />

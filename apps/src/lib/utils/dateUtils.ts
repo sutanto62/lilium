@@ -40,23 +40,74 @@ export function stringToDate(isoDate: string) {
 	return new Date(isoDate);
 }
 
-export function formatDate(dateString: string, format?: string | 'short' | 'long'): string {
+type DateFormat = 'short' | 'long' | 'datetime' | 'time' | 'date' | 'full' | 'iso';
+
+export function formatDate(dateString: string, format: DateFormat = 'short', locale: string = 'id-ID'): string {
 	const date = new Date(dateString);
 
-	const options: Intl.DateTimeFormatOptions = format === 'long'
-		? {
-			weekday: 'long',
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		}
-		: {
-			weekday: 'short',
-			month: 'short',
-			day: 'numeric'
-		};
+	// Handle invalid dates
+	if (isNaN(date.getTime())) {
+		return 'Invalid Date';
+	}
 
-	return new Intl.DateTimeFormat('id-ID', options).format(date);
+	const options: Intl.DateTimeFormatOptions = (() => {
+		switch (format) {
+			case 'long':
+				return {
+					weekday: 'long',
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric'
+				};
+			case 'datetime':
+				return {
+					weekday: 'long',
+					month: 'short',
+					day: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit'
+				};
+			case 'time':
+				return {
+					hour: '2-digit',
+					minute: '2-digit'
+				};
+			case 'date':
+				return {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit'
+				};
+			case 'full':
+				return {
+					weekday: 'long',
+					year: 'numeric',
+					month: 'long',
+					day: 'numeric',
+					hour: '2-digit',
+					minute: '2-digit',
+					second: '2-digit'
+				};
+			case 'iso':
+				return {
+					year: 'numeric',
+					month: '2-digit',
+					day: '2-digit',
+					hour: '2-digit',
+					minute: '2-digit',
+					second: '2-digit',
+					timeZoneName: 'short'
+				};
+			default: // 'short'
+				return {
+					weekday: 'short',
+					month: 'short',
+					day: 'numeric'
+				};
+		}
+	})();
+
+	return new Intl.DateTimeFormat(locale, options).format(date);
 }
 
 /**

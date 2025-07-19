@@ -5,7 +5,7 @@ import { EventService } from '$core/service/EventService';
 import { QueueManager } from '$core/service/QueueManager';
 import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
-import { epochToDate, getWeekNumber } from '$lib/utils/dateUtils';
+import { epochToDate, formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
@@ -243,7 +243,15 @@ export const actions = {
 
 			// Return ushers position to client
 			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${epochToDate(createdDate)}`);
-			return { success: true, json: { ushers: queueManager.assignedUshers } };
+			return {
+				success: true, json: {
+					submitted: formatDate(epochToDate(createdDate), 'datetime'),
+					lingkungan: selectedLingkungan.name,
+					mass: selectedMass.name,
+					event: formatDate(confirmedEvent.date, 'long'),
+					ushers: queueManager.assignedUshers,
+				}
+			};
 		} catch (err) {
 			logger.warn('failed creating event:', err);
 			return fail(500, { error: 'Terjadi kesalahan internal: ' + (err instanceof Error ? err.message : 'Detail tidak diketahui'), formData: formValues });

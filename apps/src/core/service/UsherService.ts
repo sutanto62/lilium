@@ -1,4 +1,5 @@
 import type { EventUsher, UsherByEventResponse } from "$core/entities/Event";
+import { ServiceError } from "$core/errors/ServiceError";
 import { repo } from "$src/lib/server/db";
 import { logger } from "$src/lib/utils/logger";
 
@@ -50,8 +51,9 @@ export class UsherService {
      * @param ushers - Array of ushers to assign
      * @param wilayahId - The ID of the wilayah
      * @param lingkunganId - The ID of the lingkungan
-     * @returns A promise that resolves to true if successful
-     * @throws Error if assignment fails
+     * @returns A promise that resolves to the created date timestamp
+     * @throws ServiceError.validation when lingkungan already submitted
+     * @throws ServiceError.database when database operation fails
      */
     async assignEventUshers(
         eventId: string,
@@ -61,14 +63,27 @@ export class UsherService {
     ): Promise<number> {
         try {
             const createdDate = await repo.insertEventUshers(eventId, ushers, wilayahId, lingkunganId);
+
+            // Repository returns 0 when lingkungan already submitted
             if (createdDate === 0) {
                 logger.warn(`lingkungan ${lingkunganId} sudah melakukan konfirmasi tugas`);
-                return 0
+                throw ServiceError.validation('Lingkungan Bapak/Ibu sudah melakukan konfirmasi tugas');
             }
+
             return createdDate;
         } catch (error) {
-            logger.error('Gagal menambahkan petugas pada tugas misa:', error);
-            throw new Error('Sistem gagal mencatat petugas');
+            // If it's already a ServiceError, re-throw it
+            if (error instanceof ServiceError) {
+                throw error;
+            }
+
+            // Log the original error for debugging
+            logger.error('failed to add ushers to event:', error);
+
+            // Convert generic errors to ServiceError.database
+            throw ServiceError.database('Sistem gagal mencatat petugas', {
+                originalError: error instanceof Error ? error.message : 'Unknown error'
+            });
         }
     }
 }

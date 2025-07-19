@@ -1,5 +1,6 @@
 import type { EventUsher } from '$core/entities/Event';
 import type { Church } from '$core/entities/Schedule';
+import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { QueueManager } from '$core/service/QueueManager';
@@ -215,17 +216,48 @@ export const actions = {
 			}
 
 			// Insert ushers into event
-			const createdDate = await usherService.assignEventUshers(
-				confirmedEvent.id,
-				ushersArray,
-				wilayahId,
-				lingkunganId
-			);
+			let createdDate: number;
+			try {
+				createdDate = await usherService.assignEventUshers(
+					confirmedEvent.id,
+					ushersArray,
+					wilayahId,
+					lingkunganId
+				);
+			} catch (error: unknown) {
+				// Handle ServiceError types appropriately
+				if (error instanceof ServiceError) {
+					switch (error.type) {
+						case ServiceErrorType.VALIDATION_ERROR:
+							return fail(422, {
+								error: error.message,
+								formData: formValues
+							});
+						case ServiceErrorType.DUPLICATE_ERROR:
+							return fail(400, {
+								error: error.message,
+								formData: formValues
+							});
+						case ServiceErrorType.DATABASE_ERROR:
+							logger.error('Database error in usher assignment:', error);
+							return fail(500, {
+								error: 'Terjadi kesalahan sistem. Silakan coba lagi.',
+								formData: formValues
+							});
+						default:
+							logger.error('Unknown service error:', error);
+							return fail(500, {
+								error: 'Terjadi kesalahan internal.',
+								formData: formValues
+							});
+					}
+				}
 
-			// Validate double input by lingkungan
-			if (createdDate === 0) {
-				return fail(400, {
-					error: 'Lingkungan Bapak/Ibu sudah melakukan konfirmasi tugas.'
+				// Handle unexpected errors
+				logger.error('Unexpected error in usher assignment:', error);
+				return fail(500, {
+					error: 'Terjadi kesalahan internal: ' + (error instanceof Error ? error.message : 'Detail tidak diketahui'),
+					formData: formValues
 				});
 			}
 

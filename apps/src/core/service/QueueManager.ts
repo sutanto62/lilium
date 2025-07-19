@@ -244,13 +244,13 @@ export class QueueManager {
 			let pppUshersIndex = this.isRoundRobinEnabled ? this.nextIndexPpg : 0;
 			for (const usher of ppgUshers) {
 				if (availablePpgPositions.length === 0) {
-					logger.warn(`  no available PPG positions for PPG usher: ${usher.name}`);
+					logger.warn(`no available non-ppg position for ${usher.name}`);
 					break;
 				}
 
 				const positionIndex = getNextPositionIndex(pppUshersIndex, availablePpgPositions.length);
 				if (positionIndex === null) {
-					logger.warn(`  no more available PPG positions for PPG usher: ${usher.name}`);
+					logger.warn(`no available ppg position for ${usher.name}`);
 					break;
 				}
 

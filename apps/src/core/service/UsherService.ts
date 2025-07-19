@@ -61,8 +61,9 @@ export class UsherService {
     ): Promise<number> {
         try {
             const createdDate = await repo.insertEventUshers(eventId, ushers, wilayahId, lingkunganId);
-            if (!createdDate) {
-                return 0;
+            if (createdDate === 0) {
+                logger.warn(`lingkungan ${lingkunganId} sudah melakukan konfirmasi tugas`);
+                return 0
             }
             return createdDate;
         } catch (error) {

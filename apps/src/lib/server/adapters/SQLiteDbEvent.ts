@@ -95,6 +95,7 @@ export async function createEventUsher(
 	}));
 
 	await db.insert(event_usher).values(usherValues);
+	// Return created date for validation and logging response
 	return created_date;
 }
 

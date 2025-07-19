@@ -224,9 +224,8 @@ export const actions = {
 
 			// Validate double input by lingkungan
 			if (createdDate === 0) {
-				logger.warn(`invalid lingkungan ${lingkunganId} input`)
 				return fail(400, {
-					error: 'Lingkungan sudah melakukan konfirmasi tugas'
+					error: 'Lingkungan Bapak/Ibu sudah melakukan konfirmasi tugas.'
 				});
 			}
 

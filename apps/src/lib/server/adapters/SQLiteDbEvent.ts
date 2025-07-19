@@ -66,7 +66,7 @@ export async function createEventUsher(
 	ushers: EventUsher[],
 	wilayahId: string,
 	lingkunganId: string
-): Promise<boolean> {
+): Promise<number> {
 	// Check if lingkungan is already submit event usher
 	const ifSubmitted = await db
 		.select()
@@ -75,7 +75,7 @@ export async function createEventUsher(
 
 	if (featureFlags.isEnabled('no_multi_submit')) {
 		if (ifSubmitted.length > 0) {
-			return false;
+			return 0;
 		}
 	}
 
@@ -95,7 +95,8 @@ export async function createEventUsher(
 	}));
 
 	await db.insert(event_usher).values(usherValues);
-	return true;
+	// Return created date for validation and logging response
+	return created_date;
 }
 
 

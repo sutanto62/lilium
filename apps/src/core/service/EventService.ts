@@ -224,7 +224,7 @@ export class EventService {
 		ushers: EventUsher[],
 		wilayahId: string,
 		lingkunganId: string
-	): Promise<boolean> {
+	): Promise<number> {
 		return this.usherService.assignEventUshers(eventId, ushers, wilayahId, lingkunganId);
 	}
 

@@ -75,6 +75,7 @@
 		"@sveltejs/kit": "^2.15.0",
 		"@types/html2canvas": "^0.5.35",
 		"better-sqlite3": "^11.2.1",
+		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.31.4",
 		"html2canvas": "^1.4.1",
 		"pino": "^9.4.0",

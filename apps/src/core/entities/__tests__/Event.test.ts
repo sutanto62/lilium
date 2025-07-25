@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Event, EventPicRequest, EventScheduleResponse, EventUsher, UsherByEventResponse } from '../Event';
+import type { Event, EventPicRequest, EventScheduleResponse, EventUsher } from '../Event';
 import { EventType } from '../Event';
+import type { UsherByEventResponse } from "../Usher";
 
 describe('Event Entity', () => {
     describe('Event Interface', () => {

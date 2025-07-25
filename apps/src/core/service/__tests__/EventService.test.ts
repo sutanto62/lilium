@@ -46,11 +46,11 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.getEventsByWeekNumber).mockResolvedValue(mockEvents);
+            vi.mocked(repo.listEventsByWeekNumber).mockResolvedValue(mockEvents);
 
             const result = await eventService.retrieveEventsByWeekRange(12);
 
-            expect(repo.getEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
+            expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
             expect(result).toEqual(mockEvents);
         });
 
@@ -65,11 +65,11 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.getEventsByWeekNumber).mockResolvedValue(mockEvents);
+            vi.mocked(repo.listEventsByWeekNumber).mockResolvedValue(mockEvents);
 
             const result = await eventService.retrieveEventsByWeekRange(undefined, [12, 13]);
 
-            expect(repo.getEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
+            expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
             expect(result).toEqual(mockEvents);
         });
     });
@@ -174,11 +174,11 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.listUshers).mockResolvedValue(mockUshers);
+            vi.mocked(repo.listUshersByEvent).mockResolvedValue(mockUshers);
 
             const result = await eventService.retrieveEventUshers('event-1');
 
-            expect(repo.listUshers).toHaveBeenCalledWith('event-1');
+            expect(repo.listUshersByEvent).toHaveBeenCalledWith('event-1');
             expect(result).toEqual(mockUshers);
         });
     });

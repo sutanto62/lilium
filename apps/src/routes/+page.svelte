@@ -47,15 +47,14 @@
 			buttonText="Konfirmasi"
 		/>
 
-		{#if data.isUser || data.isAdmin}
-			<FeatureCard
-				title="Lingkungan"
-				description="Jadwal tugas tata tertib lingkungan dan daftar konfirmasi yang telah berlalu."
-				buttonHref="/lingkungan"
-				buttonText="Lihat"
-				buttonColor="alternative"
-			/>
-		{/if}
+		<FeatureCard
+			title="Lingkungan"
+			description="Jadwal tugas tata tertib lingkungan dan daftar konfirmasi yang telah berlalu."
+			buttonHref="/lingkungan"
+			buttonText="Lihat"
+			buttonColor="alternative"
+		/>
+
 		<FeatureCard
 			title="Petunjuk Pemakaian"
 			description="Aturan, tata cara, dan hal penting lain yang perlu diketahui selama mempergunakan sistem."

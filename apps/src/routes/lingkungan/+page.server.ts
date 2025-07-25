@@ -1,56 +1,67 @@
-import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { UsherService } from '$core/service/UsherService';
 import { statsigService } from '$src/lib/application/StatsigService';
-import { handlePageLoad } from '$src/lib/server/pageHandler';
+import { getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
-import { error, redirect } from '@sveltejs/kit';
+import { type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    await statsigService.use();
+    await statsigService.logEvent('lingkungan_view_server', 'load');
 
-    const { session } = await handlePageLoad(event, 'lingkungan');
-    if (!session) {
-        throw redirect(302, '/signin');
-    }
+    // const { session } = await handlePageLoad(event, 'lingkungan');
+    // if (!session) {
+    //     throw redirect(302, '/signin');
+    // }
 
-    const churchId = session.user?.cid;
-    if (!churchId) {
-        logger.error('No church ID found in session');
-        throw error(500, 'Invalid session data');
-    }
-    const lingkunganId = session.user?.lingkunganId;
-    if (!lingkunganId) {
-        logger.error('No lingkungan ID found in session');
-        return {
-            success: false,
-            message: 'Lingkungan tidak ditemukan'
-        }
-        // throw error(500, 'Invalid session data');
-    }
+    // const churchId = session.user?.cid;
+    // if (!churchId) {
+    //     logger.error('No church ID found in session');
+    //     throw error(500, 'Invalid session data');
+    // }
 
+    const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
     const eventService = new EventService(churchId);
-    const usherService = new UsherService(churchId);
-    const churchService = new ChurchService(churchId);
-    const lingkungan = await churchService.retrieveLingkunganById(lingkunganId);
-    const lingkunganEvents = await eventService.retrieveEventsByLingkungan(lingkunganId, true);
 
-    // Fetch ushers for each event
-    const eventsWithUshers = await Promise.all(
-        lingkunganEvents.map(async (event) => {
-            const ushers = await usherService.retrieveEventUshersByLingkungan(event.id, lingkunganId);
-
-            return {
-                ...event,
-                ushers
-            };
-        })
-    );
+    const weekNumber = getWeekNumber(new Date().toISOString());
+    const events = await eventService.retrieveEventsByWeekRange(weekNumber);
 
     return {
         success: true,
-        lingkungan,
-        events: eventsWithUshers
+        events: events
     }
 };
+
+export const actions = {
+    default: async (event) => {
+        const data = await event.request.formData();
+        const eventId = data.get('eventId') as string;
+
+        if (!eventId) {
+            return {
+                success: false,
+                error: 'Tidak ada jadwal yang dipilih'
+            };
+        }
+
+        try {
+            const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
+
+            const usherService = new UsherService(churchId);
+            const ushers = await usherService.retrieveEventUshers(eventId);
+
+            return {
+                success: true,
+                selectedEventId: eventId,
+                ushers
+            };
+
+        } catch (error) {
+            logger.error('Failed to fetch ushers:', error);
+            return {
+                success: false,
+                error: 'Gagal mengambil data'
+            };
+        }
+    }
+} satisfies Actions;

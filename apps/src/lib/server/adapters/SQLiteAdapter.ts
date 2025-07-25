@@ -14,12 +14,12 @@ import {
 	findEvents,
 	findEventsByDateRange,
 	findEventsByLingkungan,
-	findEventsByWeekNumber,
 	findEventSchedule,
 	findEventUshers,
 	findEventUshersPosition,
-	findUshersByEvent,
 	findUshersByLingkungan,
+	listEventsByWeekNumber,
+	findUshersByEvent as listUshersByEvent,
 	softDeleteEvent,
 	updateEventById
 } from './SQLiteDbEvent';
@@ -72,8 +72,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	updateEventById = (id: string, event: ChurchEvent) => updateEventById(this.db, id, event);
 	getEventByIdResponse = (id: string) => findEventByIdResponse(this.db, id);
 	getEvents = (churchId: string, limit?: number) => findEvents(this.db, churchId, limit);
-	getEventsByWeekNumber = (churchId: string, weekNumber: number[], limit?: number) =>
-		findEventsByWeekNumber(this.db, churchId, weekNumber, limit);
+	listEventsByWeekNumber = (churchId: string, weekNumber: number[], limit?: number) =>
+		listEventsByWeekNumber(this.db, churchId, weekNumber, limit);
 	getEventsByDateRange = (churchId: string, startDate: string, endDate: string) =>
 		findEventsByDateRange(this.db, churchId, startDate, endDate);
 	getEventsByLingkungan = (churchId: string, lingkunganId: string, all?: boolean) =>
@@ -95,7 +95,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 	removeEventUsher = (eventId: string, lingkunganId: string) => deleteEventUsher(this.db, eventId, lingkunganId);
 
 	// Ushers
-	listUshers = (eventId: string) => findUshersByEvent(this.db, eventId);
+	listUshersByEvent = (eventId: string) => listUshersByEvent(this.db, eventId);
 	findEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
 	listUshersByLingkungan = (eventId: string, lingkunganId: string) =>

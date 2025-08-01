@@ -75,7 +75,7 @@ export function formatDate(dateString: string, format: DateFormat = 'short', loc
 			case 'date':
 				return {
 					year: 'numeric',
-					month: '2-digit',
+					month: 'short',
 					day: '2-digit'
 				};
 			case 'full':

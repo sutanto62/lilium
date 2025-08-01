@@ -4,10 +4,10 @@ import type {
 	ChurchEventResponse,
 	EventPicRequest,
 	EventScheduleResponse,
-	EventUsher,
-	UsherByEventResponse
+	EventUsher
 } from '$core/entities/Event';
 import { EventType } from '$core/entities/Event';
+import type { UsherByEventResponse } from "$core/entities/Usher";
 import { ServiceError } from '$core/errors/ServiceError';
 import { repo } from '$src/lib/server/db';
 import { getWeekNumber } from '$src/lib/utils/dateUtils';
@@ -42,8 +42,9 @@ export class EventService {
 	 * @returns A promise that resolves to an array of Event objects
 	 */
 	async retrieveEventsByWeekRange(weekNumber?: number, weekNumbers?: number[], limit?: number): Promise<ChurchEvent[]> {
+		// TODO: fix to retrieve events for upcoming 2 weeks or single week
 		const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
-		const events = await repo.getEventsByWeekNumber(this.churchId, upcomingWeeks, limit);
+		const events = await repo.listEventsByWeekNumber(this.churchId, upcomingWeeks, limit);
 		return events;
 	}
 

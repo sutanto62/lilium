@@ -1,4 +1,5 @@
-import type { EventUsher, UsherByEventResponse } from "$core/entities/Event";
+import type { EventUsher } from "$core/entities/Event";
+import type { UsherByEventResponse } from "$core/entities/Usher";
 import { ServiceError } from "$core/errors/ServiceError";
 import { repo } from "$src/lib/server/db";
 import { logger } from "$src/lib/utils/logger";
@@ -13,7 +14,7 @@ export class UsherService {
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
     async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
-        return await repo.listUshers(eventId);
+        return await repo.listUshersByEvent(eventId);
     }
 
     /**

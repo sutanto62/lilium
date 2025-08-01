@@ -7,9 +7,9 @@ import {
 	type EventPicRequest,
 	type EventScheduleResponse,
 	type EventScheduleRows,
-	type EventUsher,
-	type UsherByEventResponse
+	type EventUsher
 } from '$core/entities/Event';
+import { type UsherByEventResponse } from "$core/entities/Usher";
 import {
 	church,
 	church_position,
@@ -365,7 +365,7 @@ export async function findEvents(
 }
 
 
-export async function findEventsByWeekNumber(
+export async function listEventsByWeekNumber(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	weekNumbers: number[],

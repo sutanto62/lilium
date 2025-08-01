@@ -5,8 +5,7 @@ import type {
 	ChurchEventResponse,
 	EventPicRequest,
 	EventScheduleResponse,
-	EventUsher,
-	UsherByEventResponse
+	EventUsher
 } from '$core/entities/Event';
 import type {
 	Church,
@@ -17,6 +16,7 @@ import type {
 	Mass,
 	Wilayah,
 } from '$core/entities/Schedule';
+import type { UsherByEventResponse } from "$core/entities/Usher";
 import {
 	event,
 	mass,
@@ -44,7 +44,7 @@ export interface ScheduleRepository {
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 
 	// Ushers
-	listUshers(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
+	listUshersByEvent(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
 	findEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
 	listUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
 	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
@@ -57,7 +57,7 @@ export interface ScheduleRepository {
 
 
 	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
-	getEventsByWeekNumber(churchId: string, weekNumbers: number[], limit?: number): Promise<ChurchEvent[]>;
+	listEventsByWeekNumber(churchId: string, weekNumbers: number[], limit?: number): Promise<ChurchEvent[]>;
 	getEventsByDateRange(churchId: string, startDate: string, endDate: string): Promise<ChurchEvent[]>;
 	getEventsByLingkungan(churchId: string, lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]>;
 	getEventById(id: string): Promise<ChurchEvent>;

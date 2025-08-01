@@ -213,7 +213,7 @@
 							<TableBodyRow>
 								<TableBodyCell>{usher.name}</TableBodyCell>
 								<TableBodyCell class="hidden lg:table-cell">{usher.zone}</TableBodyCell>
-								<TableBodyCell>{usher.position}</TableBodyCell>
+								<TableBodyCell>{usher.zone} - {usher.position}</TableBodyCell>
 								<TableBodyCell class="hidden lg:table-cell"
 									>{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}</TableBodyCell
 								>

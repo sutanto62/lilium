@@ -142,7 +142,6 @@
 			name: sanitizeName(usher.name)
 		}));
 		ushers = sanitizedUshers;
-		(e.target as HTMLFormElement).submit();
 
 		await statsigService.logEvent(
 			'tatib_confirm_ushers',
@@ -155,6 +154,8 @@
 				mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
 			}
 		);
+
+		(e.target as HTMLFormElement).submit();
 	}
 </script>
 

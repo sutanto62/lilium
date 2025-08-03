@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import { statsigService } from '$src/lib/application/StatsigService';
 	import LightweightCalendar from '$src/lib/components/LightweightCalendar.svelte';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import {
@@ -58,8 +59,13 @@
 		}
 	});
 
-	function handleCardClick(eventId: string) {
+	async function handleCardClick(eventId: string) {
 		selectedEventId = eventId;
+
+		await statsigService.logEvent('lingkungan_select_event', 'event', data.session || undefined, {
+			eventId: eventId
+		});
+
 		// Trigger form submission to fetch ushers
 		if (formElement && selectedEventId) {
 			// Set the input value directly and submit
@@ -71,8 +77,13 @@
 		}
 	}
 
-	function handleDateSelect(date: Date) {
+	async function handleDateSelect(date: Date) {
 		selectedDate = date;
+
+		await statsigService.logEvent('lingkungan_select_date', 'date', data.session || undefined, {
+			date: date.toISOString()
+		});
+
 		// Reset selected event if current selection is not in filtered events
 		if (selectedEventId && !filteredEvents.find((e) => e.id === selectedEventId)) {
 			if (filteredEvents.length > 0) {
@@ -213,7 +224,9 @@
 							<TableBodyRow>
 								<TableBodyCell>{usher.name}</TableBodyCell>
 								<TableBodyCell class="hidden lg:table-cell">{usher.zone}</TableBodyCell>
-								<TableBodyCell>{usher.zone} - {usher.position}</TableBodyCell>
+								<TableBodyCell class="whitespace-normal"
+									>{usher.zone} - {usher.position}</TableBodyCell
+								>
 								<TableBodyCell class="hidden lg:table-cell"
 									>{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}</TableBodyCell
 								>

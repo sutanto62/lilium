@@ -94,7 +94,7 @@
 
 		if (isSubmitted) {
 			await statsigService.logEvent(
-				'tatib_submission',
+				'tatib_validate_ushers',
 				isValid ? 'valid' : 'invalid',
 				page.data.session || undefined,
 				{
@@ -123,7 +123,7 @@
 		if (element) {
 			try {
 				await navigator.clipboard.writeText(transformText(element.innerHTML));
-				await statsigService.logEvent('tatib_view', 'copy_to_clipboard');
+				await statsigService.logEvent('tatib_copy_titik_tugas', 'button');
 			} catch (error) {
 				console.error('Failed to copy text: ', error);
 			}
@@ -144,12 +144,17 @@
 		ushers = sanitizedUshers;
 		(e.target as HTMLFormElement).submit();
 
-		await statsigService.logEvent('tatib_submission', 'submit', page.data.session || undefined, {
-			lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
-			wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
-			eventDate: selectedEventDate,
-			mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
-		});
+		await statsigService.logEvent(
+			'tatib_confirm_ushers',
+			'submit',
+			page.data.session || undefined,
+			{
+				lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
+				wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
+				eventDate: selectedEventDate,
+				mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
+			}
+		);
 	}
 </script>
 
@@ -198,7 +203,7 @@
 			<br />
 			Tanggal konfirmasi: {form?.json.submitted} <br />
 		</div>
-		<Button color="blue" class="mt-4" onclick={() => copyToClipboard('copy-usher')}>
+		<Button color="blue" class="mr-2 mt-4" onclick={() => copyToClipboard('copy-usher')}>
 			<ClipboardCleanSolid class="mr-2 h-5 w-5" />
 			Salin ke Clipboard
 		</Button>

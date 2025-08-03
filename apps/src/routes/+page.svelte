@@ -49,7 +49,7 @@
 
 		<FeatureCard
 			title="Lingkungan"
-			description="Jadwal tugas tata tertib lingkungan 2 minggu ke depan."
+			description="Lihat titik tugas sesuai konfirmasi pengurus lingkungan."
 			buttonHref="/lingkungan"
 			buttonText="Lihat"
 			buttonColor="alternative"

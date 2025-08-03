@@ -168,6 +168,8 @@
 				mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
 			}
 		);
+
+		(e.target as HTMLFormElement).submit();
 	}
 </script>
 

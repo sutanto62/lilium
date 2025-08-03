@@ -156,6 +156,18 @@
 		);
 
 		(e.target as HTMLFormElement).submit();
+
+		await statsigService.logEvent(
+			'tatib_confirm_ushers',
+			'submit',
+			page.data.session || undefined,
+			{
+				lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
+				wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
+				eventDate: selectedEventDate,
+				mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
+			}
+		);
 	}
 </script>
 

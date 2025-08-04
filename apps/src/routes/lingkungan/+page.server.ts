@@ -9,17 +9,6 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event) => {
     await statsigService.logEvent('lingkungan_view_server', 'load');
 
-    // const { session } = await handlePageLoad(event, 'lingkungan');
-    // if (!session) {
-    //     throw redirect(302, '/signin');
-    // }
-
-    // const churchId = session.user?.cid;
-    // if (!churchId) {
-    //     logger.error('No church ID found in session');
-    //     throw error(500, 'Invalid session data');
-    // }
-
     const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
     const eventService = new EventService(churchId);
 

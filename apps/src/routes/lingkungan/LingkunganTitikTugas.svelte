@@ -55,6 +55,8 @@
 		// Set initial selected event from derived events
 		if (events.length > 0 && !selectedEventId) {
 			selectedEventId = events[0].id;
+			// Set the selected date to the first event's date
+			selectedDate = new Date(events[0].date);
 			handleCardClick(selectedEventId);
 		}
 	});
@@ -119,6 +121,7 @@
 		<LightweightCalendar
 			{events}
 			{selectedEventId}
+			initialSelectedDate={selectedDate}
 			onEventSelect={handleCardClick}
 			onDateSelect={handleDateSelect}
 		/>
@@ -149,6 +152,7 @@
 		<LightweightCalendar
 			{events}
 			{selectedEventId}
+			initialSelectedDate={selectedDate}
 			onEventSelect={handleCardClick}
 			onDateSelect={handleDateSelect}
 		/>

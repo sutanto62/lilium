@@ -21,12 +21,14 @@
 	let {
 		events = [],
 		selectedEventId = null,
+		initialSelectedDate = null,
 		onEventSelect = undefined,
 		onDateSelect = undefined,
 		compact = false
 	} = $props<{
 		events?: ChurchEvent[];
 		selectedEventId?: string | null;
+		initialSelectedDate?: Date | null;
 		onEventSelect?: ((eventId: string) => void) | undefined;
 		onDateSelect?: ((date: Date) => void) | undefined;
 		compact?: boolean;
@@ -37,6 +39,15 @@
 	let selectedDate = $state<Date | null>(null);
 	let currentMonth = $derived(startOfMonth(currentDate));
 	let calendarDays = $derived(generateCalendarDays());
+
+	// Set initial selected date when component loads
+	$effect(() => {
+		if (initialSelectedDate && !selectedDate) {
+			selectedDate = initialSelectedDate;
+			// Also set current date to the month of the selected date
+			currentDate = initialSelectedDate;
+		}
+	});
 
 	// Generate calendar days using date-fns
 	function generateCalendarDays() {
@@ -213,10 +224,6 @@
 		@apply z-10;
 	}
 
-	.calendar-event {
-		@apply truncate;
-	}
-
 	/* Responsive adjustments */
 	@media (max-width: 1024px) {
 		.calendar-container {
@@ -225,10 +232,6 @@
 
 		.calendar-day {
 			@apply min-h-[50px] p-0.5;
-		}
-
-		.calendar-event {
-			@apply p-0 text-xs;
 		}
 	}
 </style>

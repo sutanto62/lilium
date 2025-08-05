@@ -954,7 +954,7 @@ export async function findEventUshersPosition(
 	return query.map(row => row.position).filter((pos): pos is string => pos !== null);
 }
 
-export async function findEventsByLingkungan(
+export async function listEventsByLingkungan(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	lingkunganId: string,
@@ -1020,7 +1020,7 @@ export async function findEventsByLingkungan(
 
 }
 
-export async function findEventsByDateRange(
+export async function listEventsByDateRange(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	startDate: string,

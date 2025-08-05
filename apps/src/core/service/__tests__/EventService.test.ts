@@ -85,11 +85,11 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.getEventsByDateRange).mockResolvedValue(mockEvents);
+            vi.mocked(repo.listEventsByDateRange).mockResolvedValue(mockEvents);
 
-            const result = await eventService.retrieveEventsByDateRange('2024-03-01', '2024-03-31');
+            const result = await eventService.listEventsByDateRange('2024-03-01', '2024-03-31');
 
-            expect(repo.getEventsByDateRange).toHaveBeenCalledWith(mockChurchId, '2024-03-01', '2024-03-31');
+            expect(repo.listEventsByDateRange).toHaveBeenCalledWith(mockChurchId, '2024-03-01', '2024-03-31');
             expect(result).toEqual(mockEvents);
         });
     });

@@ -54,8 +54,8 @@ export class EventService {
 	 * @param endDate - The end date in ISO format (YYYY-MM-DD)
 	 * @returns A promise that resolves to an array of Event objects
 	 */
-	async retrieveEventsByDateRange(startDate: string, endDate: string): Promise<ChurchEvent[]> {
-		return await repo.getEventsByDateRange(this.churchId, startDate, endDate);
+	async listEventsByDateRange(startDate: string, endDate: string): Promise<ChurchEvent[]> {
+		return await repo.listEventsByDateRange(this.churchId, startDate, endDate);
 	}
 
 	/**
@@ -64,8 +64,8 @@ export class EventService {
 	 * @param all - If true, all events will be returned, otherwise only active events will be returned
 	 * @returns A promise that resolves to an array of Event objects
 	 */
-	async retrieveEventsByLingkungan(lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]> {
-		return await repo.getEventsByLingkungan(this.churchId, lingkunganId, all);
+	async listEventsByLingkungan(lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]> {
+		return await repo.listEventsByLingkungan(this.churchId, lingkunganId, all);
 	}
 
 	/**

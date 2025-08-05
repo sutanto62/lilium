@@ -224,10 +224,6 @@
 		@apply z-10;
 	}
 
-	.calendar-event {
-		@apply truncate;
-	}
-
 	/* Responsive adjustments */
 	@media (max-width: 1024px) {
 		.calendar-container {
@@ -236,10 +232,6 @@
 
 		.calendar-day {
 			@apply min-h-[50px] p-0.5;
-		}
-
-		.calendar-event {
-			@apply p-0 text-xs;
 		}
 	}
 </style>

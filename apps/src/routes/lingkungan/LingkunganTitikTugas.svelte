@@ -86,14 +86,11 @@
 			date: date.toISOString()
 		});
 
-		// Reset selected event if current selection is not in filtered events
-		if (selectedEventId && !filteredEvents.find((e) => e.id === selectedEventId)) {
-			if (filteredEvents.length > 0) {
-				handleCardClick(filteredEvents[0].id);
-			} else {
-				selectedEventId = null;
-			}
-		}
+		// Filter events by selected date
+		filteredEvents = events.filter((event) => {
+			const eventDate = new Date(event.date);
+			return eventDate.toDateString() === selectedDate!.toDateString();
+		});
 	}
 </script>
 
@@ -160,7 +157,7 @@
 		{#if filteredEvents.length > 0}
 			{#each filteredEvents as event}
 				<Card
-					class={`mb-4 cursor-pointer border-2 bg-white p-4 sm:p-4 md:p-4 ${selectedEventId === event.id ? 'border-amber-500' : 'border-white'}`}
+					class={`mb-4 cursor-pointer border-4 bg-white p-4 sm:p-4 md:p-4 ${selectedEventId === event.id ? 'border-amber-500' : 'border-white'}`}
 					shadow="lg"
 					id={event.id}
 					onclick={() => handleCardClick(event.id)}
@@ -180,7 +177,7 @@
 		{:else}
 			<div class="py-8 text-center">
 				<p class="text-sm font-light text-gray-500 dark:text-gray-400">
-					{selectedDate ? 'Tidak ada jadwal untuk tanggal ini' : 'Jadwal tidak ditemukan'}
+					{selectedDate ? 'Jadwal sudah selesai/belum dibuka' : 'Jadwal tidak ditemukan'}
 				</p>
 			</div>
 		{/if}
@@ -225,15 +222,17 @@
 						</TableBodyRow>
 					{:else}
 						{#each ushers as usher}
-							<TableBodyRow>
-								<TableBodyCell>{usher.name}</TableBodyCell>
-								<TableBodyCell class="hidden lg:table-cell">{usher.zone}</TableBodyCell>
-								<TableBodyCell class="whitespace-normal"
-									>{usher.zone} - {usher.position}</TableBodyCell
-								>
-								<TableBodyCell class="hidden lg:table-cell"
-									>{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}</TableBodyCell
-								>
+							<TableBodyRow class="text-sm">
+								<TableBodyCell class="whitespace-normal text-sm">{usher.name}</TableBodyCell>
+								<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
+									{usher.zone}
+								</TableBodyCell>
+								<TableBodyCell class="whitespace-normal text-sm">
+									<span class="block sm:hidden">{usher.zone} - </span>{usher.position}
+								</TableBodyCell>
+								<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
+									{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}
+								</TableBodyCell>
 							</TableBodyRow>
 						{/each}
 					{/if}

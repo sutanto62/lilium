@@ -13,9 +13,6 @@ import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-let churchService: ChurchService;
-let eventService: EventService;
-
 const queueManager = QueueManager.getInstance();
 
 /**
@@ -63,6 +60,11 @@ function getCurrentDayName(): string {
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
 export const load: PageServerLoad = async (event) => {
+
+	// Get server time for logging and validation
+	const serverTime = new Date();
+	const formattedTime = serverTime.toISOString();
+	logger.debug(`tatib_default server time: ${formattedTime}`);
 	await statsigService.logEvent('tatib_view_server', 'load');
 
 	// Get church ID from cookie
@@ -76,8 +78,9 @@ export const load: PageServerLoad = async (event) => {
 	if (!church) {
 		throw error(404, 'Gereja belum terdaftar');
 	}
-	churchService = new ChurchService(churchId);
-	eventService = new EventService(churchId);
+
+	const churchService = new ChurchService(churchId);
+	const eventService = new EventService(churchId);
 
 	let weekNumber = getWeekNumber();
 
@@ -133,11 +136,13 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions = {
 	default: async ({ request, cookies }) => {
+
 		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' }); // check session cookie
 		}
-		// const eventService = new EventService(churchId);
+
+		const eventService = new EventService(churchId);
 		const usherService = new UsherService(churchId);
 
 		const formData = await request.formData();

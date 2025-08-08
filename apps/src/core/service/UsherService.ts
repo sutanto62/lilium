@@ -63,10 +63,12 @@ export class UsherService {
         lingkunganId: string
     ): Promise<number> {
         try {
-            const createdDate = await repo.insertEventUshers(eventId, ushers, wilayahId, lingkunganId);
+            const createdDate = await repo.persistEventUshers(eventId, ushers, wilayahId, lingkunganId);
+            logger.debug(`assignEventUshers created date ${createdDate}`);
 
             // Repository returns 0 when lingkungan already submitted
             if (createdDate === 0) {
+                logger.debug(`lingkungan ${lingkunganId} sudah melakukan konfirmasi tugas`);
                 logger.warn(`lingkungan ${lingkunganId} sudah melakukan konfirmasi tugas`);
                 throw ServiceError.validation('Lingkungan Bapak/Ibu sudah melakukan konfirmasi tugas');
             }

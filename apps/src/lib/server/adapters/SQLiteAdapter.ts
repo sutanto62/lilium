@@ -3,7 +3,6 @@ import { drizzle } from 'drizzle-orm/libsql';
 import {
 	createEvent,
 	createEventPic,
-	createEventUsher,
 	deleteEventUsher,
 	editEventUshers,
 	findCetakJadwal,
@@ -20,6 +19,7 @@ import {
 	listEventsByLingkungan,
 	listEventsByWeekNumber,
 	findUshersByEvent as listUshersByEvent,
+	persistEventUsher,
 	softDeleteEvent,
 	updateEventById
 } from './SQLiteDbEvent';
@@ -102,12 +102,12 @@ export class SQLiteAdapter implements ScheduleRepository {
 		findUshersByLingkungan(this.db, eventId, lingkunganId);
 	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
 		findEventUshersPosition(this.db, eventId, isPpg);
-	insertEventUshers = (
+	persistEventUshers = (
 		eventId: string,
 		ushers: EventUsher[],
 		wilayahId: string,
 		lingkunganId: string
-	) => createEventUsher(this.db, eventId, ushers, wilayahId, lingkunganId);
+	) => persistEventUsher(this.db, eventId, ushers, wilayahId, lingkunganId);
 
 
 	// SQLiteDbFacility

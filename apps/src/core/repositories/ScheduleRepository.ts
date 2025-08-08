@@ -48,7 +48,7 @@ export interface ScheduleRepository {
 	findEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
 	listUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
 	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
-	insertEventUshers: (
+	persistEventUshers: (
 		eventId: string,
 		ushers: EventUsher[],
 		wilayahId: string,

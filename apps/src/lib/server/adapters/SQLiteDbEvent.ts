@@ -23,6 +23,7 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$lib/utils/FeatureFlag';
+import { logger } from '$src/lib/utils/logger';
 import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -60,7 +61,7 @@ export async function createEvent(
 	}
 }
 
-export async function createEventUsher(
+export async function persistEventUsher(
 	db: ReturnType<typeof drizzle>,
 	eventId: string,
 	ushers: EventUsher[],
@@ -77,10 +78,10 @@ export async function createEventUsher(
 		if (ifSubmitted.length > 0) {
 			return 0;
 		}
-	}
+	};
 
-	// Insert ushers
-	const created_date = new Date().getTime()
+	// Persist ushers
+	const created_date = new Date().getTime();
 	const usherValues = ushers.map((usher, index) => ({
 		id: uuidv4(),
 		event: eventId,
@@ -96,6 +97,7 @@ export async function createEventUsher(
 
 	await db.insert(event_usher).values(usherValues);
 	// Return created date for validation and logging response
+	logger.debug(`created date ${created_date}`);
 	return created_date;
 }
 

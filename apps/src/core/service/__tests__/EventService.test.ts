@@ -237,7 +237,7 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.insertEventUshers).mockResolvedValue(true);
+            vi.mocked(repo.persistEventUshers).mockResolvedValue(true);
 
             const result = await eventService.assignEventUshers(
                 'event-1',
@@ -246,7 +246,7 @@ describe('EventService', () => {
                 'lingkungan-1'
             );
 
-            expect(repo.insertEventUshers).toHaveBeenCalledWith(
+            expect(repo.persistEventUshers).toHaveBeenCalledWith(
                 'event-1',
                 mockUshers,
                 'wilayah-1',
@@ -270,7 +270,7 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.insertEventUshers).mockResolvedValue(false);
+            vi.mocked(repo.persistEventUshers).mockResolvedValue(false);
 
             await expect(eventService.assignEventUshers(
                 'event-1',

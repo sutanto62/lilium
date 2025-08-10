@@ -56,8 +56,8 @@ export interface ScheduleRepository {
 	) => Promise<number>;
 
 
-	getEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
-	listEventsByWeekNumber(churchId: string, weekNumbers: number[], limit?: number): Promise<ChurchEvent[]>;
+	listEvents(churchId: string, limit?: number): Promise<ChurchEvent[]>;
+	listEventsByWeekNumber(churchId: string, weekNumbers: number[], isToday: boolean, limit?: number): Promise<ChurchEvent[]>;
 	listEventsByDateRange(churchId: string, startDate: string, endDate: string): Promise<ChurchEvent[]>;
 	listEventsByLingkungan(churchId: string, lingkunganId: string, all?: boolean): Promise<ChurchEventResponse[]>;
 	getEventById(id: string): Promise<ChurchEvent>;

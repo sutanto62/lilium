@@ -60,12 +60,11 @@ function getCurrentDayName(): string {
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
 export const load: PageServerLoad = async (event) => {
+	await statsigService.logEvent('tatib_view_server', 'load');
 
 	// Get server time for logging and validation
 	const serverTime = new Date();
 	const formattedTime = serverTime.toISOString();
-	logger.debug(`tatib_default server time: ${formattedTime}`);
-	await statsigService.logEvent('tatib_view_server', 'load');
 
 	// Get church ID from cookie
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
@@ -88,7 +87,7 @@ export const load: PageServerLoad = async (event) => {
 		const [wilayahs, lingkungans, events] = await Promise.all([
 			churchService.retrieveWilayahs(),
 			churchService.retrieveLingkungans(),
-			eventService.retrieveEventsByWeekRange(weekNumber),
+			eventService.retrieveEventsByWeekRange({ weekNumber }),
 		]);
 
 		// Return unique events date sort ascending

@@ -47,6 +47,10 @@
 				showAlert = false;
 			}, 10000); // 10 seconds
 		}
+
+		if (!selectedDate) {
+			selectedDate = new Date();
+		}
 	});
 </script>
 
@@ -83,7 +87,7 @@
 
 	<Toolbar embedded class="sm:flex-column w-full gap-4 py-4 text-gray-500 dark:text-gray-300">
 		<DatePicker bind:value={selectedDate} />
-		<div class="space-x-2">
+		<div class="ml-4 space-x-2">
 			<form method="POST" class="w-full">
 				<Button type="submit" id="save-button" color="primary" class="whitespace-nowrap">
 					<CogSolid class="mr-2" />+ Misa Bulan Depan

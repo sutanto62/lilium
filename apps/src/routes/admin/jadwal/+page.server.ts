@@ -1,6 +1,7 @@
 import type { Event } from '$core/entities/Event';
 import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
+import { EventService } from '$core/service/EventService';
 import { UsherService } from '$core/service/UsherService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
@@ -25,7 +26,7 @@ interface EventWithUsherCounts extends Event {
  * @type {import('./$types').PageServerLoad}
  */
 export const load: PageServerLoad = async (event) => {
-	await statsigService.use();
+	await statsigService.logEvent('admin_jadwal_view_server', 'load');
 
 	// Check if the user is authenticated
 	const { session } = await handlePageLoad(event, 'jadwal');
@@ -46,13 +47,14 @@ export const load: PageServerLoad = async (event) => {
 
 	// Initialize services
 	const churchService = new ChurchService(churchId);
+	const eventService = new EventService(churchId);
 	const usherService = new UsherService(churchId);
 
 	// Fetch masses and events concurrently
 	try {
 		const [fetchedMasses, massEvents] = await Promise.all([
 			churchService.retrieveMasses(),
-			churchService.retrieveEvents()
+			eventService.retrieveEventsByWeekRange({ weekNumber: getWeekNumber(new Date().toISOString()), isToday: true })
 		]);
 
 		masses = fetchedMasses;

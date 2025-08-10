@@ -15,6 +15,14 @@ import { logger } from '$src/lib/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { UsherService } from './UsherService';
 
+
+export interface WeekRangeOptions {
+	weekNumber?: number;
+	weekNumbers?: number[];
+	isToday?: boolean;
+	limit?: number;
+}
+
 /**
  * Service class for managing church events and related operations
  * Use of Facade Pattern (temporarily) with Service Layer Pattern for specific domain
@@ -34,17 +42,31 @@ export class EventService {
 		this.usherService = new UsherService(churchId);
 	}
 
+
 	/**
 	 * Retrieves events by week number for upcoming 2 weeks
-	 * @param weekNumber - The week number to retrieve events for
-	 * @param weekNumbers - Optional array of specific week numbers to retrieve
-	 * @param limit - The maximum number of events to retrieve, omit to return all events
+	 * @param options - Configuration options for retrieving events
+	 * @param options.weekNumber - The week number to retrieve events for
+	 * @param options.weekNumbers - Optional array of specific week numbers to retrieve
+	 * @param options.isToday - If true, includes events from today onwards
+	 * @param options.limit - The maximum number of events to retrieve, omit to return all events
 	 * @returns A promise that resolves to an array of Event objects
 	 */
-	async retrieveEventsByWeekRange(weekNumber?: number, weekNumbers?: number[], limit?: number): Promise<ChurchEvent[]> {
+	async retrieveEventsByWeekRange(options: WeekRangeOptions = {}): Promise<ChurchEvent[]> {
+		const { weekNumber, weekNumbers, isToday = false, limit } = options;
+
 		// TODO: fix to retrieve events for upcoming 2 weeks or single week
-		const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
-		const events = await repo.listEventsByWeekNumber(this.churchId, upcomingWeeks, limit);
+		// const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
+
+		// transform weekNumber to weekNumbers
+		let upcomingWeeks: number[] = [];
+		if (weekNumber) {
+			upcomingWeeks = [weekNumber, weekNumber + 1];
+		} else if (weekNumbers) {
+			upcomingWeeks = weekNumbers;
+		}
+
+		const events = await repo.listEventsByWeekNumber(this.churchId, upcomingWeeks, isToday, limit);
 		return events;
 	}
 
@@ -134,7 +156,7 @@ export class EventService {
 	}
 
 	/**
-	 * Updates an existing event by its ID. 
+	 * Updates an existing event by its ID.
 	 * Omit mass: preventing changes in event mass's position
 	 * @param eventId - The ID of the event to update
 	 * @param event - The updated event data (excluding id, church, churchCode, and mass)

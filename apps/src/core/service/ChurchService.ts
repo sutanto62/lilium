@@ -101,13 +101,13 @@ export class ChurchService {
 		return zoneGroups;
 	}
 
-	// TODO: move to event service
 	/**
+	 * @deprecated This method should be moved to EventService. Use EventService.retrieveEventsByWeekRange() instead.
 	 * Retrieves the list of events for the church from the repository.
 	 * @returns A promise that resolves to an array of Event objects.
 	 */
 	async retrieveEvents(limit?: number): Promise<Event[]> {
-		this.events = await repo.getEvents(this.churchId, limit);
+		this.events = await repo.listEvents(this.churchId, limit);
 		return this.events;
 	}
 

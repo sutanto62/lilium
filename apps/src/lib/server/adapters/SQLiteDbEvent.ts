@@ -314,11 +314,14 @@ export async function findEventByIdResponse(
 }
 
 // FIXME: return empty array to avoid null error
-export async function findEvents(
+export async function listEvents(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	limit?: number
 ): Promise<ChurchEvent[]> {
+	// Default parameters value
+	const queryLimit = limit ?? 30;
+
 	const query = db
 		.select({
 			id: event.id,
@@ -339,9 +342,8 @@ export async function findEvents(
 		.leftJoin(mass, eq(mass.id, event.mass_id))
 		.orderBy(event.date);
 
-	if (limit !== undefined) {
-		query.limit(limit);
-	}
+	// Append additional conditions
+	query.limit(queryLimit);
 
 	const result = await query;
 
@@ -369,6 +371,7 @@ export async function listEventsByWeekNumber(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	weekNumbers: number[],
+	isToday: boolean = false,
 	limit?: number
 ): Promise<ChurchEvent[]> {
 	const today = new Date();
@@ -391,7 +394,7 @@ export async function listEventsByWeekNumber(
 			and(eq(event.church_id, churchId),
 				inArray(event.week_number, weekNumbers),
 				eq(event.active, 1),
-				gt(event.date, today.toISOString().split('T')[0])
+				isToday ? gte(event.date, today.toISOString().split('T')[0]) : gt(event.date, today.toISOString().split('T')[0])
 			))
 		.leftJoin(church, eq(church.id, event.church_id))
 		.leftJoin(mass, eq(mass.id, event.mass_id))

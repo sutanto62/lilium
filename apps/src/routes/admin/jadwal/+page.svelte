@@ -21,7 +21,7 @@
 		id: string;
 	};
 
-	type FilterStatus = 'all' | 'confirmed' | 'incomplete' | 'unconfirmed';
+	type FilterStatus = 'all' | 'confirmed' | 'incomplete' | 'unconfirmed' | 'today';
 
 	const { data } = $props();
 	let currentFilter = $state<FilterStatus>('all');
@@ -41,14 +41,16 @@
 	let filteredEvents = $derived(
 		(() => {
 			const filter = currentFilter as FilterStatus;
+
 			if (filter === 'confirmed') {
 				return upcomingEvents.filter((event) => event.progress === 100);
 			} else if (filter === 'incomplete') {
 				return upcomingEvents.filter((event) => event.progress > 0 && event.progress < 100);
 			} else if (filter === 'unconfirmed') {
 				return upcomingEvents.filter((event) => event.progress === 0);
+			} else {
+				return upcomingEvents;
 			}
-			return upcomingEvents;
 		})()
 	);
 
@@ -74,6 +76,9 @@
 <!-- <Button onclick={switchListEvents}>Switch</Button> -->
 <div class="mb-4">
 	<ButtonGroup class="*:ring-primary-700!">
+		<Button onclick={() => setFilter('all')} color={currentFilter === 'all' ? 'primary' : 'light'}>
+			Semua
+		</Button>
 		<Button
 			onclick={() => setFilter('confirmed')}
 			color={currentFilter === 'confirmed' ? 'primary' : 'light'}

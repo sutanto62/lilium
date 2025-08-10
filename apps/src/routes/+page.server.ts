@@ -3,7 +3,7 @@ import { statsigService } from '$src/lib/application/StatsigService';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    await statsigService.use();
+    await statsigService.logEvent('home_view_server', 'load');
 
     const session = await event.locals.auth();
     const isAdmin = hasRole(session, 'admin');

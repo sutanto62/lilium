@@ -142,9 +142,7 @@
 		<h2 class="mb-4 text-xl font-light">
 			{selectedDate ? `Misa ${formatDate(selectedDate.toISOString(), 'date')}` : 'Misa Minggu Ini'}
 		</h2>
-		<p class="mb-4 text-sm font-light text-gray-500 dark:text-gray-400">
-			Pilih tanggal misa untuk melihat jadwal dan titik tugas
-		</p>
+		<p class="mb-4 text-sm font-light text-gray-500 dark:text-gray-400">Pilih tanggal misa</p>
 
 		<LightweightCalendar
 			{events}

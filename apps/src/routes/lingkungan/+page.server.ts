@@ -13,7 +13,8 @@ export const load: PageServerLoad = async (event) => {
     const eventService = new EventService(churchId);
 
     const weekNumber = getWeekNumber(new Date().toISOString());
-    const events = await eventService.retrieveEventsByWeekRange(weekNumber);
+
+    const events = await eventService.retrieveEventsByWeekRange({ weekNumber, isToday: true });
 
     return {
         success: true,

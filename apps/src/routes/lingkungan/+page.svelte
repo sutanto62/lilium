@@ -11,6 +11,11 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'} | Titik Tugas Tatib</title>
+	<meta name="description" content="Melihat titik tata tertib lingkungan." />
+</svelte:head>
+
 <Breadcrumb class="mb-4	">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem>Lingkungan</BreadcrumbItem>

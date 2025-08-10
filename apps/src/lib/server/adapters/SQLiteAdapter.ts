@@ -72,8 +72,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	updateEventById = (id: string, event: ChurchEvent) => updateEventById(this.db, id, event);
 	getEventByIdResponse = (id: string) => findEventByIdResponse(this.db, id);
 	getEvents = (churchId: string, limit?: number) => findEvents(this.db, churchId, limit);
-	listEventsByWeekNumber = (churchId: string, weekNumber: number[], limit?: number) =>
-		listEventsByWeekNumber(this.db, churchId, weekNumber, limit);
+	listEventsByWeekNumber = (churchId: string, weekNumber: number[], isToday: boolean, limit?: number) =>
+		listEventsByWeekNumber(this.db, churchId, weekNumber, isToday, limit);
 	listEventsByDateRange = (churchId: string, startDate: string, endDate: string) =>
 		listEventsByDateRange(this.db, churchId, startDate, endDate);
 	listEventsByLingkungan = (churchId: string, lingkunganId: string, all?: boolean) =>

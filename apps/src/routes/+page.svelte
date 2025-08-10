@@ -15,6 +15,14 @@
 	});
 </script>
 
+<svelte:head>
+	<title>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'} | Beranda</title>
+	<meta
+		name="description"
+		content="Selamat datang! L.I.S (Laurentius Information System) adalah sistem informasi pelayanan Paroki Alam Sutera."
+	/>
+</svelte:head>
+
 <Section name="feature">
 	<!-- TODO: Provide separate page for admin related features -->
 
@@ -23,7 +31,7 @@
 	</Heading>
 	<P>Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</P>
 	{#if data.isAdmin}
-		<FeatureDefault class="mb-12 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+		<FeatureDefault class="mt-8 grid grid-cols-1 gap-4 md:grid-cols-4">
 			<FeatureCard
 				title="Jadwal Tata Tertib"
 				description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
@@ -39,7 +47,7 @@
 			/>
 		</FeatureDefault>
 	{/if}
-	<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4 ">
+	<FeatureDefault class="mb-4 mt-8 grid grid-cols-1 gap-4 md:grid-cols-4 ">
 		<FeatureCard
 			title="Tugas Tata Tertib"
 			description="Konfirmasi kehadiran tugas tata tertib lingkungan."
@@ -51,7 +59,7 @@
 			title="Lingkungan"
 			description="Lihat titik tugas sesuai konfirmasi pengurus lingkungan."
 			buttonHref="/lingkungan"
-			buttonText="Lihat"
+			buttonText="Cek Titik Tugas"
 			buttonColor="alternative"
 		/>
 

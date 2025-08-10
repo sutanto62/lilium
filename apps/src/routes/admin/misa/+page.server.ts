@@ -21,7 +21,7 @@ export const load: PageServerLoad = async (event) => {
 
     const weekNumbers = getWeekNumbers(1);
 
-    const events = await eventService.retrieveEventsByWeekRange(undefined, weekNumbers);
+    const events = await eventService.retrieveEventsByWeekRange({ weekNumbers, isToday: true });
 
     return {
         wilayahs: [],
@@ -35,6 +35,7 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions = {
     default: async ({ request, cookies }) => {
+        // TODO: move to event service
         logger.info('Creating new event');
 
         const churchId = cookies.get('cid') as string;

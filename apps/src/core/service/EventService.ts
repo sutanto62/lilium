@@ -57,7 +57,15 @@ export class EventService {
 
 		// TODO: fix to retrieve events for upcoming 2 weeks or single week
 		// const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
-		const upcomingWeeks = [31, 32, 33];
+
+		// transform weekNumber to weekNumbers
+		let upcomingWeeks: number[] = [];
+		if (weekNumber) {
+			upcomingWeeks = [weekNumber, weekNumber + 1];
+		} else if (weekNumbers) {
+			upcomingWeeks = weekNumbers;
+		}
+
 		const events = await repo.listEventsByWeekNumber(this.churchId, upcomingWeeks, isToday, limit);
 		return events;
 	}

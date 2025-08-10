@@ -314,11 +314,14 @@ export async function findEventByIdResponse(
 }
 
 // FIXME: return empty array to avoid null error
-export async function findEvents(
+export async function listEvents(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	limit?: number
 ): Promise<ChurchEvent[]> {
+	// Default parameters value
+	const queryLimit = limit ?? 30;
+
 	const query = db
 		.select({
 			id: event.id,
@@ -339,9 +342,8 @@ export async function findEvents(
 		.leftJoin(mass, eq(mass.id, event.mass_id))
 		.orderBy(event.date);
 
-	if (limit !== undefined) {
-		query.limit(limit);
-	}
+	// Append additional conditions
+	query.limit(queryLimit);
 
 	const result = await query;
 

@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { Breadcrumb, BreadcrumbItem, Button, Heading, Li, List } from 'flowbite-svelte';
+	import { formatDate } from '$src/lib/utils/dateUtils';
+	import { Breadcrumb, BreadcrumbItem, Button, Card, Heading, Li, List } from 'flowbite-svelte';
+	import type { PageProps } from './$types';
+
+	let { data }: PageProps = $props();
+
+	const isFeatureTimezone = $derived(data.isFeatureTimezone);
+	const serverTime = $derived(data.currentServerTime);
+	const serverTimeISO = $derived(data.currentServerTime.toISOString());
+	const timezoneInfo = $derived(data.timezoneInfo);
 </script>
 
 <svelte:head>
@@ -14,6 +23,27 @@
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem>Petunjuk</BreadcrumbItem>
 </Breadcrumb>
+
+{#if isFeatureTimezone}
+	<Card class="mb-6">
+		<div class="p-6">
+			<Heading tag="h5" class="mb-4">Server Timezone Information</Heading>
+			<div class="space-y-2 text-sm">
+				<p><strong>Timezone:</strong> {timezoneInfo.timezone}</p>
+				<p><strong>Timezone Name:</strong> {timezoneInfo.timezoneName}</p>
+				<p><strong>Timezone Abbreviation:</strong> {timezoneInfo.timezoneAbbr}</p>
+				<p><strong>UTC Offset:</strong> {timezoneInfo.timezoneOffsetFormatted}</p>
+				<p><strong>UTC Time:</strong> {timezoneInfo.utcTime}</p>
+				<p><strong>Local Time:</strong> {timezoneInfo.localTime}</p>
+				<p><strong>Formatted Time:</strong> {formatDate(serverTimeISO, 'datetime')}</p>
+				<p>
+					<strong>Asia Jakarta Time:</strong>
+					{formatDate(data.asiaJakartaTime.toISOString(), 'datetime')}
+				</p>
+			</div>
+		</div>
+	</Card>
+{/if}
 
 <Heading tag="h5" class="mb-4 mt-7">A. Panduan Lengkap Sistem Konfirmasi</Heading>
 

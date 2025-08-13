@@ -162,3 +162,67 @@ export function epochToDate(epoch: number): string {
 	return new Date(epoch).toISOString();
 }
 
+/**
+ * Get server timezone information
+ * 
+ * @returns Object containing timezone details
+ */
+export function getServerTimezoneInfo() {
+	const now = new Date();
+	const timezoneOffset = now.getTimezoneOffset();
+	const timezoneOffsetHours = Math.abs(Math.floor(timezoneOffset / 60));
+	const timezoneOffsetMinutes = Math.abs(timezoneOffset % 60);
+	const timezoneSign = timezoneOffset <= 0 ? '+' : '-';
+
+	return {
+		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+		timezoneOffset: timezoneOffset,
+		timezoneOffsetFormatted: `${timezoneSign}${timezoneOffsetHours.toString().padStart(2, '0')}:${timezoneOffsetMinutes.toString().padStart(2, '0')}`,
+		utcTime: now.toISOString(),
+		localTime: now.toString(),
+		timezoneName: Intl.DateTimeFormat('en-US', { timeZoneName: 'long' }).format(now),
+		timezoneAbbr: Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).format(now)
+	};
+}
+
+/**
+ * Format date with specific timezone
+ * 
+ * @param date - Date to format
+ * @param timezone - Timezone to use (default: server timezone)
+ * @param format - Format options
+ * @returns Formatted date string
+ */
+export function formatDateWithTimezone(
+	date: Date | string,
+	timezone?: string,
+	format: Intl.DateTimeFormatOptions = {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit',
+		timeZoneName: 'long'
+	}
+): string {
+	const dateObj = typeof date === 'string' ? new Date(date) : date;
+	const targetTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+	return new Intl.DateTimeFormat('en-US', {
+		...format,
+		timeZone: targetTimezone
+	}).format(dateObj);
+}
+
+/**
+ * Check if server is running in a specific timezone
+ * 
+ * @param expectedTimezone - Expected timezone (e.g., 'Asia/Jakarta')
+ * @returns Boolean indicating if server is in expected timezone
+ */
+export function isServerInTimezone(expectedTimezone: string): boolean {
+	const serverTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	return serverTimezone === expectedTimezone;
+}
+

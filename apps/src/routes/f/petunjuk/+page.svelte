@@ -5,6 +5,7 @@
 
 	let { data }: PageProps = $props();
 
+	const isFeatureTimezone = $derived(data.isFeatureTimezone);
 	const serverTime = $derived(data.currentServerTime);
 	const serverTimeISO = $derived(data.currentServerTime.toISOString());
 	const timezoneInfo = $derived(data.timezoneInfo);
@@ -23,21 +24,26 @@
 	<BreadcrumbItem>Petunjuk</BreadcrumbItem>
 </Breadcrumb>
 
-<Card class="mb-6">
-	<div class="p-6">
-		<Heading tag="h5" class="mb-4">Server Timezone Information</Heading>
-		<div class="space-y-2 text-sm">
-			<p><strong>Timezone:</strong> {timezoneInfo.timezone}</p>
-			<p><strong>Timezone Name:</strong> {timezoneInfo.timezoneName}</p>
-			<p><strong>Timezone Abbreviation:</strong> {timezoneInfo.timezoneAbbr}</p>
-			<p><strong>UTC Offset:</strong> {timezoneInfo.timezoneOffsetFormatted}</p>
-			<p><strong>UTC Time:</strong> {timezoneInfo.utcTime}</p>
-			<p><strong>Local Time:</strong> {timezoneInfo.localTime}</p>
-			<p><strong>Formatted Time:</strong> {formatDate(serverTimeISO, 'datetime')}</p>
-			<p><strong>Asia Jakarta Time:</strong> {formatDate(data.asiaJakartaTime, 'datetime')}</p>
+{#if isFeatureTimezone}
+	<Card class="mb-6">
+		<div class="p-6">
+			<Heading tag="h5" class="mb-4">Server Timezone Information</Heading>
+			<div class="space-y-2 text-sm">
+				<p><strong>Timezone:</strong> {timezoneInfo.timezone}</p>
+				<p><strong>Timezone Name:</strong> {timezoneInfo.timezoneName}</p>
+				<p><strong>Timezone Abbreviation:</strong> {timezoneInfo.timezoneAbbr}</p>
+				<p><strong>UTC Offset:</strong> {timezoneInfo.timezoneOffsetFormatted}</p>
+				<p><strong>UTC Time:</strong> {timezoneInfo.utcTime}</p>
+				<p><strong>Local Time:</strong> {timezoneInfo.localTime}</p>
+				<p><strong>Formatted Time:</strong> {formatDate(serverTimeISO, 'datetime')}</p>
+				<p>
+					<strong>Asia Jakarta Time:</strong>
+					{formatDate(data.asiaJakartaTime.toISOString(), 'datetime')}
+				</p>
+			</div>
 		</div>
-	</div>
-</Card>
+	</Card>
+{/if}
 
 <Heading tag="h5" class="mb-4 mt-7">A. Panduan Lengkap Sistem Konfirmasi</Heading>
 

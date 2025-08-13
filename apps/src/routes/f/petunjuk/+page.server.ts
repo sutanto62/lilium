@@ -1,5 +1,7 @@
+import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { getServerTimezoneInfo } from '$src/lib/utils/dateUtils';
+import { logger } from '$src/lib/utils/logger';
 import { TZDate } from '@date-fns/tz';
 import type { PageServerLoad } from './$types';
 
@@ -20,9 +22,14 @@ export const load: PageServerLoad = async (event) => {
     const timezoneInfo = getServerTimezoneInfo();
     const asiaJakartaTime = new TZDate(currentServerTime, 'Asia/Jakarta');
 
+    // Feature flag
+    const isFeatureTimezone = await statsigService.checkGate('timezone');
+    logger.debug('feature flag isFeatureTimezone: ', isFeatureTimezone);
+
     return {
         session,
         error,
+        isFeatureTimezone,
         currentServerTime,
         timezoneInfo,
         asiaJakartaTime

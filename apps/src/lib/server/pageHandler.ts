@@ -1,5 +1,6 @@
-import type { RequestEvent } from '@sveltejs/kit';
 import { logger } from '$lib/utils/logger';
+import type { RequestEvent } from '@sveltejs/kit';
+import { statsigService } from '../application/StatsigService';
 
 /**
  * Handles common page load operations including session management and analytics
@@ -11,6 +12,9 @@ import { logger } from '$lib/utils/logger';
 export async function handlePageLoad(event: RequestEvent, pageId: string) {
     try {
         const session = await event.locals.auth();
+
+        // TODO: add user if session is not null
+        await statsigService.logEvent(`${pageId}_view_server`, 'load');
 
         return {
             session,

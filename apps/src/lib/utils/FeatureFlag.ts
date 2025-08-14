@@ -2,10 +2,10 @@
 type FeatureFlag = boolean | string | number;
 
 /**
+ * @deprecated Use statsig's feature flag instead
  * The FeatureFlags class is designed to manage feature flags in a Vite-based application.
  * It reads environment variables prefixed with VITE_FEATURE_ and provides methods to check
  * if a feature is enabled or to retrieve the value of a feature flag.
- *
  */
 class FeatureFlags {
 	private flags: Record<string, FeatureFlag> = {};

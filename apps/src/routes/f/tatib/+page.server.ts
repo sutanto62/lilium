@@ -10,6 +10,7 @@ import { epochToDate, formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
+import { TZDate } from '@date-fns/tz';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -276,11 +277,16 @@ export const actions = {
 					return fail(404, { error: err.message });
 			}
 
+const createdDateDatetime = new Date(createdDate);
+			const asiaJakartaTime = new TZDate(createdDateDatetime, 'Asia/Jakarta');
+			logger.debug('asiaJakartaTime: ', asiaJakartaTime.toISOString());
+
 			// Return ushers position to client
-			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${epochToDate(createdDate)}`);
+			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${asiaJakartaTime.toISOString()}`);
+
 			return {
 				success: true, json: {
-					submitted: formatDate(epochToDate(createdDate), 'datetime'),
+					submitted: formatDate(asiaJakartaTime.toISOString(), 'datetime'),
 					lingkungan: selectedLingkungan.name,
 					mass: selectedMass.name,
 					event: formatDate(confirmedEvent.date, 'long'),

@@ -277,7 +277,7 @@ export const actions = {
 					return fail(404, { error: err.message });
 			}
 
-			const createdDateDatetime = new Date(epochToDate(createdDate))
+const createdDateDatetime = new Date(createdDate);
 			const asiaJakartaTime = new TZDate(createdDateDatetime, 'Asia/Jakarta');
 			logger.debug('asiaJakartaTime: ', asiaJakartaTime.toISOString());
 

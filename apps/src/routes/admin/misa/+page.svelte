@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import type { ChurchEvent } from '$core/entities/Event';
 	import DatePicker from '$src/lib/components/DatePicker.svelte';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import {

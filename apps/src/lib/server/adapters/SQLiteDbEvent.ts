@@ -2,14 +2,14 @@ import {
 	EventType,
 	type CetakJadwalResponse,
 	type CetakJadwalSection,
-	type Event as ChurchEvent,
+	type ChurchEvent,
 	type ChurchEventResponse,
 	type EventPicRequest,
 	type EventScheduleResponse,
 	type EventScheduleRows,
 	type EventUsher
 } from '$core/entities/Event';
-import { type UsherByEventResponse } from "$core/entities/Usher";
+import { type UsherResponse } from "$core/entities/Usher";
 import {
 	church,
 	church_position,
@@ -23,6 +23,7 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$src/lib/utils/localFeatureFlag';
+import { logger } from '$src/lib/utils/logger';
 import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -486,7 +487,7 @@ export async function listUsherByLingkungan(
 	db: ReturnType<typeof drizzle>,
 	eventId: string,
 	lingkunganId: string
-): Promise<UsherByEventResponse[]> {
+): Promise<UsherResponse[]> {
 	const result = await db
 		.select({
 			id: event_usher.id,
@@ -520,7 +521,7 @@ export async function listUsherByLingkungan(
 				isPpg: row.isPpg === 1 ? true : false,
 				isKolekte: row.isKolekte === 1 ? true : false,
 				createdAt: row.createdAt ?? 0
-			}) as UsherByEventResponse
+			}) as UsherResponse
 	);
 }
 
@@ -528,7 +529,7 @@ export async function listUsherByLingkungan(
 export async function listUsherByEvent(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
-): Promise<UsherByEventResponse[]> {
+): Promise<UsherResponse[]> {
 	const query = await db
 		.select({
 			id: event_usher.id,
@@ -538,6 +539,7 @@ export async function listUsherByEvent(
 			wilayah: wilayah.name,
 			lingkungan: lingkungan.name,
 			position: church_position.name,
+			sequence: church_position.sequence,
 			isPpg: event_usher.isPpg,
 			isKolekte: event_usher.isKolekte,
 			createdAt: event_usher.createdAt
@@ -553,7 +555,7 @@ export async function listUsherByEvent(
 				eq(event_usher.active, 1)
 			)
 		)
-		.orderBy(event_usher.createdAt, church_zone.sequence, church_position.sequence);
+		.orderBy(event_usher.createdAt, church_position.sequence);
 
 	// Transform number to boolean
 	const result = query.map((row) => ({

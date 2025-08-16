@@ -229,7 +229,6 @@ export const actions = {
 					wilayahId,
 					lingkunganId
 				);
-				logger.debug(`tatib server: returned assign event ushers: ${epochCreatedDate}`);
 			} catch (error: unknown) {
 				// Handle ServiceError types appropriately
 				if (error instanceof ServiceError) {

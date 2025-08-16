@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import type { ChurchEvent } from '$core/entities/Event';
 	import type { Lingkungan, Wilayah } from '$core/entities/Schedule';
 	import { Label, Select } from 'flowbite-svelte';
 	import { onMount } from 'svelte';

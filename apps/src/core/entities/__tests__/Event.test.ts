@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Event, EventPicRequest, EventScheduleResponse, EventUsher } from '../Event';
+import type { ChurchEvent, EventPicRequest, EventScheduleResponse, EventUsher } from '../Event';
 import { EventType } from '../Event';
-import type { UsherByEventResponse } from "../Usher";
+import type { UsherResponse } from "../Usher";
 
 describe('Event Entity', () => {
     describe('Event Interface', () => {
         it('should create a valid Event object', () => {
-            const event: Event = {
+            const event: ChurchEvent = {
                 id: '1',
                 church: 'church-1',
                 mass: 'mass-1',
@@ -35,7 +35,7 @@ describe('Event Entity', () => {
         });
 
         it('should create an Event object with minimal required fields', () => {
-            const event: Event = {
+            const event: ChurchEvent = {
                 id: '1',
                 church: 'church-1',
                 mass: 'mass-1',
@@ -94,7 +94,7 @@ describe('Event Entity', () => {
 
     describe('UsherByEvent Interface', () => {
         it('should create a valid UsherByEvent object', () => {
-            const usherByEvent: UsherByEventResponse = {
+            const usherByEvent: UsherResponse = {
                 id: '1',
                 event: 'event-1',
                 name: 'John Doe',

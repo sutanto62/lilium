@@ -23,6 +23,7 @@ export const load: PageServerLoad = async (event) => {
 };
 
 export const actions = {
+    // Retrieve ushers for a specific event
     default: async (event) => {
         const data = await event.request.formData();
         const eventId = data.get('eventId') as string;
@@ -38,7 +39,7 @@ export const actions = {
             const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 
             const usherService = new UsherService(churchId);
-            const ushers = await usherService.retrieveEventUshers(eventId);
+            const ushers = await usherService.retrieveUsherByEvent(eventId);
 
             return {
                 success: true,

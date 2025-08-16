@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import Regional from '$components/Regional.svelte';
-	import type { Event as MassEvent } from '$core/entities/Event';
+	import type { ChurchEvent as MassEvent } from '$core/entities/Event';
 	import type { Lingkungan, Usher, Wilayah } from '$core/entities/Schedule';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';

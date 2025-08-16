@@ -35,7 +35,7 @@ import {
 import { findMassById, findMasses } from './SQLiteDbMass';
 import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
 
-import type { Event as ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
+import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone, Lingkungan } from '$core/entities/Schedule';
 import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
 

@@ -2,7 +2,7 @@
 	import { Card, Progressbar, TimelineItem, Tooltip } from 'flowbite-svelte';
 	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
 
-	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import type { ChurchEvent } from '$core/entities/Event';
 	import { formatDate } from '$lib/utils/dateUtils';
 	import { Button } from 'flowbite-svelte';
 

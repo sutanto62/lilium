@@ -1,4 +1,4 @@
-import type { Event, EventUsher } from '$core/entities/Event';
+import type { ChurchEvent, EventUsher } from '$core/entities/Event';
 import { repo } from '$src/lib/server/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EventService } from '../EventService';
@@ -36,7 +36,7 @@ describe('EventService', () => {
 
     describe('getEventsByWeekNumber', () => {
         it('should return events for specified week numbers', async () => {
-            const mockEvents: Event[] = [
+            const mockEvents: ChurchEvent[] = [
                 {
                     id: '1',
                     church: 'church-1',
@@ -55,7 +55,7 @@ describe('EventService', () => {
         });
 
         it('should return events for multiple week numbers', async () => {
-            const mockEvents: Event[] = [
+            const mockEvents: ChurchEvent[] = [
                 {
                     id: '1',
                     church: 'church-1',
@@ -76,7 +76,7 @@ describe('EventService', () => {
 
     describe('getEventsByDateRange', () => {
         it('should return events within date range', async () => {
-            const mockEvents: Event[] = [
+            const mockEvents: ChurchEvent[] = [
                 {
                     id: '1',
                     church: 'church-1',
@@ -96,7 +96,7 @@ describe('EventService', () => {
 
     describe('getEventById', () => {
         it('should return event by id', async () => {
-            const mockEvent: Event = {
+            const mockEvent: ChurchEvent = {
                 id: '1',
                 church: 'church-1',
                 mass: 'mass-1',
@@ -114,7 +114,7 @@ describe('EventService', () => {
 
     describe('updateEventById', () => {
         it('should update event successfully', async () => {
-            const mockEvent: Event = {
+            const mockEvent: ChurchEvent = {
                 id: '1',
                 church: 'church-1',
                 mass: 'mass-1',
@@ -185,7 +185,7 @@ describe('EventService', () => {
 
     describe('insertEvent', () => {
         it('should insert new event successfully', async () => {
-            const mockEvent: Event = {
+            const mockEvent: ChurchEvent = {
                 id: '1',
                 church: 'church-1',
                 mass: 'mass-1',
@@ -209,7 +209,7 @@ describe('EventService', () => {
         });
 
         it('should throw error when insert fails', async () => {
-            vi.mocked(repo.insertEvent).mockResolvedValue(null as unknown as Event);
+            vi.mocked(repo.insertEvent).mockResolvedValue(null as unknown as ChurchEvent);
 
             await expect(eventService.createEvent({
                 church: 'church-1',

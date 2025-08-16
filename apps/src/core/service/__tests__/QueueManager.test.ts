@@ -1,4 +1,4 @@
-import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
+import type { ChurchEvent, EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

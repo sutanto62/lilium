@@ -1,4 +1,4 @@
-import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
+import type { ChurchEvent, EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { ServiceError } from '$core/errors/ServiceError';
 import { statsigService } from '$lib/application/StatsigService';
@@ -109,7 +109,7 @@ export class QueueManager {
 			}
 
 			// 2. Get event ushers for the event (including past unprocessed events)
-			this.eventUshers = await repo.findEventUshers(batch.event.id);
+			this.eventUshers = await repo.listEventUsher(batch.event.id);
 
 
 			// 3. Calculate next position indices for different role types

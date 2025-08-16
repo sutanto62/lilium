@@ -1,6 +1,6 @@
 
 // formatted response: returned name instead of UUID
-export interface UsherByEventResponse {
+export interface UsherResponse {
     id: string;
     event: string;
     name: string;
@@ -10,5 +10,6 @@ export interface UsherByEventResponse {
     isPpg: boolean | false;
     isKolekte: boolean | false;
     position: string | null;
+    sequence: number | null;
     createdAt: number | null;
 }

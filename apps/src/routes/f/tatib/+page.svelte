@@ -7,14 +7,14 @@
 	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
-	import type { ActionData, PageData } from './$types';
 	import UshersList from './UshersList.svelte';
 
 	// Props
-	const { data = $bindable(), form = $bindable() } = $props<{
-		data: PageData;
-		form: ActionData;
-	}>();
+	// const { data = $bindable(), form = $bindable() } = $props<{
+	// 	data: PageData;
+	// 	form: ActionData;
+	// }>();
+	let { data, form } = $props();
 
 	// Data
 	let selectedEventDate = $state<string | null>(null);
@@ -74,13 +74,15 @@
 		return text
 			.replace(/<strong>/g, '*')
 			.replace(/<\/strong>/g, '*')
-			.replace(/<br>/g, '\r\n')
-			.replace(/<\/p>/g, '\r\n\r\n')
-			.replace(/<\/li>/g, '\r\n')
+			.replace(/<br\s*\/?>/g, '\n')
+			.replace(/<\/p>/g, '\n\n')
+			.replace(/<\/li>/g, '\n')
 			.replace(/<p[^>]*>/g, '') // Remove opening <p> tags
 			.replace(/<ol[^>]*>/g, '') // Remove opening <ol> tags
-			.replace(/<[^>]*>/g, '') // Remove all other HTML tags
-			.replace(/\r\n\s+/g, '\r\n') // Clean up spaces after line breaks
+			.replace(/<\/ol[^>]*>/g, '') // Remove closing <ol> tags
+			.replace(/<li[^>]*>/g, '') // Remove opening <li> tags
+			.replace(/<[^>]*>/g, '') // Remove any remaining HTML tags
+			.replace(/\n\s+/g, '\n') // Clean up spaces after line breaks
 			.trim();
 	}
 
@@ -187,7 +189,8 @@
 	<Alert color="green" class="mb-4 text-black">
 		<div id="copy-usher">
 			<p class="font-medium">
-				Konfirmasi lingkungan: <strong>{form?.json.lingkungan}</strong> <br />
+				Konfirmasi lingkungan: <strong>{form?.json.lingkungan} ({form?.json.wilayahName})</strong>
+				<br />
 				Misa: <strong>{form?.json.mass}</strong><br />
 				Tanggal Tugas: <strong>{form?.json.event}</strong>
 			</p>

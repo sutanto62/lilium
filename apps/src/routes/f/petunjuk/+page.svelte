@@ -3,9 +3,6 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-
-	const isFeatureTimezone = $derived(data.isFeatureTimezone);
-	const asiaJakartaTime = $derived(data.asiaJakartaTime);
 </script>
 
 <svelte:head>

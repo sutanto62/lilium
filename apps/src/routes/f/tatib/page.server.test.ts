@@ -5,7 +5,7 @@ import { repo } from '$lib/server/db';
 import { mass } from '$lib/server/db/schema';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
-import { featureFlags } from '$src/lib/utils/featureFlag';
+import { featureFlags } from '$src/lib/utils/localFeatureFlag';
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, test, vi } from "vitest";
 import type { PageData, RouteParams } from './$types';
@@ -172,7 +172,7 @@ test('should handle queue processing errors', async () => {
 	vi.mocked(QueueManager.getInstance).mockReturnValue(mockQueueManager as unknown as QueueManager);
 	vi.mocked(repo.getMassById).mockResolvedValue(mockMass);
 	vi.mocked(repo.getPositionsByMass).mockResolvedValue([mockPosition]);
-	vi.mocked(repo.getLingkunganById).mockResolvedValue(mockLingkungan);
+	vi.mocked(repo.findLingkunganById).mockResolvedValue(mockLingkungan);
 
 	const formData = new FormData();
 	formData.append('massId', 'mass1');

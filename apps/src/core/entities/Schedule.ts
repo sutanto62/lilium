@@ -78,6 +78,7 @@ export interface Lingkungan {
 	id: string;
 	name: string;
 	wilayah: string | null;
+	wilayahName: string | null;
 	sequence: number | null;
 	church: string | null;
 	active: number;

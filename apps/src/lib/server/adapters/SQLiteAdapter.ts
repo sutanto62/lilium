@@ -13,12 +13,12 @@ import {
 	findEventSchedule,
 	findEventUshers,
 	findEventUshersPosition,
-	findUshersByLingkungan,
 	listEvents,
 	listEventsByDateRange,
 	listEventsByLingkungan,
 	listEventsByWeekNumber,
-	findUshersByEvent as listUshersByEvent,
+	listUsherByEvent,
+	listUsherByLingkungan,
 	persistEventUsher,
 	softDeleteEvent,
 	updateEventById
@@ -33,7 +33,7 @@ import {
 	findZonesByEvent
 } from './SQLiteDbFacility';
 import { findMassById, findMasses } from './SQLiteDbMass';
-import { findLingkunganById, findLingkungans, findWilayahs } from './SQLiteDbRegion';
+import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
 
 import type { Event as ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone, Lingkungan } from '$core/entities/Schedule';
@@ -55,9 +55,9 @@ export class SQLiteAdapter implements ScheduleRepository {
 	}
 
 	// SQLiteDbRegion
-	getWilayahs = (churchId: string) => findWilayahs(this.db, churchId);
-	getLingkungans = (churchId: string) => findLingkungans(this.db, churchId);
-	getLingkunganById = (id: string): Promise<Lingkungan> => findLingkunganById(this.db, id);
+	listWilayahByChurch = (churchId: string) => listWilayahByChurch(this.db, churchId);
+	listLingkunganByChurch = (churchId: string) => listLingkunganByChurch(this.db, churchId);
+	findLingkunganById = (id: string): Promise<Lingkungan> => findLingkunganById(this.db, id);
 
 	// SQLiteDbMass
 	getMasses = (churchId: string) => findMasses(this.db, churchId);
@@ -95,11 +95,11 @@ export class SQLiteAdapter implements ScheduleRepository {
 	removeEventUsher = (eventId: string, lingkunganId: string) => deleteEventUsher(this.db, eventId, lingkunganId);
 
 	// Ushers
-	listUshersByEvent = (eventId: string) => listUshersByEvent(this.db, eventId);
+	listUsherByEvent = (eventId: string) => listUsherByEvent(this.db, eventId);
 	findEventUshers = (eventId: string, lingkunganId?: string, date?: string) =>
 		findEventUshers(this.db, eventId, lingkunganId, date);
-	listUshersByLingkungan = (eventId: string, lingkunganId: string) =>
-		findUshersByLingkungan(this.db, eventId, lingkunganId);
+	listUsherByLingkungan = (eventId: string, lingkunganId: string) =>
+		listUsherByLingkungan(this.db, eventId, lingkunganId);
 	getEventUshersPosition = (eventId: string, isPpg: boolean): Promise<string[]> =>
 		findEventUshersPosition(this.db, eventId, isPpg);
 	persistEventUshers = (

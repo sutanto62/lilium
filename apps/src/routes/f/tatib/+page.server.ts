@@ -6,11 +6,10 @@ import { EventService } from '$core/service/EventService';
 import { QueueManager } from '$core/service/QueueManager';
 import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
-import { epochToDate, formatDate, getWeekNumber } from '$lib/utils/dateUtils';
+import { formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
-import { TZDate } from '@date-fns/tz';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -152,6 +151,8 @@ export const actions = {
 		const lingkunganId = formData.get('lingkunganId') as string;
 		const ushersJson = formData.get('ushers') as string;
 
+		let epochCreatedDate: number;
+
 		// Show form if not no_saturday_sunday
 		const showForm = await shouldShowUsherForm();
 
@@ -185,7 +186,7 @@ export const actions = {
 			// TODO: change to service
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([
 				repo.getMassById(confirmedEvent.mass),
-				repo.getLingkunganById(lingkunganId),
+				repo.findLingkunganById(lingkunganId),
 				repo.getPositionsByMass(churchId, confirmedEvent.mass)
 			]);
 
@@ -221,14 +222,14 @@ export const actions = {
 			}
 
 			// Insert ushers into event
-			let createdDate: number;
 			try {
-				createdDate = await usherService.assignEventUshers(
+				epochCreatedDate = await usherService.assignEventUshers(
 					confirmedEvent.id,
 					ushersArray,
 					wilayahId,
 					lingkunganId
 				);
+				logger.debug(`tatib server: returned assign event ushers: ${epochCreatedDate}`);
 			} catch (error: unknown) {
 				// Handle ServiceError types appropriately
 				if (error instanceof ServiceError) {
@@ -277,17 +278,18 @@ export const actions = {
 					return fail(404, { error: err.message });
 			}
 
-const createdDateDatetime = new Date(createdDate);
-			const asiaJakartaTime = new TZDate(createdDateDatetime, 'Asia/Jakarta');
-			logger.debug('asiaJakartaTime: ', asiaJakartaTime.toISOString());
+			const createdDate = new Date(epochCreatedDate);
 
 			// Return ushers position to client
-			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${asiaJakartaTime.toISOString()}`);
+			const submitted = formatDate(createdDate.toISOString(), 'datetime', 'id-ID', 'Asia/Jakarta');
+			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${submitted}`);
 
+			// TODO: wrap returned data with timezone info
 			return {
 				success: true, json: {
-					submitted: formatDate(asiaJakartaTime.toISOString(), 'datetime'),
+					submitted: submitted,
 					lingkungan: selectedLingkungan.name,
+					wilayahName: selectedLingkungan.wilayahName,
 					mass: selectedMass.name,
 					event: formatDate(confirmedEvent.date, 'long'),
 					ushers: queueManager.assignedUshers,

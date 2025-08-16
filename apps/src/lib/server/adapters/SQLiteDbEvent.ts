@@ -22,7 +22,7 @@ import {
 	mass,
 	wilayah
 } from '$lib/server/db/schema';
-import { featureFlags } from '$src/lib/utils/featureFlag';
+import { featureFlags } from '$src/lib/utils/localFeatureFlag';
 import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -80,7 +80,7 @@ export async function persistEventUsher(
 	};
 
 	// Persist ushers
-	const created_date = new Date().getTime();
+	const epochCreatedDate = new Date().getTime();
 	const usherValues = ushers.map((usher, index) => ({
 		id: uuidv4(),
 		event: eventId,
@@ -91,12 +91,12 @@ export async function persistEventUsher(
 		wilayah: wilayahId,
 		lingkungan: lingkunganId,
 		position: null,
-		createdAt: created_date
+		createdAt: epochCreatedDate
 	}));
 
 	await db.insert(event_usher).values(usherValues);
 	// Return created date for validation and logging response
-	return created_date;
+	return epochCreatedDate;
 }
 
 
@@ -482,7 +482,7 @@ export async function findEventUshers(
 	);
 }
 
-export async function findUshersByLingkungan(
+export async function listUsherByLingkungan(
 	db: ReturnType<typeof drizzle>,
 	eventId: string,
 	lingkunganId: string
@@ -525,7 +525,7 @@ export async function findUshersByLingkungan(
 }
 
 // TODO: Add pagination
-export async function findUshersByEvent(
+export async function listUsherByEvent(
 	db: ReturnType<typeof drizzle>,
 	eventId: string
 ): Promise<UsherByEventResponse[]> {
@@ -612,7 +612,8 @@ export async function findEventSchedule(
 			name: event_usher.name,
 			position: church_position.name,
 			isPpg: event_usher.isPpg,
-			isKolekte: event_usher.isKolekte
+			isKolekte: event_usher.isKolekte,
+			createdAt: event_usher.createdAt
 		})
 		.from(event_usher)
 		.leftJoin(wilayah, eq(wilayah.id, event_usher.wilayah))
@@ -656,6 +657,7 @@ export async function findEventSchedule(
 				id: zoneId,
 				name: zoneName,
 				lingkungan: [],
+				wilayah: '',
 				pic: [], // TODO: Add PETA pic data when available
 				zoneUshers: 0,
 				zonePpg: 0,
@@ -679,6 +681,7 @@ export async function findEventSchedule(
 
 		const lingkunganName = r.lingkungan || 'Lingkungan';
 		const lingkunganId = r.lingkunganId || '';
+		const wilayahName = r.wilayah || 'Wilayah';
 
 		// Add lingkungan if not already present
 		if (!acc[zoneName].lingkungan.includes(lingkunganName)) {
@@ -690,7 +693,8 @@ export async function findEventSchedule(
 			name: r.name || 'No Name',
 			position: r.position || 'Posisi Kosong',
 			isPpg: r.isPpg === 1,
-			isKolekte: r.isKolekte === 1
+			isKolekte: r.isKolekte === 1,
+			createdAt: r.createdAt ?? 0
 		};
 
 		// Find or create lingkungan in detail
@@ -698,6 +702,7 @@ export async function findEventSchedule(
 		if (!lingkunganDetail) {
 			lingkunganDetail = {
 				name: lingkunganName,
+				wilayah: wilayahName,
 				id: lingkunganId,
 				zone: zoneName,
 				ushers: []

@@ -14,7 +14,7 @@ export class UsherService {
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
     async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
-        return await repo.listUshersByEvent(eventId);
+        return await repo.listUsherByEvent(eventId);
     }
 
     /**
@@ -24,7 +24,7 @@ export class UsherService {
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
     async retrieveEventUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]> {
-        return await repo.listUshersByLingkungan(eventId, lingkunganId);
+        return await repo.listUsherByLingkungan(eventId, lingkunganId);
     }
 
     /**

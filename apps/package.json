@@ -68,7 +68,6 @@
 		"@auth/drizzle-adapter": "^1.7.2",
 		"@auth/sveltekit": "^1.9.2",
 		"@casl/ability": "^6.7.1",
-		"@date-fns/tz": "^1.4.1",
 		"@libsql/client": "^0.14.0",
 		"@statsig/js-client": "^3.17.2",
 		"@statsig/session-replay": "^3.17.2",

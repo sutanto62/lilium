@@ -174,11 +174,11 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.listUshersByEvent).mockResolvedValue(mockUshers);
+            vi.mocked(repo.listUsherByEvent).mockResolvedValue(mockUshers);
 
             const result = await eventService.retrieveEventUshers('event-1');
 
-            expect(repo.listUshersByEvent).toHaveBeenCalledWith('event-1');
+            expect(repo.listUsherByEvent).toHaveBeenCalledWith('event-1');
             expect(result).toEqual(mockUshers);
         });
     });

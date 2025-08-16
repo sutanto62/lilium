@@ -32,9 +32,9 @@ export interface ScheduleRepository {
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
 
 	// Region
-	getWilayahs: (churchId: string) => Promise<Wilayah[]>;
-	getLingkungans: (churchId: string) => Promise<Lingkungan[]>;
-	getLingkunganById: (id: string) => Promise<Lingkungan>;
+	listWilayahByChurch: (churchId: string) => Promise<Wilayah[]>;
+	listLingkunganByChurch: (churchId: string) => Promise<Lingkungan[]>;
+	findLingkunganById: (id: string) => Promise<Lingkungan>;
 
 	// TODO: change Promies<string[]> array of usher id
 	// Event
@@ -44,9 +44,9 @@ export interface ScheduleRepository {
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 
 	// Ushers
-	listUshersByEvent(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
+	listUsherByEvent(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
 	findEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
-	listUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
+	listUsherByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
 	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
 	persistEventUshers: (
 		eventId: string,

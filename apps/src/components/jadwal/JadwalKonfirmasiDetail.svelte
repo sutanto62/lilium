@@ -1,9 +1,10 @@
-<script lang="ts" context="module">
+<!-- <script lang="ts" context="module">
 	declare const window: Window & typeof globalThis;
-</script>
+</script> -->
 
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { formatDate } from '$src/lib/utils/dateUtils';
 	import { Button, Card, P, Toast } from 'flowbite-svelte';
 	import {
 		ArchiveSolid,
@@ -14,10 +15,15 @@
 	} from 'flowbite-svelte-icons';
 	import html2canvas from 'html2canvas';
 
-	export let lingkungan: any;
+	const { lingkungan } = $props();
 
-	let isDeleteConfirmation = false;
-	let isSubmitting = false;
+	let isDeleteConfirmation = $state(false);
+	let isSubmitting = $state(false);
+
+	const cardId = $derived(`card-${lingkungan.lingkungan}-${lingkungan.zone}`);
+
+	const createdAt = $derived(lingkungan.ushers[0].createdAt);
+	const submitted = $derived(formatDate(createdAt, 'datetime', 'id-ID', 'Asia/Jakarta'));
 
 	function captureSnapshot(): void {
 		if (typeof window !== 'undefined') {
@@ -33,14 +39,13 @@
 			}
 		}
 	}
-
-	$: cardId = `card-${lingkungan.lingkungan}-${lingkungan.zone}`;
 </script>
 
-<Card shadow="sm" id={cardId} class="bg-gray-50 p-2 text-black">
+<Card shadow="sm" id={cardId} class="flex h-full flex-col bg-gray-50 p-2 text-black">
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-lg font-semibold">{lingkungan.name}</h1>
+			<h3 class="text-sm font-light">{lingkungan.wilayah}</h3>
 			<h3 class="text-sm font-light">Zona {lingkungan.zone}</h3>
 		</div>
 		<div class="flex items-center gap-2">
@@ -58,11 +63,11 @@
 				onclick={captureSnapshot}
 				id="download-jadwal-konfirmasi"
 			>
-				<DownloadSolid class="size-4" />
+				<DownloadSolid class="btn-primary size-4" />
 			</Button>
 		</div>
 	</div>
-	<div class="mt-2">
+	<div class="mt-2 flex-1">
 		<table class="w-full border-collapse text-left">
 			<thead>
 				<tr class="h-8 border-b border-t border-gray-200">
@@ -86,6 +91,9 @@
 				{/each}
 			</tbody>
 		</table>
+	</div>
+	<div class="mt-auto border-t border-gray-200 pt-2 text-right text-sm font-light">
+		konfirmasi pada {submitted}
 	</div>
 </Card>
 

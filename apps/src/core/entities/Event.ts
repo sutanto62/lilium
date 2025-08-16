@@ -77,6 +77,7 @@ export interface EventScheduleResponse {
 export interface EventScheduleRows {
 	id: string;
 	name: string | null;
+	wilayah: string;
 	lingkungan: string[];
 	pic: string[];
 	zoneUshers: number;
@@ -87,6 +88,7 @@ export interface EventScheduleRows {
 
 export interface EventScheduleLingkungan {
 	name: string;
+	wilayah: string;
 	zone: string;
 	id: string;
 	ushers: EventScheduleLingkunganUsher[];

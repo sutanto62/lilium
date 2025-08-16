@@ -116,7 +116,7 @@ export class ChurchService {
 	 * @returns A promise that resolves to an array of Wilayah objects.
 	 */
 	async retrieveWilayahs(): Promise<Wilayah[]> {
-		this.wilayahs = await repo.getWilayahs(this.churchId);
+		this.wilayahs = await repo.listWilayahByChurch(this.churchId);
 		return this.wilayahs;
 	}
 
@@ -125,12 +125,12 @@ export class ChurchService {
 	 * @returns A promise that resolves to an array of Lingkungan objects.
 	 */
 	async retrieveLingkungans(): Promise<Lingkungan[]> {
-		this.lingkungans = await repo.getLingkungans(this.churchId);
+		this.lingkungans = await repo.listLingkunganByChurch(this.churchId);
 		return this.lingkungans;
 	}
 
 	async retrieveLingkunganById(lingkunganId: string): Promise<Lingkungan> {
-		return await repo.getLingkunganById(lingkunganId);
+		return await repo.findLingkunganById(lingkunganId);
 	}
 
 	async retrievePositionsByMass(massId: string): Promise<ChurchPosition[]> {

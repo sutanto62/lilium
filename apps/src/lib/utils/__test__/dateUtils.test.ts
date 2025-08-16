@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { calculateEventDate, getWeekNumber } from './dateUtils';
+import {
+	calculateEventDate,
+	formatDate,
+	formatDateRange,
+	formatDateWithPattern,
+	formatRelativeTime,
+	getWeekNumber
+} from '../dateUtils';
 
 describe('getWeekNumber', () => {
 	it('should return correct week number for a known date', () => {
@@ -112,5 +119,126 @@ describe('calculateEventDate', () => {
 		};
 		const result = calculateEventDate(createdAt, mass);
 		expect(result).toBe('2024-09-15');
+	});
+});
+
+describe('formatDate', () => {
+	it('should format date with short format', () => {
+		const result = formatDate('2024-01-15');
+		expect(result).toMatch(/Jan 15/);
+	});
+
+	it('should format date with long format', () => {
+		const result = formatDate('2024-01-15', 'long');
+		expect(result).toMatch(/January 15, 2024/);
+	});
+
+	it('should format date with datetime format', () => {
+		const result = formatDate('2024-01-15T10:30:00', 'datetime');
+		expect(result).toMatch(/Jan 15/);
+		expect(result).toMatch(/10:30/);
+	});
+
+	it('should format date with time format', () => {
+		const result = formatDate('2024-01-15T10:30:00', 'time');
+		expect(result).toBe('10:30');
+	});
+
+	it('should format date with date format', () => {
+		const result = formatDate('2024-01-15', 'date');
+		expect(result).toMatch(/Jan 15, 2024/);
+	});
+
+	it('should format date with full format', () => {
+		const result = formatDate('2024-01-15T10:30:45', 'full');
+		expect(result).toMatch(/January 15, 2024/);
+		expect(result).toMatch(/10:30:45/);
+	});
+
+	it('should format date with iso format', () => {
+		const result = formatDate('2024-01-15T10:30:45', 'iso');
+		expect(result).toMatch(/01\/15\/2024/);
+		expect(result).toMatch(/10:30:45/);
+	});
+
+	it('should handle invalid date', () => {
+		const result = formatDate('invalid-date');
+		expect(result).toBe('Invalid Date');
+	});
+
+	it('should format date with custom locale', () => {
+		const result = formatDate('2024-01-15', 'long', 'id-ID');
+		expect(result).toMatch(/Januari 15, 2024/);
+	});
+});
+
+describe('formatRelativeTime', () => {
+	it('should format recent time correctly', () => {
+		const now = new Date();
+		const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+		const result = formatRelativeTime(oneHourAgo);
+		expect(result).toMatch(/hour/);
+	});
+
+	it('should format future time correctly', () => {
+		const now = new Date();
+		const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+		const result = formatRelativeTime(oneDayLater);
+		expect(result).toMatch(/day/);
+	});
+
+	it('should handle string dates', () => {
+		const result = formatRelativeTime('2024-01-01');
+		expect(typeof result).toBe('string');
+		expect(result.length).toBeGreaterThan(0);
+	});
+});
+
+describe('formatDateRange', () => {
+	it('should format date range correctly', () => {
+		const result = formatDateRange('2024-01-01', '2024-01-15');
+		expect(result).toMatch(/Jan 1/);
+		expect(result).toMatch(/Jan 15/);
+		expect(result).toContain(' - ');
+	});
+
+	it('should handle Date objects', () => {
+		const start = new Date('2024-01-01');
+		const end = new Date('2024-01-15');
+		const result = formatDateRange(start, end);
+		expect(result).toMatch(/Jan 1/);
+		expect(result).toMatch(/Jan 15/);
+	});
+});
+
+describe('formatDateWithPattern', () => {
+	it('should format with MM/dd/yyyy pattern', () => {
+		const result = formatDateWithPattern('2024-01-15', 'MM/dd/yyyy');
+		expect(result).toBe('01/15/2024');
+	});
+
+	it('should format with dd/MM/yyyy pattern', () => {
+		const result = formatDateWithPattern('2024-01-15', 'dd/MM/yyyy');
+		expect(result).toBe('15/01/2024');
+	});
+
+	it('should format with yyyy-MM-dd pattern', () => {
+		const result = formatDateWithPattern('2024-01-15', 'yyyy-MM-dd');
+		expect(result).toBe('2024-01-15');
+	});
+
+	it('should format with dd MMM yyyy pattern', () => {
+		const result = formatDateWithPattern('2024-01-15', 'dd MMM yyyy');
+		expect(result).toMatch(/15 Jan 2024/);
+	});
+
+	it('should format with dd MMMM yyyy pattern', () => {
+		const result = formatDateWithPattern('2024-01-15', 'dd MMMM yyyy');
+		expect(result).toMatch(/15 January 2024/);
+	});
+
+	it('should handle unknown pattern with default format', () => {
+		const result = formatDateWithPattern('2024-01-15', 'unknown-pattern');
+		expect(result).toMatch(/01\/15\/2024/);
 	});
 });

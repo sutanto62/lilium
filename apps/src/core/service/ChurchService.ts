@@ -1,4 +1,4 @@
-import type { Event } from '$core/entities/Event';
+import type { ChurchEvent } from '$core/entities/Event';
 import type {
 	Church,
 	ChurchPosition,
@@ -21,7 +21,7 @@ export class ChurchService {
 	churches: Church[]; // Array to hold church schedules
 	zones: ChurchZone[]; // Array to hold church zones
 	masses: Mass[]; // Array to hold mass schedules
-	events: Event[]; // Array to hold church events
+	events: ChurchEvent[]; // Array to hold church events
 	wilayahs: Wilayah[]; // Array to hold wilayahs
 	lingkungans: Lingkungan[]; // Array to hold lingkungans
 
@@ -106,7 +106,7 @@ export class ChurchService {
 	 * Retrieves the list of events for the church from the repository.
 	 * @returns A promise that resolves to an array of Event objects.
 	 */
-	async retrieveEvents(limit?: number): Promise<Event[]> {
+	async retrieveEvents(limit?: number): Promise<ChurchEvent[]> {
 		this.events = await repo.listEvents(this.churchId, limit);
 		return this.events;
 	}
@@ -134,6 +134,6 @@ export class ChurchService {
 	}
 
 	async retrievePositionsByMass(massId: string): Promise<ChurchPosition[]> {
-		return await repo.getPositionsByMass(this.churchId, massId);
+		return await repo.listPositionByMass(this.churchId, massId);
 	}
 }

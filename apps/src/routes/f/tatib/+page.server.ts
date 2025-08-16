@@ -187,7 +187,7 @@ export const actions = {
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([
 				repo.getMassById(confirmedEvent.mass),
 				repo.findLingkunganById(lingkunganId),
-				repo.getPositionsByMass(churchId, confirmedEvent.mass)
+				repo.listPositionByMass(churchId, confirmedEvent.mass)
 			]);
 
 			// Validate mass ushers position
@@ -229,7 +229,6 @@ export const actions = {
 					wilayahId,
 					lingkunganId
 				);
-				logger.debug(`tatib server: returned assign event ushers: ${epochCreatedDate}`);
 			} catch (error: unknown) {
 				// Handle ServiceError types appropriately
 				if (error instanceof ServiceError) {

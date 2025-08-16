@@ -1,4 +1,4 @@
-import type { Event as ChurchEvent, EventUsher } from '$core/entities/Event';
+import type { ChurchEvent, EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { ServiceError } from '$core/errors/ServiceError';
 import { statsigService } from '$lib/application/StatsigService';
@@ -97,7 +97,7 @@ export class QueueManager {
 
 		for (const batch of this.confirmationQueue) {
 			// 1. Get mass zone positions by event. 
-			this.massZonePositions = await repo.getPositionsByMass(batch.event.church, batch.event.mass);
+			this.massZonePositions = await repo.listPositionByMass(batch.event.church, batch.event.mass);
 
 			// Filter positions based on PPG feature flag
 			this.eventPositions = this.isPpgEnabled

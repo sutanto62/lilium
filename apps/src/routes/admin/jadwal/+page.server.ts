@@ -1,4 +1,4 @@
-import type { Event } from '$core/entities/Event';
+import type { ChurchEvent } from '$core/entities/Event';
 import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
@@ -11,7 +11,7 @@ import { logger } from '$src/lib/utils/logger';
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
-interface EventWithUsherCounts extends Event {
+interface EventWithUsherCounts extends ChurchEvent {
 	usherCounts: {
 		progress: number;
 		totalUshers: number;
@@ -26,7 +26,6 @@ interface EventWithUsherCounts extends Event {
  * @type {import('./$types').PageServerLoad}
  */
 export const load: PageServerLoad = async (event) => {
-	await statsigService.logEvent('admin_jadwal_view_server', 'load');
 
 	// Check if the user is authenticated
 	const { session } = await handlePageLoad(event, 'jadwal');
@@ -35,6 +34,8 @@ export const load: PageServerLoad = async (event) => {
 		logger.info(`Redirecting to signin page`);
 		throw redirect(302, '/signin');
 	}
+
+	await statsigService.logEvent('jadwal_view', 'event', session || undefined);
 
 	const churchId = session.user?.cid;
 	if (!churchId) {
@@ -61,7 +62,7 @@ export const load: PageServerLoad = async (event) => {
 
 		// Process each event to include detailed data
 		eventsDetail = await Promise.all(
-			massEvents.map(async (event: Event) => {
+			massEvents.map(async (event: ChurchEvent) => {
 				// Get mass details and positions
 				const massDetails = await repo.getEventById(event.id);
 				if (!massDetails) {
@@ -70,7 +71,7 @@ export const load: PageServerLoad = async (event) => {
 				}
 
 				// Fetch ushers for the event
-				const ushers = await usherService.retrieveEventUshers(event.id);
+				const ushers = await usherService.retrieveUsherByEvent(event.id);
 
 				// Calculate usher statistics
 				const requiredPositions = await churchService.retrievePositionsByMass(massDetails.mass);

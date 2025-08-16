@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import type { ChurchEvent } from '$core/entities/Event';
 	import {
 		addMonths,
 		eachDayOfInterval,

@@ -11,13 +11,15 @@ import { hasRole } from '$src/auth';
 import { statsigService } from '$src/lib/application/StatsigService';
 
 export const load: PageServerLoad = async (event) => {
-	await statsigService.use();
-
 	const { session } = await handlePageLoad(event, 'jadwal_detail');
 
 	if (!session) {
 		throw redirect(302, '/signin');
 	}
+
+	await statsigService.logEvent('jadwal_detail', 'event', session || undefined, {
+		eventId: event.params.id
+	});
 
 	const churchId = session.user?.cid ?? '';
 	const eventId = event.params.id;

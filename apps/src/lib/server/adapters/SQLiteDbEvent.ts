@@ -23,7 +23,6 @@ import {
 	wilayah
 } from '$lib/server/db/schema';
 import { featureFlags } from '$src/lib/utils/localFeatureFlag';
-import { logger } from '$src/lib/utils/logger';
 import { DatabaseError, ValidationError } from '$src/types/errors';
 import { and, desc, eq, gt, gte, inArray, isNotNull, lte } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -624,7 +623,7 @@ export async function findEventSchedule(
 		.leftJoin(church_zone, eq(church_zone.id, church_position.zone))
 		.leftJoin(church_zone_group, eq(church_zone_group.id, church_zone.church_zone_group))
 		.where(eq(event_usher.event, eventId))
-		.orderBy(church_zone.sequence, lingkungan.sequence, church_position.sequence);
+		.orderBy(church_position.sequence);
 
 	// TODO: refactor to service
 	const massEventPic = await db

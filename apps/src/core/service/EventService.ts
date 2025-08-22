@@ -1,13 +1,13 @@
 import type {
 	CetakJadwalResponse,
-	Event as ChurchEvent,
+	ChurchEvent,
 	ChurchEventResponse,
 	EventPicRequest,
 	EventScheduleResponse,
 	EventUsher
 } from '$core/entities/Event';
 import { EventType } from '$core/entities/Event';
-import type { UsherByEventResponse } from "$core/entities/Usher";
+import type { UsherResponse } from "$core/entities/Usher";
 import { ServiceError } from '$core/errors/ServiceError';
 import { repo } from '$src/lib/server/db';
 import { getWeekNumber } from '$src/lib/utils/dateUtils';
@@ -207,8 +207,8 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to an array of UsherByEvent objects
 	 */
-	async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
-		return this.usherService.retrieveEventUshers(eventId);
+	async retrieveEventUshers(eventId: string): Promise<UsherResponse[]> {
+		return this.usherService.retrieveUsherByEvent(eventId);
 	}
 
 	/**
@@ -218,7 +218,7 @@ export class EventService {
 	 * @returns A promise that resolves to an array of EventUsher objects
 	 */
 	async retrieveEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
-		return this.usherService.retrieveEventUsherAssignments(eventId);
+		return this.usherService.retrieveUsherAssignments(eventId);
 	}
 
 	/**
@@ -229,7 +229,7 @@ export class EventService {
 	 * @returns A promise that resolves to an array of position strings
 	 */
 	async retrieveEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
-		return this.usherService.retrieveEventUshersPositions(eventId, isPpg);
+		return this.usherService.retrieveUshersPositions(eventId, isPpg);
 	}
 
 	/**
@@ -338,7 +338,7 @@ export class EventService {
 	 * @param eventId - The ID of the event
 	 * @returns A promise that resolves to an array of UsherByEvent objects
 	 */
-	async retrieveEventUshersByEventId(eventId: string): Promise<UsherByEventResponse[]> {
+	async retrieveEventUshersByEventId(eventId: string): Promise<UsherResponse[]> {
 		logger.warn('getEventUshersByEventId is deprecated. Use getEventUshers instead.');
 		return this.retrieveEventUshers(eventId);
 	}

@@ -1,5 +1,5 @@
 import type { EventUsher } from "$core/entities/Event";
-import type { UsherByEventResponse } from "$core/entities/Usher";
+import type { UsherResponse } from "$core/entities/Usher";
 import { ServiceError } from "$core/errors/ServiceError";
 import { repo } from "$src/lib/server/db";
 import { logger } from "$src/lib/utils/logger";
@@ -13,8 +13,9 @@ export class UsherService {
      * @param eventId - The ID of the event
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
-    async retrieveEventUshers(eventId: string): Promise<UsherByEventResponse[]> {
-        return await repo.listUsherByEvent(eventId);
+    async retrieveUsherByEvent(eventId: string): Promise<UsherResponse[]> {
+        const ushers = await repo.listUsherByEvent(eventId);
+        return ushers;
     }
 
     /**
@@ -23,7 +24,7 @@ export class UsherService {
      * @param lingkunganId - The ID of the lingkungan
      * @returns A promise that resolves to an array of UsherByEvent objects
      */
-    async retrieveEventUshersByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]> {
+    async retrieveUshersByEventAndLingkungan(eventId: string, lingkunganId: string): Promise<UsherResponse[]> {
         return await repo.listUsherByLingkungan(eventId, lingkunganId);
     }
 
@@ -32,7 +33,7 @@ export class UsherService {
      * @param eventId - The ID of the event
      * @returns A promise that resolves to an array of EventUsher objects
      */
-    async retrieveEventUsherAssignments(eventId: string): Promise<EventUsher[]> {
+    async retrieveUsherAssignments(eventId: string): Promise<EventUsher[]> {
         return await repo.findEventUshers(eventId);
     }
 
@@ -42,7 +43,7 @@ export class UsherService {
      * @param isPpg - Flag indicating if positions are for PPG
      * @returns A promise that resolves to an array of position strings
      */
-    async retrieveEventUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
+    async retrieveUshersPositions(eventId: string, isPpg: boolean): Promise<string[]> {
         return await repo.getEventUshersPosition(eventId, isPpg);
     }
 

@@ -1,4 +1,4 @@
-import type { Event as ChurchEvent, EventType } from "$core/entities/Event";
+import type { ChurchEvent, EventType } from "$core/entities/Event";
 import { ChurchService } from "$core/service/ChurchService";
 import { EventService } from "$core/service/EventService";
 import { hasRole } from "$src/auth";

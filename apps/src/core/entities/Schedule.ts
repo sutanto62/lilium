@@ -60,7 +60,7 @@ export interface ChurchPosition {
 	code: string | null;
 	description: string | null;
 	isPpg: boolean | false;
-	sequence: number | null;
+	sequence: number | null; // Sequence should be unique by church
 	type: string;
 	active: number;
 }

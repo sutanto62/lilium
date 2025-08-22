@@ -23,7 +23,7 @@
 
 	type FilterStatus = 'all' | 'confirmed' | 'incomplete' | 'unconfirmed' | 'today';
 
-	const { data } = $props();
+	let { data } = $props();
 	let currentFilter = $state<FilterStatus>('all');
 
 	let upcomingEvents = $derived(

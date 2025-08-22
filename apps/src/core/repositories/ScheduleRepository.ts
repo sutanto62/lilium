@@ -1,7 +1,7 @@
 import type { User } from '$core/entities/Authentication';
 import type {
 	CetakJadwalResponse,
-	Event as ChurchEvent,
+	ChurchEvent,
 	ChurchEventResponse,
 	EventPicRequest,
 	EventScheduleResponse,
@@ -16,7 +16,7 @@ import type {
 	Mass,
 	Wilayah,
 } from '$core/entities/Schedule';
-import type { UsherByEventResponse } from "$core/entities/Usher";
+import type { UsherResponse } from "$core/entities/Usher";
 import {
 	event,
 	mass,
@@ -44,9 +44,9 @@ export interface ScheduleRepository {
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 
 	// Ushers
-	listUsherByEvent(eventId: string): Promise<UsherByEventResponse[]>; // formatted response
-	findEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>;
-	listUsherByLingkungan(eventId: string, lingkunganId: string): Promise<UsherByEventResponse[]>;
+	listUsherByEvent(eventId: string): Promise<UsherResponse[]>; // formatted response
+	findEventUshers(eventId: string, lingkunganId?: string, date?: string): Promise<EventUsher[]>; // TODO: remove date - event already have date
+	listUsherByLingkungan(eventId: string, lingkunganId: string): Promise<UsherResponse[]>;
 	getEventUshersPosition(eventId: string, isPpg: boolean): Promise<string[]>;
 	persistEventUshers: (
 		eventId: string,
@@ -78,7 +78,7 @@ export interface ScheduleRepository {
 	getZonesByEvent(churchId: string, eventId: string): Promise<ChurchZone[]>;
 	findZoneGroupsByEvent(churchId: string, eventId: string): Promise<ChurchZoneGroup[]>;
 	findPositionByChurch(id: string): Promise<ChurchPosition[]>;
-	getPositionsByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;
+	listPositionByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;
 	// findPositionByMass(churchId: string, massId: string)
 
 	// Authentication

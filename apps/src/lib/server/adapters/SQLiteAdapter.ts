@@ -27,15 +27,15 @@ import {
 	findChurchById,
 	findChurches,
 	findPositionByChurch,
-	findPositionByMass,
 	findZoneGroupsByEvent,
 	findZonesByChurch,
-	findZonesByEvent
+	findZonesByEvent,
+	listPositionByMass
 } from './SQLiteDbFacility';
 import { findMassById, findMasses } from './SQLiteDbMass';
 import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
 
-import type { Event as ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
+import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone, Lingkungan } from '$core/entities/Schedule';
 import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
 
@@ -66,8 +66,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	// SQLiteDbEvents
 	getEventByChurch = (churchId: string, massId: string, date: string) =>
 		findEventByChurch(this.db, churchId, massId, date);
-	getPositionsByMass = (churchId: string, massId: string) =>
-		findPositionByMass(this.db, churchId, massId);
+	listPositionByMass = (churchId: string, massId: string) =>
+		listPositionByMass(this.db, churchId, massId);
 	getEventById = (id: string) => findEventById(this.db, id);
 	updateEventById = (id: string, event: ChurchEvent) => updateEventById(this.db, id, event);
 	getEventByIdResponse = (id: string) => findEventByIdResponse(this.db, id);

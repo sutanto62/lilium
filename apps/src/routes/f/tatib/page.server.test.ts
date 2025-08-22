@@ -171,7 +171,7 @@ test('should handle queue processing errors', async () => {
 
 	vi.mocked(QueueManager.getInstance).mockReturnValue(mockQueueManager as unknown as QueueManager);
 	vi.mocked(repo.getMassById).mockResolvedValue(mockMass);
-	vi.mocked(repo.getPositionsByMass).mockResolvedValue([mockPosition]);
+	vi.mocked(repo.listPositionByMass).mockResolvedValue([mockPosition]);
 	vi.mocked(repo.findLingkunganById).mockResolvedValue(mockLingkungan);
 
 	const formData = new FormData();

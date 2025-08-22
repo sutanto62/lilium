@@ -189,7 +189,7 @@ export async function findPositionByChurch(
  *  - sequence: Sort order sequence number
  *  - type: Position type
  */
-export async function findPositionByMass(
+export async function listPositionByMass(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,
 	massId: string

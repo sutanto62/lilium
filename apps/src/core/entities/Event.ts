@@ -1,5 +1,5 @@
 
-export interface Event {
+export interface ChurchEvent {
 	id: string;
 	church: string;
 	churchCode?: string | null;
@@ -53,7 +53,7 @@ export interface EventPicRequest {
 }
 
 export interface EventListResponse {
-	events: Event[];
+	events: ChurchEvent[];
 }
 
 export interface EventListDetailResponse {

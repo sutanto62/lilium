@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { Event as ChurchEvent } from '$core/entities/Event';
+	import type { ChurchEvent } from '$core/entities/Event';
+	import type { UsherResponse } from '$core/entities/Usher';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import LightweightCalendar from '$src/lib/components/LightweightCalendar.svelte';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import {
 		Button,
+		ButtonGroup,
 		Card,
 		Heading,
 		Modal,
@@ -22,8 +24,9 @@
 	let isLoading = $state(false);
 	let formElement: HTMLFormElement;
 	let showPetunjukModal = $state(false);
-
 	let events = $derived<ChurchEvent[]>(data.events ?? []);
+	let lingkungans = $state<string[]>([]);
+	let filterValue = $state<string>('');
 
 	// Calendar state
 	let selectedDate = $state<Date | null>(null);
@@ -35,7 +38,6 @@
 				})
 			: events
 	);
-
 	let selectItems = $derived(
 		filteredEvents.map((event: ChurchEvent) => ({
 			value: event.id,
@@ -49,7 +51,52 @@
 			: null
 	);
 
+	// Ushers
 	let ushers = $derived(form?.ushers ?? []);
+	let groupedUshers = $derived(() => {
+		const currentUshers = form?.ushers ?? [];
+
+		if (currentUshers.length === 0) {
+			return [];
+		}
+
+		// Initialize Empty Map
+		const groups = new Map<
+			string,
+			{
+				lingkungan: string;
+				wilayah: string;
+				ushers: UsherResponse[];
+				isOpen: boolean;
+			}
+		>();
+
+		// Accumulate ushers by lingkungan
+		currentUshers.forEach((usher: UsherResponse) => {
+			const key = `${usher.wilayah}-${usher.lingkungan}`;
+			if (!groups.has(key)) {
+				groups.set(key, {
+					lingkungan: usher.lingkungan || '',
+					wilayah: usher.wilayah || '',
+					ushers: [],
+					isOpen: true
+				});
+			}
+			groups.get(key)!.ushers.push(usher);
+		});
+
+		// Filtering group
+
+		const sortedGroups = Array.from(groups.values()).sort(
+			(a, b) => a.wilayah.localeCompare(b.wilayah) || a.lingkungan.localeCompare(b.lingkungan)
+		);
+
+		if (filterValue === '') {
+			return sortedGroups;
+		}
+
+		return sortedGroups.filter((group) => group.lingkungan.includes(filterValue));
+	});
 
 	$effect(() => {
 		// Set initial selected event from derived events
@@ -59,6 +106,15 @@
 			selectedDate = new Date(events[0].date);
 			handleCardClick(selectedEventId);
 		}
+
+		// Set initial lingkungans
+		lingkungans = Array.from(
+			new Set(
+				ushers
+					.map((usher: UsherResponse) => usher.lingkungan)
+					.filter((l: string | null | undefined): l is string => !!l)
+			)
+		);
 	});
 
 	async function handleCardClick(eventId: string) {
@@ -189,6 +245,18 @@
 				{selectedEvent.description}, {formatDate(selectedEvent.date, 'long')}
 			</p>
 
+			{#if lingkungans.length > 1}
+				<div class="mb-4 flex justify-end">
+					<ButtonGroup>
+						<Button size="sm" onclick={() => (filterValue = '')}>Semua</Button>
+						{#each lingkungans as lingkungan}
+							<Button size="sm" onclick={() => (filterValue = lingkungan)}>{lingkungan}</Button>
+						{/each}
+					</ButtonGroup>
+				</div>
+			{/if}
+
+			<!-- Table Titik Tugas -->
 			<Table color="amber" shadow class="rounded-xl">
 				<TableHead>
 					<TableHeadCell>Nama</TableHeadCell>
@@ -219,9 +287,46 @@
 							</TableBodyCell>
 						</TableBodyRow>
 					{:else}
-						{#each ushers as usher}
+						<!-- Grouping -->
+						{#each groupedUshers() as group}
+							<TableBodyRow class="text-md">
+								<TableBodyCell
+									class="whitespace-normal bg-amber-200 text-sm font-semibold text-black"
+									colspan={4}
+								>
+									{group.lingkungan} ({group.wilayah})
+								</TableBodyCell>
+							</TableBodyRow>
+							{#each group.ushers as usher}
+								<TableBodyRow class="text-sm">
+									<TableBodyCell class="whitespace-normal text-sm">
+										{usher.name}
+										{#if usher.isPpg}
+											<span class="text-sm sm:hidden"> (PPG)</span>
+										{/if}
+										{#if usher.isKolekte}
+											<span class="text-sm sm:hidden"> (Kolekte)</span>
+										{/if}
+									</TableBodyCell>
+									<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
+										{usher.zone}
+									</TableBodyCell>
+									<TableBodyCell class="whitespace-normal text-sm">
+										<span class="block sm:hidden">{usher.zone} - </span>{usher.position}
+									</TableBodyCell>
+									<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
+										{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}
+									</TableBodyCell>
+								</TableBodyRow>
+							{/each}
+						{/each}
+
+						<!-- No grouping -->
+						<!-- {#each ushers as usher}
 							<TableBodyRow class="text-sm">
-								<TableBodyCell class="whitespace-normal text-sm">{usher.name}</TableBodyCell>
+								<TableBodyCell class="whitespace-normal text-sm"
+									>{usher.wilayah} {usher.lingkungan} - {usher.name}</TableBodyCell
+								>
 								<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
 									{usher.zone}
 								</TableBodyCell>
@@ -232,7 +337,7 @@
 									{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}
 								</TableBodyCell>
 							</TableBodyRow>
-						{/each}
+						{/each} -->
 					{/if}
 				</TableBody>
 			</Table>

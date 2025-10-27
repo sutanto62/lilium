@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import type { ChurchEvent } from '$core/entities/Event';
+	import { statsigService } from '$src/lib/application/StatsigService';
 	import DatePicker from '$src/lib/components/DatePicker.svelte';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import {
@@ -41,11 +43,28 @@
 		})
 	);
 
-	onMount(() => {
+	onMount(async () => {
+		const session = page.data.session || undefined;
+
+		// Track page load if no form state
+		if (!form?.success && !form?.error) {
+			await statsigService.logEvent('admin_misa_view', 'load', session);
+		}
+
+		// Handle form result analytics and alerts
+		if (form?.success) {
+			await statsigService.logEvent('admin_misa_create', 'success', session);
+		} else if (form?.error) {
+			await statsigService.logEvent('admin_misa_create', 'error', session, {
+				error: form.error
+			});
+		}
+
+		// Auto-hide alerts after 10 seconds if form has result
 		if (form?.success || form?.error) {
 			setTimeout(() => {
 				showAlert = false;
-			}, 10000); // 10 seconds
+			}, 10000);
 		}
 
 		if (!selectedDate) {
@@ -69,7 +88,7 @@
 </Breadcrumb>
 
 <div class="mb-4">
-	<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl"
+	<Heading tag="h1" class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white"
 		>Misa</Heading
 	>
 
@@ -139,7 +158,7 @@
 					<TableBodyCell>
 						<a
 							href="/admin/misa/{event.id}"
-							class="font-medium text-primary-600 hover:underline dark:text-primary-500"
+							class="text-primary-600 dark:text-primary-500 font-medium hover:underline"
 						>
 							Edit
 						</a>

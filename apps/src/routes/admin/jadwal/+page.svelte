@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { formatDate } from '$lib/utils/dateUtils';
+	import { statsigService } from '$src/lib/application/StatsigService.js';
 	import {
 		Breadcrumb,
 		BreadcrumbItem,
@@ -12,6 +14,7 @@
 		TableHead,
 		TableHeadCell
 	} from 'flowbite-svelte';
+	import { onMount } from 'svelte';
 
 	type EventListItem = {
 		date: string;
@@ -39,14 +42,17 @@
 	);
 
 	let filteredEvents = $derived(
-		(() => {
+		(async () => {
 			const filter = currentFilter as FilterStatus;
 
 			if (filter === 'confirmed') {
+				await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
 				return upcomingEvents.filter((event) => event.progress === 100);
 			} else if (filter === 'incomplete') {
+				await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
 				return upcomingEvents.filter((event) => event.progress > 0 && event.progress < 100);
 			} else if (filter === 'unconfirmed') {
+				await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
 				return upcomingEvents.filter((event) => event.progress === 0);
 			} else {
 				return upcomingEvents;
@@ -57,6 +63,10 @@
 	function setFilter(filter: FilterStatus) {
 		currentFilter = filter;
 	}
+
+	onMount(async () => {
+		await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
+	});
 </script>
 
 <svelte:head>

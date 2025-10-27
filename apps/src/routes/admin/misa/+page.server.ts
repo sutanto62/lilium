@@ -9,7 +9,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-    await statsigService.use();
+    await statsigService.logEvent('misa_view_server', 'load');
 
     const { session } = await handlePageLoad(event, 'misa');
     if (!session) {

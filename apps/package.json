@@ -80,6 +80,7 @@
 		"html2canvas": "^1.4.1",
 		"pino": "^9.4.0",
 		"pino-pretty": "^11.2.2",
+		"posthog-js": "^1.280.1",
 		"punycode": "^2.3.1",
 		"sqlite3": "^5.1.7",
 		"svelte-eslint-parser": "^0.43.0",

@@ -1,7 +1,13 @@
 <script lang="ts">
 	import FeatureCard from '$components/FeatureCard.svelte';
+	import { statsigService } from '$src/lib/application/StatsigService';
 	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
+	import { onMount } from 'svelte';
+
+	onMount(async () => {
+		await statsigService.logEvent('admin_view', 'load');
+	});
 </script>
 
 <Breadcrumb class="mb-4	">

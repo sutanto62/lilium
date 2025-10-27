@@ -9,6 +9,7 @@ A digital service information system built with SvelteKit, TypeScript, and SQLit
 - SQLite3
 - sqlpkg (for database extensions)
 - Statsig SDK key (VITE_STATSIG_CLIENT_KEY)
+- PostHog project API key (VITE_POSTHOG_KEY)
 
 ## Quick Start
 
@@ -87,27 +88,23 @@ src/
 #### Layers
 
 1. **Entities Layer** (`core/entities/`)
-
    - Pure domain models and business objects
    - No dependencies on other layers
    - Defines core business rules
 
 2. **Repository Interfaces** (`core/repositories/`)
-
    - Defines contracts for data access
    - Pure interfaces that entities depend on
    - Enables loose coupling between layers
    - Translate repository layer error into domain-meaningful message
 
 3. **Services Layer** (`core/service/`)
-
    - Contains business logic
    - Uses repositories through interfaces
    - Implements use cases and workflows
    - Handle domain rules, validation, and coordinate between repositories
 
 4. **Database Implementation** (`lib/server/db/`)
-
    - Implements repository interfaces
    - Contains database-specific code
    - Uses Drizzle ORM for database operations

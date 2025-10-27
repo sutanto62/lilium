@@ -1,4 +1,5 @@
 import type { Church } from '$core/entities/Schedule';
+import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
 import { error } from '@sveltejs/kit';
@@ -7,6 +8,9 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async (event) => {
 	// Use Statsig
 	await statsigService.use();
+
+	// Initialize PostHog
+	await posthogService.use();
 
 	// Define church at cookie for app to use
 	const { cookies } = event;

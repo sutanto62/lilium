@@ -3,6 +3,7 @@ import type { Session } from "@auth/core/types";
 import { StatsigClient } from '@statsig/js-client';
 import { StatsigSessionReplayPlugin } from '@statsig/session-replay';
 import { StatsigAutoCapturePlugin } from '@statsig/web-analytics';
+import { logger } from '../utils/logger';
 
 /**
  * StatsigService - A singleton service for managing feature flags and analytics via Statsig
@@ -72,6 +73,7 @@ class StatsigService {
      */
     async use() {
         if (this.initialized) {
+            logger.info('Statsig client already initialized');
             return;
         }
         await this.client.initializeAsync();

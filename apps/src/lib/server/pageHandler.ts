@@ -1,5 +1,6 @@
 import { logger } from '$lib/utils/logger';
 import type { RequestEvent } from '@sveltejs/kit';
+import { posthogService } from '../application/PostHogService';
 import { statsigService } from '../application/StatsigService';
 
 /**
@@ -13,8 +14,16 @@ export async function handlePageLoad(event: RequestEvent, pageId: string) {
     try {
         const session = await event.locals.auth();
 
+        // Track page view with both Statsig and PostHog
         // TODO: add user if session is not null
         await statsigService.logEvent(`${pageId}_view_server`, 'load');
+        await Promise.all([
+            statsigService.logEvent(`${pageId}_view_server`, 'load'),
+            posthogService.trackEvent(`${pageId}_view_server`, {
+                event_type: 'page_load',
+                page_id: pageId
+            }, session || undefined)
+        ]);
 
         return {
             session,

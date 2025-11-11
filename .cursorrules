@@ -1,0 +1,144 @@
+# Git Commit Rules - Conventional Commits
+
+## Commit Message Format
+
+All commit messages MUST follow the Conventional Commits specification:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Commit Types
+
+Use these commit types:
+
+- **feat**: A new feature for the user
+- **fix**: A bug fix
+- **docs**: Documentation only changes
+- **style**: Code style changes (formatting, missing semi-colons, etc.) that don't affect code meaning
+- **refactor**: Code changes that neither fix bugs nor add features
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **build**: Changes to build system or external dependencies (example scopes: npm, webpack, vite)
+- **ci**: Changes to CI configuration files and scripts (example scopes: github-actions, gitlab-ci)
+- **chore**: Other changes that don't modify src or test files (example scopes: release, deps)
+- **revert**: Reverts a previous commit
+
+### Commit Message Rules
+
+1. **Type**: MUST be one of the types listed above
+2. **Scope**: Optional, SHOULD be a noun describing the section of codebase (e.g., `api`, `auth`, `ui`, `schedule`)
+3. **Description**: 
+   - MUST be in lowercase
+   - MUST be in imperative mood ("add" not "added" or "adds")
+   - MUST NOT end with a period
+   - SHOULD be concise (50 characters or less)
+   - MUST describe what the commit does, not what was wrong
+4. **Body**: 
+   - Optional
+   - MUST be separated from description by a blank line
+   - MAY include motivation for the change and contrast with previous behavior
+   - SHOULD wrap at 72 characters
+5. **Footer**:
+   - Optional
+   - MUST be separated from body (or description if no body) by a blank line
+   - MAY reference issues (e.g., `Fixes #123`, `Closes #456`, `Refs #789`)
+   - MUST use `BREAKING CHANGE:` prefix for breaking changes
+
+### Breaking Changes
+
+Breaking changes MUST be indicated by:
+- Adding `!` after the type/scope: `feat(api)!: remove deprecated endpoint`
+- AND/OR including `BREAKING CHANGE:` in the footer with a description
+
+### Examples
+
+Good commit messages:
+
+```
+feat(auth): add google oauth integration
+
+Implement Google OAuth 2.0 authentication flow for user sign-in.
+This provides an alternative to email/password authentication.
+
+Closes #234
+```
+
+```
+fix(schedule): prevent duplicate event creation
+
+Users were able to submit the form multiple times, creating
+duplicate events. Added form state management to disable the
+submit button after first submission.
+
+Fixes #456
+```
+
+```
+docs: update api documentation for v2 endpoints
+```
+
+```
+refactor(usher)!: change validation return type
+
+BREAKING CHANGE: UsherService.validate() now returns Result<Usher, ValidationError>
+instead of throwing exceptions. Update all callers to handle the Result type.
+```
+
+```
+perf(db): add indexes for schedule queries
+
+Improves performance of dashboard load time by 60%.
+```
+
+```
+test(event): add unit tests for event creation
+```
+
+```
+build(deps): upgrade svelte to v4.2.0
+```
+
+```
+chore: update changelog for v1.5.0 release
+```
+
+Bad commit messages:
+
+```
+❌ updated files
+❌ Fix bug
+❌ feat: Added new feature.
+❌ WIP
+❌ fix schedule
+❌ changes
+```
+
+### When Creating Commits
+
+When the AI creates commits:
+
+1. Analyze ALL staged changes (not just the latest)
+2. Choose the most appropriate type based on the changes
+3. Add a scope if changes are focused on a specific area
+4. Write description in imperative mood, lowercase, no period
+5. Add body if changes need explanation beyond the description
+6. Reference issue numbers in footer if applicable
+7. Clearly mark breaking changes with `!` and `BREAKING CHANGE:`
+
+### Commit Scope Guidelines
+
+Common scopes in this project:
+- `auth` - Authentication and authorization
+- `api` - API endpoints
+- `schedule` - Schedule/event management
+- `usher` - Usher-related functionality
+- `admin` - Admin panel features
+- `ui` - User interface components
+- `db` - Database schemas and migrations
+- `deps` - Dependency updates
+- `config` - Configuration files

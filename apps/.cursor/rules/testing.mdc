@@ -1,0 +1,302 @@
+---
+description: Testing rules and patterns for Vitest and Playwright
+globs: **/*.test.ts,**/*.spec.ts
+alwaysApply: true
+---
+
+# Testing Rules
+
+For general project rules, see `.cursor/rules/project-rules.mdc`.
+For TypeScript patterns in tests, see `.cursor/rules/typescript.mdc`.
+
+## Test File Naming
+
+- Unit tests: `*.test.ts` (e.g., `EventService.test.ts`)
+- Integration tests: `*.test.ts` in appropriate directories
+- Component tests: `*.test.ts` alongside component files
+
+## Test Structure
+
+### Describe Blocks
+
+Organize tests using `describe` blocks:
+
+```typescript
+// ✅ Good: Organized test structure
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { EventService } from '../EventService';
+
+describe('EventService', () => {
+  let eventService: EventService;
+  const mockChurchId = 'church-1';
+
+  beforeEach(() => {
+    eventService = new EventService(mockChurchId);
+    vi.clearAllMocks();
+  });
+
+  describe('retrieveEventById', () => {
+    it('should return event by id', async () => {
+      // Test implementation
+    });
+
+    it('should throw error when event not found', async () => {
+      // Test implementation
+    });
+  });
+
+  describe('createEvent', () => {
+    it('should create event successfully', async () => {
+      // Test implementation
+    });
+
+    it('should throw validation error when required fields missing', async () => {
+      // Test implementation
+    });
+  });
+});
+```
+
+## Mocking Patterns
+
+### Mock External Dependencies
+
+Mock repository and external dependencies:
+
+```typescript
+// ✅ Good: Mocking repository
+import { vi } from 'vitest';
+
+vi.mock('$src/lib/server/db', () => ({
+  repo: {
+    getEventById: vi.fn(),
+    insertEvent: vi.fn(),
+    updateEventById: vi.fn(),
+    listEventsByWeekNumber: vi.fn()
+  }
+}));
+
+import { repo } from '$src/lib/server/db';
+
+describe('EventService', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should retrieve event by id', async () => {
+    const mockEvent: ChurchEvent = {
+      id: '1',
+      church: 'church-1',
+      mass: 'mass-1',
+      date: '2024-03-20'
+    };
+
+    vi.mocked(repo.getEventById).mockResolvedValue(mockEvent);
+
+    const result = await eventService.retrieveEventById('1');
+
+    expect(repo.getEventById).toHaveBeenCalledWith('1');
+    expect(result).toEqual(mockEvent);
+  });
+});
+```
+
+### Mock Functions
+
+Use `vi.fn()` for function mocks:
+
+```typescript
+// ✅ Good: Mock function
+const mockLogger = {
+  error: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn()
+};
+
+vi.mock('$src/lib/utils/logger', () => ({
+  logger: mockLogger
+}));
+```
+
+## Test Assertions
+
+### Use Descriptive Assertions
+
+```typescript
+// ✅ Good: Descriptive assertions
+it('should return events for specified week numbers', async () => {
+  const mockEvents: ChurchEvent[] = [
+    {
+      id: '1',
+      church: 'church-1',
+      mass: 'mass-1',
+      date: '2024-03-20',
+      weekNumber: 12
+    }
+  ];
+
+  vi.mocked(repo.listEventsByWeekNumber).mockResolvedValue(mockEvents);
+
+  const result = await eventService.retrieveEventsByWeekRange({ weekNumber: 12 });
+
+  expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(
+    mockChurchId,
+    [12, 13],
+    false,
+    undefined
+  );
+  expect(result).toEqual(mockEvents);
+  expect(result).toHaveLength(1);
+});
+```
+
+### Error Testing
+
+Test error cases explicitly:
+
+```typescript
+// ✅ Good: Error testing
+it('should throw validation error when church ID is missing', async () => {
+  await expect(
+    eventService.createEvent({
+      mass: 'mass-1',
+      date: '2024-03-20',
+      code: 'M1',
+      description: 'Test Mass'
+    })
+  ).rejects.toThrow('Church ID is required');
+
+  expect(repo.insertEvent).not.toHaveBeenCalled();
+});
+
+it('should throw ServiceError with correct type', async () => {
+  vi.mocked(repo.getEventById).mockResolvedValue(null);
+
+  await expect(eventService.retrieveEventById('1')).rejects.toThrow(ServiceError);
+});
+```
+
+## Test Data
+
+### Use Test Fixtures
+
+Create test data factories or fixtures:
+
+```typescript
+// ✅ Good: Test data factory
+function createMockEvent(overrides?: Partial<ChurchEvent>): ChurchEvent {
+  return {
+    id: '1',
+    church: 'church-1',
+    mass: 'mass-1',
+    date: '2024-03-20',
+    weekNumber: 12,
+    createdAt: 1710892800000,
+    active: 1,
+    ...overrides
+  };
+}
+
+it('should handle event with custom date', async () => {
+  const mockEvent = createMockEvent({ date: '2024-12-25' });
+  vi.mocked(repo.getEventById).mockResolvedValue(mockEvent);
+  
+  const result = await eventService.retrieveEventById('1');
+  expect(result.date).toBe('2024-12-25');
+});
+```
+
+## Integration Tests
+
+### Playwright Patterns
+
+For integration tests with Playwright:
+
+```typescript
+// ✅ Good: Playwright test structure
+import { test, expect } from '@playwright/test';
+
+test.describe('Event Management', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/admin/misa');
+  });
+
+  test('should display events list', async ({ page }) => {
+    await expect(page.locator('h1')).toContainText('Misa');
+    await expect(page.locator('table')).toBeVisible();
+  });
+
+  test('should create new event', async ({ page }) => {
+    await page.click('text=+ Misa Bulan Depan');
+    await page.click('text=Ya, Buat Jadwal');
+    await expect(page.locator('.alert')).toContainText('berhasil dibuat');
+  });
+});
+```
+
+## Test Coverage
+
+- Aim for high coverage of business logic (services, utilities)
+- Focus on critical paths and error cases
+- Don't test implementation details, test behavior
+- Use `npm run test:coverage` to check coverage
+
+## Async Testing
+
+Always await async operations in tests:
+
+```typescript
+// ✅ Good: Proper async handling
+it('should retrieve events asynchronously', async () => {
+  const promise = eventService.retrieveEventsByWeekRange({ weekNumber: 12 });
+  expect(promise).toBeInstanceOf(Promise);
+  
+  const result = await promise;
+  expect(result).toBeDefined();
+});
+
+// ❌ Bad: Not awaiting
+it('should retrieve events', () => {
+  const result = eventService.retrieveEventsByWeekRange({ weekNumber: 12 });
+  expect(result).toBeDefined(); // This will fail
+});
+```
+
+## Test Isolation
+
+- Each test should be independent
+- Use `beforeEach` to set up test state
+- Use `vi.clearAllMocks()` to reset mocks
+- Don't rely on test execution order
+
+```typescript
+// ✅ Good: Isolated tests
+describe('EventService', () => {
+  let eventService: EventService;
+
+  beforeEach(() => {
+    eventService = new EventService('church-1');
+    vi.clearAllMocks();
+  });
+
+  it('test 1', () => {
+    // Independent test
+  });
+
+  it('test 2', () => {
+    // Independent test, doesn't rely on test 1
+  });
+});
+```
+
+## Snapshot Testing
+
+Use snapshots sparingly, only for stable outputs:
+
+```typescript
+// ✅ Good: Snapshot for stable data structures
+it('should generate correct event response format', () => {
+  const response = eventService.formatEventResponse(mockEvent);
+  expect(response).toMatchSnapshot();
+});
+```

@@ -1,0 +1,214 @@
+---
+description: Naming conventions and coding style guidelines
+globs: **/*.ts,**/*.svelte
+alwaysApply: true
+---
+
+# Naming Conventions
+
+For general project rules, see `.cursor/rules/project-rules.mdc`.
+For Clean Architecture naming patterns, see `.cursor/rules/clean-code.mdc` and `doc/NamingGuidelines.md`.
+
+## Case Conventions
+
+- **camelCase**: variables, functions, and methods
+- **PascalCase**: classes, interfaces, types, components
+- **SCREAMING_SNAKE_CASE**: constants and environment variables
+- **snake_case**: analytics events and database columns
+
+## Examples
+
+### Variables and Functions
+
+```typescript
+// ✅ Good: camelCase
+const eventId = 'event-123';
+const selectedDate = new Date();
+function retrieveEventById(id: string) { }
+function handleDateSelect(date: Date) { }
+
+// ❌ Bad: Wrong casing
+const EventId = 'event-123';
+const selected_date = new Date();
+function RetrieveEventById(id: string) { }
+```
+
+### Classes and Interfaces
+
+```typescript
+// ✅ Good: PascalCase
+class EventService { }
+interface ChurchEvent { }
+type EventResponse = { }
+export class SQLiteAdapter { }
+
+// ❌ Bad: Wrong casing
+class eventService { }
+interface churchEvent { }
+```
+
+### Constants
+
+```typescript
+// ✅ Good: SCREAMING_SNAKE_CASE
+const MAX_EVENTS = 100;
+const DEFAULT_WEEK_NUMBER = 1;
+const API_BASE_URL = 'https://api.example.com';
+
+// Environment variables
+process.env.VITE_DATABASE_URL;
+process.env.VITE_STATSIG_CLIENT_KEY;
+
+// ❌ Bad: Wrong casing
+const maxEvents = 100;
+const default_week_number = 1;
+```
+
+### Database Columns
+
+```typescript
+// ✅ Good: snake_case for database columns
+export const event = sqliteTable('event', {
+  church_id: text('church_id'),
+  mass_id: text('mass_id'),
+  week_number: integer('week_number'),
+  created_at: integer('created_at')
+});
+
+// ❌ Bad: camelCase in database
+export const event = sqliteTable('event', {
+  churchId: text('churchId'), // Wrong
+  massId: text('massId') // Wrong
+});
+```
+
+### Analytics Events
+
+```typescript
+// ✅ Good: snake_case for analytics
+statsigService.logEvent('admin_misa_view', 'load', session);
+statsigService.logEvent('admin_misa_create', 'success', session);
+
+// ❌ Bad: camelCase for analytics
+statsigService.logEvent('adminMisaView', 'load', session);
+```
+
+## Descriptive Names
+
+### Use Descriptive Names
+
+```typescript
+// ✅ Good: Descriptive names
+async function retrieveEventsByWeekRange(options: WeekRangeOptions): Promise<ChurchEvent[]> { }
+const selectedDate = $state<Date | undefined>(undefined);
+const isSubmitting = $state(false);
+
+// ❌ Bad: Abbreviated or unclear names
+async function getEvts(opts: any): Promise<any[]> { }
+const sd = $state<Date | undefined>(undefined);
+const sub = $state(false);
+```
+
+### Avoid Disinformation
+
+```typescript
+// ✅ Good: Accurate names
+const eventList: ChurchEvent[] = [];
+const isEventActive: boolean = true;
+
+// ❌ Bad: Misleading names
+const eventList: ChurchEvent[] = []; // Actually an array, not a list
+const isEventActive: boolean = false; // Name suggests true, but value is false
+```
+
+## File and Directory Names
+
+- **Files**: Match exported class/interface name (PascalCase for classes, camelCase for utilities)
+- **Directories**: Use kebab-case or camelCase
+- **Test files**: `*.test.ts` or `*.spec.ts`
+
+```typescript
+// ✅ Good: File names match exports
+// EventService.ts
+export class EventService { }
+
+// eventService.ts (if exporting function)
+export function createEventService() { }
+
+// ✅ Good: Test file naming
+// EventService.test.ts
+describe('EventService', () => { });
+```
+
+## Logging Format
+
+Create debug logs with format: `file_name + method name`
+
+```typescript
+// ✅ Good: Consistent logging format
+import { logger } from '$src/lib/utils/logger';
+
+logger.error('EventService.createEvent: Failed to insert event', { eventId, error });
+logger.info('EventService.retrieveEventById: Event retrieved', { eventId });
+logger.warn('EventService.updateEvent: Event not found', { eventId });
+
+// ❌ Bad: Inconsistent or missing context
+logger.error('Failed to insert event');
+logger.info('Event retrieved');
+```
+
+## Constants vs Functions
+
+Prefer constants over functions when the value doesn't need computation:
+
+```typescript
+// ✅ Good: Constant for static value
+const DEFAULT_WEEK_NUMBER = 1;
+const MAX_RETRY_ATTEMPTS = 3;
+
+// ✅ Good: Function when computation needed
+function getWeekNumber(date: string): number {
+  // Computation logic
+}
+
+// ❌ Bad: Function for static value
+function getDefaultWeekNumber(): number {
+  return 1;
+}
+```
+
+## Abbreviations
+
+Avoid abbreviations unless they are widely understood:
+
+```typescript
+// ✅ Good: Full words
+const eventId = 'event-123';
+const churchId = 'church-1';
+const massId = 'mass-1';
+
+// ✅ Acceptable: Common abbreviations
+const id = 'event-123';
+const url = '/admin/misa';
+
+// ❌ Bad: Unclear abbreviations
+const evtId = 'event-123';
+const chId = 'church-1';
+const mId = 'mass-1';
+```
+
+## Boolean Naming
+
+Use prefixes like `is`, `has`, `should`, `can` for boolean variables:
+
+```typescript
+// ✅ Good: Boolean naming
+const isSubmitting = $state(false);
+const hasEvents = events.length > 0;
+const shouldShowAlert = form?.success ?? false;
+const canEdit = user.role === 'admin';
+
+// ❌ Bad: Non-descriptive boolean names
+const submitting = $state(false);
+const events = events.length > 0; // Confusing with events array
+```

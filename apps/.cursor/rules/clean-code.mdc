@@ -1,0 +1,26 @@
+---
+description: Clean code guideline
+alwaysApply: false
+---
+
+For detailed naming guidelines per layer, see `doc/NamingGuidelines.md`.
+For general project rules, see `.cursor/rules/project-rules.mdc`.
+
+- Adhere clean code architecture layer (domain, application, infrastructure, data access, presentation)
+- Name should communicate intent, avoid disinformation, be descriptive
+- Domain name should be PascalCase, simple descriptive nouns, plain english
+- Application (service) layer follows:
+  -- Entity + Action + Service for service interface.
+  -- action + Entity + detail for service methods.
+  -- Action + Entity + UseCase for service use case.
+  -- Use the following application verbs: create, retrieve, update, delete, list, search
+- Infrastructure layer follows
+  -- Entity + Repository for repository interface.
+  -- Data verb + Entity + Detail for repository method.
+  -- find/query + Entity + ByCondition for repository query method.
+  -- Use the following data verbs: persist, find, query, list, update, remove
+- Data Access layer or Adapters follows
+  -- Technology + Entity + Adapter for adapter class.
+  -- Data verb + Entity + Detail for adapter method.
+  -- Database operation for private helpers.
+  -- Use the following data verbs: persist, find, query, list, update, remove

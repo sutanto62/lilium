@@ -1,0 +1,97 @@
+---
+description: Apply to create git commit messages
+alwaysApply: true
+---
+
+# Cursor Rules for Conventional Commits
+
+## Git Commit Message Format
+
+Always use conventional commit format for all git commits:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Commit Types
+
+Use these types for commit messages:
+
+- **feat**: A new feature
+- **fix**: A bug fix
+- **docs**: Documentation only changes
+- **style**: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+- **refactor**: A code change that neither fixes a bug nor adds a feature
+- **perf**: A code change that improves performance
+- **test**: Adding missing tests or correcting existing tests
+- **build**: Changes that affect the build system or external dependencies
+- **ci**: Changes to CI configuration files and scripts
+- **chore**: Other changes that don't modify src or test files
+- **revert**: Reverts a previous commit
+
+### Scope (Optional)
+
+Use scope to indicate which part of the codebase is affected:
+- `api`: Backend API changes
+- `ui`: Frontend UI changes
+- `auth`: Authentication related changes
+- `db`: Database changes
+- `test`: Testing related changes
+- `docs`: Documentation changes
+- `deploy`: Deployment related changes
+
+### Description
+
+- Use imperative mood ("add" not "added" or "adds")
+- Don't capitalize the first letter
+- No dot (.) at the end
+- Keep it under 72 characters
+
+### Examples
+
+Good commit messages:
+```
+feat(auth): add OAuth2 authentication with Google
+fix(ui): resolve navigation menu alignment issue
+docs: update README with installation instructions
+refactor(api): simplify user service logic
+test: add unit tests for EventService
+chore: update dependencies to latest versions
+```
+
+Bad commit messages:
+```
+fixed bug
+updated code
+WIP
+quick fix
+```
+
+### Breaking Changes
+
+For breaking changes, add `!` after type/scope and include `BREAKING CHANGE:` in the footer:
+
+```
+feat(api)!: change user endpoint response format
+
+BREAKING CHANGE: The /api/users endpoint now returns user data in a different structure
+```
+
+### Commit Message Guidelines
+
+1. **Be specific**: Describe what the commit does, not just what you changed
+2. **Use present tense**: "add feature" not "added feature"
+3. **Be concise**: Keep the description under 72 characters
+4. **Use body for details**: If you need more explanation, use the commit body
+5. **Reference issues**: If fixing an issue, reference it in the footer: `Fixes #123`
+
+### When Writing Code
+
+- Follow the conventional commit format when suggesting commit messages
+- Ensure commit messages are descriptive and follow the established pattern
+- Consider the scope when the change affects specific parts of the codebase
+- Use appropriate type based on the nature of the change

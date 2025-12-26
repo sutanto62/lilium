@@ -1,0 +1,192 @@
+---
+description: Comprehensive project rules covering TypeScript, Svelte 5, Drizzle ORM, SQLite3, and general best practices
+alwaysApply: true
+---
+
+# Project Rules
+
+This document consolidates coding standards and best practices for the Lilium Inter Spinas project. For specific topics, see:
+- TypeScript: `.cursor/rules/typescript.mdc`
+- Database/ORM: `.cursor/rules/database.mdc`
+- Testing: `.cursor/rules/testing.mdc`
+- Svelte 5: `.cursor/rules/svelte5.mdc`
+- Clean Architecture: `.cursor/rules/clean-code.mdc`
+- Naming Conventions: `.cursor/rules/conventions.mdc`
+
+## Code Organization
+
+### Clean Architecture Layers
+
+Follow Clean Architecture principles with clear layer separation:
+
+- **Domain Layer** (`core/entities/`): Pure business entities, no dependencies
+- **Application Layer** (`core/service/`): Business logic and use cases
+- **Infrastructure Layer** (`core/repositories/`): Repository interfaces (ports)
+- **Data Access Layer** (`lib/server/adapters/`): Database implementations (adapters)
+- **Presentation Layer** (`routes/`): UI components and API endpoints
+
+Dependencies must point inward: outer layers depend on inner layers, never the reverse.
+
+### Import/Export Patterns
+
+- Use path aliases: `$core`, `$src`, `$components`, `$adapters` (defined in `svelte.config.js`)
+- Prefer named exports over default exports
+- Use `import type` for type-only imports
+- Import ordering:
+  1. External dependencies (node_modules)
+  2. Internal modules (relative paths)
+  3. Path aliases (`$core`, `$src`, etc.)
+
+```typescript
+// ✅ Good: Named exports, type imports, proper ordering
+import { eq, and } from 'drizzle-orm';
+import type { ChurchEvent } from '$core/entities/Event';
+import { ServiceError } from '$core/errors/ServiceError';
+import { repo } from '$src/lib/server/db';
+
+// ❌ Bad: Default exports, mixed imports
+import EventService from './EventService';
+import { ChurchEvent, ServiceError } from '$core/entities/Event';
+```
+
+### File Structure
+
+- One class/interface per file
+- File names match exported class/interface name (PascalCase for classes, camelCase for utilities)
+- Group related files in directories
+- Use index files for public API when appropriate
+
+## Error Handling
+
+### ServiceError Pattern
+
+Always use `ServiceError` from `$core/errors/ServiceError.ts` for domain errors:
+
+```typescript
+// ✅ Good: Specific error types with context
+if (!event.church) {
+  throw ServiceError.validation('Church ID is required', { field: 'church' });
+}
+
+const existingEvent = await repo.getEventByChurch(churchId, massId, date);
+if (existingEvent) {
+  throw ServiceError.duplicate('Event already exists', {
+    church: churchId,
+    mass: massId,
+    date
+  });
+}
+
+const event = await repo.findEventById(id);
+if (!event) {
+  throw ServiceError.notFound('Event not found', { id });
+}
+```
+
+### Error Propagation
+
+- Catch errors at service boundaries
+- Transform database errors to domain errors
+- Log errors before re-throwing
+- Provide user-friendly messages
+
+```typescript
+// ✅ Good: Proper error handling with logging
+try {
+  const insertedEvent = await repo.insertEvent(newEvent);
+  if (!insertedEvent) {
+    throw ServiceError.database('Failed to insert event', { event: newEvent });
+  }
+  return insertedEvent;
+} catch (error) {
+  logger.error('Failed to insert event:', error);
+  if (error instanceof ServiceError) {
+    throw error;
+  }
+  throw ServiceError.unknown('System failed to record event', { originalError: error });
+}
+```
+
+### Logging Standards
+
+Use logger from `$src/lib/utils/logger.ts`:
+
+- Format: `file_name + method name` (e.g., `EventService.createEvent`)
+- Log errors with context
+- Use appropriate log levels (error, warn, info, debug)
+
+```typescript
+import { logger } from '$src/lib/utils/logger';
+
+logger.error('EventService.createEvent: Failed to insert event', { eventId, error });
+logger.info('EventService.createEvent: Event created successfully', { eventId });
+```
+
+## Async/Await Patterns
+
+- Always use async/await over raw promises
+- Handle errors explicitly
+- Use Promise.all for parallel operations when appropriate
+- Avoid Promise.all if operations can fail independently
+
+```typescript
+// ✅ Good: Proper async/await with error handling
+async function retrieveEvents(weekNumbers: number[]): Promise<ChurchEvent[]> {
+  try {
+    return await repo.listEventsByWeekNumber(churchId, weekNumbers, false);
+  } catch (error) {
+    logger.error('EventService.retrieveEvents: Failed to retrieve events', { weekNumbers, error });
+    throw ServiceError.database('Failed to retrieve events', { weekNumbers });
+  }
+}
+
+// ❌ Bad: Raw promises, no error handling
+function getEvents(weekNumbers: number[]) {
+  return repo.listEventsByWeekNumber(churchId, weekNumbers, false);
+}
+```
+
+## Performance Considerations
+
+- Use database indexes for frequently queried columns
+- Limit query results when appropriate
+- Avoid N+1 query problems
+- Use transactions for multiple related operations
+- Consider code splitting for large routes
+- Minimize bundle size by avoiding unnecessary imports
+
+## Type Safety
+
+- Never use `any` type
+- Prefer type inference where types are obvious
+- Use explicit types for function parameters and return values
+- Leverage TypeScript utility types (Omit, Pick, Partial, etc.)
+
+See `.cursor/rules/typescript.mdc` for detailed TypeScript guidelines.
+
+## Database Operations
+
+- Always use Drizzle ORM for database operations (no raw SQL)
+- Use type-safe queries
+- Handle database errors appropriately
+- Use transactions for atomic operations
+
+See `.cursor/rules/database.mdc` for detailed database guidelines.
+
+## Testing
+
+- Write unit tests for services and utilities
+- Write integration tests for API endpoints
+- Mock external dependencies
+- Use descriptive test names
+
+See `.cursor/rules/testing.mdc` for detailed testing guidelines.
+
+## Svelte 5 Patterns
+
+- Use runes (`$state`, `$derived`, `$effect`, `$props`) for reactivity
+- Prefer runes over stores
+- Type all props and state
+- Separate server-side and client-side code
+
+See `.cursor/rules/svelte5.mdc` for detailed Svelte 5 guidelines.

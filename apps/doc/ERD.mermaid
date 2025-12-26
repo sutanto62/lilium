@@ -1,0 +1,192 @@
+erDiagram
+    User {
+        string id
+        string name
+        string email
+        string cid
+        string image
+        string role
+        string churchId
+        string lingkunganId
+    }
+    Church {
+        string id
+        string name
+        string code
+        string parish
+        number active
+    }
+    ChurchEvent {
+        string id
+        string church
+        string mass
+        string date
+        number weekNumber
+        number createdAt
+        number isComplete
+        number active
+        string type
+        string code
+        string description
+    }
+    EventUsher {
+        string id
+        string event
+        string name
+        string wilayah
+        string lingkungan
+        boolean isPpg
+        boolean isKolekte
+        string position
+        number createdAt
+    }
+    EventScheduleResponse {
+        string id
+        string church
+        string mass
+        string date
+        string description
+    }
+    EventScheduleRows {
+        string id
+        string name
+        string wilayah
+        string[] lingkungan
+        string[] pic
+        number zoneUshers
+        number zonePpg
+        number zoneKolekte
+    }
+    EventScheduleLingkungan {
+        string id
+        string name
+        string wilayah
+        string zone
+    }
+    EventScheduleLingkunganUsher {
+        string name
+        string position
+        boolean isPpg
+        boolean isKolekte
+    }
+    Mass {
+        string id
+        string code
+        string name
+        number sequence
+        string church
+        string day
+        string time
+        string briefingTime
+        number active
+    }
+    MassZone {
+        string id
+        string mass
+        string zone
+        number active
+        number sequence
+    }
+    ChurchZoneGroup {
+        string id
+        string church
+        string name
+        string code
+        string description
+        number sequence
+        number active
+    }
+    ChurchZone {
+        string id
+        string church
+        string group
+        string name
+        string code
+        string description
+        number sequence
+        number active
+    }
+    ChurchPosition {
+        string id
+        string church
+        string zone
+        string name
+        string code
+        string description
+        boolean isPpg
+        number sequence
+        string type
+        number active
+    }
+    Wilayah {
+        string id
+        string name
+        string code
+        number sequence
+        string church
+        number active
+    }
+    Lingkungan {
+        string id
+        string name
+        string wilayah
+        string wilayahName
+        number sequence
+        string church
+        number active
+    }
+    Usher {
+        string name
+        boolean isPpg
+        boolean isKolekte
+        number sequence
+        string validationMessage
+    }
+    UsherResponse {
+        string id
+        string event
+        string name
+        string zone
+        string wilayah
+        string lingkungan
+        boolean isPpg
+        boolean isKolekte
+        string position
+        number sequence
+        number createdAt
+    }
+
+    User }o--|| Church : "belongs_to"
+    User }o--|| Lingkungan : "assigned_to"
+
+    Church ||--o{ Mass : "hosts"
+    Mass ||--o{ MassZone : "uses"
+    MassZone }o--|| ChurchZone : "targets"
+
+    Church ||--o{ ChurchZone : "organizes"
+    ChurchZoneGroup ||--o{ ChurchZone : "groups"
+    ChurchZone ||--o{ ChurchPosition : "defines"
+
+    Church ||--o{ Wilayah : "covers"
+    Wilayah ||--o{ Lingkungan : "contains"
+
+    Church ||--o{ ChurchEvent : "schedules"
+    ChurchEvent }o--|| Mass : "references"
+
+    ChurchEvent ||--o{ EventUsher : "assigns"
+    EventUsher }o--|| Wilayah : "covers"
+    EventUsher }o--|| Lingkungan : "covers"
+
+    ChurchEvent ||--o{ UsherResponse : "records"
+    UsherResponse }o--|| ChurchZone : "aligned_with"
+    UsherResponse }o--|| Wilayah : "covers"
+    UsherResponse }o--|| Lingkungan : "covers"
+
+    EventScheduleResponse ||--o{ EventScheduleRows : "details"
+    EventScheduleRows ||--o{ EventScheduleLingkungan : "breaks_down"
+    EventScheduleRows }o--|| Wilayah : "covers"
+    EventScheduleLingkungan }o--|| Lingkungan : "maps_to"
+    EventScheduleLingkungan ||--o{ EventScheduleLingkunganUsher : "lists"
+
+    ChurchPosition ||--o{ Usher : "templates"
+    EventScheduleLingkunganUsher }o--|| Usher : "references"

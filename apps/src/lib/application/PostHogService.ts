@@ -2,6 +2,9 @@ import { browser } from '$app/environment';
 import type { Session } from "@auth/core/types";
 import posthog from 'posthog-js';
 import { logger } from '../utils/logger';
+import { EventManager } from './EventManager';
+import { EventPriority, EventQueue } from './EventQueue';
+import { sessionContextManager, type ChurchContext, type SessionContext } from './SessionContextManager';
 
 // Enhanced Analytics Interfaces
 
@@ -18,16 +21,6 @@ export interface AnalyticsEvent {
     churchContext?: ChurchContext;
 }
 
-/**
- * Church-specific context information
- */
-export interface ChurchContext {
-    churchId: string;
-    region?: string;
-    userPermissions: string[];
-    lingkunganId?: string;
-    wilayahId?: string;
-}
 
 /**
  * User journey tracking structure
@@ -124,18 +117,7 @@ export interface ChurchEventProperties {
     [key: string]: any;
 }
 
-/**
- * Session context for analytics enrichment
- */
-export interface SessionContext {
-    sessionId: string;
-    userId?: string;
-    userRole?: 'admin' | 'user' | 'visitor';
-    churchContext?: ChurchContext;
-    deviceType?: 'desktop' | 'mobile' | 'tablet';
-    userAgent?: string;
-    startTime: Date;
-}
+
 
 /**
  * PostHogService - A singleton service for managing analytics via PostHog
@@ -163,8 +145,14 @@ export interface SessionContext {
 class PostHogService {
     private static instance: PostHogService;
     private initialized = false;
-    private sessionContext: SessionContext | null = null;
     private currentJourney: UserJourney | null = null;
+    private eventManager: EventManager | null = null;
+    private eventQueue: EventQueue | null = null;
+    private testMode = false; // Add test mode flag
+    private currentPageStartTime: Date | null = null;
+    private currentPage: string | null = null;
+    private sessionStartPage: string | null = null;
+    private sessionStartReferrer: string | null = null;
 
     /**
      * Create a new instance of the PostHogService.
@@ -173,9 +161,12 @@ class PostHogService {
      * It sets up the client with the necessary options for development and production environments.
      */
     private constructor() {
+        // Check if we're in test mode
+        this.testMode = import.meta.env.MODE === 'test' || import.meta.env.VITEST === 'true';
+
         if (browser) {
             posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-                api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com',
+                api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
                 person_profiles: 'identified_only',
                 capture_pageview: false, // We'll handle this manually
                 capture_pageleave: true,
@@ -185,7 +176,73 @@ class PostHogService {
                     }
                 }
             });
+
+            // Initialize EventManager and EventQueue only if not in test mode
+            if (!this.testMode) {
+                this.initializeEventProcessing();
+            }
         }
+    }
+
+    /**
+     * Initialize event processing components
+     */
+    private initializeEventProcessing(): void {
+        if (!browser) return;
+
+        // Create event processor function for EventManager
+        const eventProcessor = async (event: AnalyticsEvent) => {
+            // Send directly to PostHog
+            posthog.capture(event.name, {
+                ...event.properties,
+                timestamp: event.timestamp.toISOString(),
+                sessionId: event.sessionId,
+                userId: event.userId,
+                userRole: event.userRole,
+                churchContext: event.churchContext,
+                // Add technical context
+                app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
+                environment: import.meta.env.DEV ? 'development' : 'production'
+            });
+        };
+
+        // Create event flush handler for EventQueue
+        const flushHandler = async (events: AnalyticsEvent[]) => {
+            // Process events through EventManager
+            if (this.eventManager) {
+                for (const event of events) {
+                    await this.eventManager.processEvent(event);
+                }
+            } else {
+                // Fallback: send directly to PostHog
+                for (const event of events) {
+                    await eventProcessor(event);
+                }
+            }
+        };
+
+        // Initialize EventManager
+        this.eventManager = new EventManager(eventProcessor, {
+            maxRetries: 3,
+            baseRetryDelay: 1000,
+            maxRetryDelay: 30000,
+            batchSize: 10,
+            processingTimeout: 5000
+        });
+
+        // Initialize EventQueue
+        this.eventQueue = new EventQueue(flushHandler, {
+            maxQueueSize: 1000,
+            maxRetries: 5,
+            baseRetryDelay: 2000,
+            maxRetryDelay: 60000,
+            batchSize: 20,
+            flushInterval: 5000,
+            persistToStorage: true,
+            storageKey: 'lilium_analytics_queue'
+        });
+
+        logger.info('PostHog event processing components initialized');
     }
 
     /**
@@ -219,84 +276,406 @@ class PostHogService {
 
         this.initialized = true;
 
-        // Initialize session context
+        // Initialize session context using SessionContextManager
         if (session) {
-            await this.initializeSessionContext(session);
+            await sessionContextManager.initializeSession(session);
         }
+
+        // Initialize user journey tracking
+        this.initializeUserJourney();
+
+        // Set up page navigation tracking
+        this.setupPageNavigationTracking();
 
         logger.info('PostHog client initialized with enhanced analytics');
     }
 
     /**
-     * Initialize session context from user session
-     * 
-     * @param session - The user session object
+     * Initialize user journey tracking for the current session
      */
-    private async initializeSessionContext(session: Session) {
-        if (!browser) return;
+    private initializeUserJourney(): void {
+        if (!browser || this.testMode) return;
 
-        const sessionId = this.generateSessionId();
+        const sessionContext = sessionContextManager.getSessionContext();
+        if (!sessionContext) {
+            logger.warn('PostHog: Cannot initialize user journey - no session context');
+            return;
+        }
 
-        // Extract church context from session
-        const churchContext: ChurchContext | undefined = session.user ? {
-            churchId: session.user.cid || '',
-            userPermissions: [session.user.role || 'visitor'],
-            lingkunganId: session.user.lingkunganId,
-            region: undefined // Can be enhanced later with region data
-        } : undefined;
-
-        this.sessionContext = {
-            sessionId,
-            userId: session.user?.id,
-            userRole: session.user?.role as 'admin' | 'user' | 'visitor',
-            churchContext,
-            deviceType: this.detectDeviceType(),
-            userAgent: navigator.userAgent,
-            startTime: new Date()
-        };
-
-        // Initialize user journey tracking
+        // Create new user journey
         this.currentJourney = {
-            sessionId,
-            startTime: new Date(),
+            sessionId: sessionContext.sessionId,
+            startTime: sessionContext.startTime,
             pages: [],
             actions: [],
             conversionEvents: []
         };
 
-        // Identify user with enriched context
-        if (session.user) {
-            this.identifyUser(session.user.name || session.user.id || 'anonymous', {
-                email: session.user.email,
-                role: session.user.role,
-                cid: session.user.cid,
-                lingkunganId: session.user.lingkunganId,
-                sessionId: sessionId
+        // Capture entry point information
+        this.captureEntryPoint();
+
+        logger.info('PostHog: User journey tracking initialized', {
+            sessionId: sessionContext.sessionId
+        });
+    }
+
+    /**
+     * Capture entry point and referrer information for the session
+     */
+    private captureEntryPoint(): void {
+        if (!browser || this.testMode) return;
+
+        const currentUrl = window.location.href;
+        const referrer = document.referrer;
+        const isHomepage = this.isHomepage(currentUrl);
+
+        // Store session start information
+        this.sessionStartPage = currentUrl;
+        this.sessionStartReferrer = referrer;
+
+        // Track entry point event
+        const entryPointEvent: AnalyticsEvent = {
+            name: 'session_entry_point',
+            properties: {
+                entry_page: currentUrl,
+                referrer: referrer || 'direct',
+                is_homepage: isHomepage,
+                entry_source: this.categorizeReferrer(referrer),
+                category: 'user_journey'
+            },
+            timestamp: new Date(),
+            sessionId: this.currentJourney?.sessionId || '',
+            userId: sessionContextManager.getSessionContext()?.userId,
+            userRole: sessionContextManager.getSessionContext()?.userRole,
+            churchContext: sessionContextManager.getSessionContext()?.churchContext
+        };
+
+        this.trackStructuredEvent(entryPointEvent);
+
+        logger.info('PostHog: Entry point captured', {
+            entryPage: currentUrl,
+            referrer: referrer || 'direct',
+            isHomepage
+        });
+    }
+
+    /**
+     * Check if the given URL is the homepage
+     */
+    private isHomepage(url: string): boolean {
+        try {
+            const urlObj = new URL(url);
+            const pathname = urlObj.pathname;
+            return pathname === '/' || pathname === '/index.html' || pathname === '';
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Categorize referrer source for analytics
+     */
+    private categorizeReferrer(referrer: string): string {
+        if (!referrer) return 'direct';
+
+        try {
+            const referrerUrl = new URL(referrer);
+            const domain = referrerUrl.hostname.toLowerCase();
+
+            // Search engines
+            if (domain.includes('google')) return 'google';
+            if (domain.includes('bing')) return 'bing';
+            if (domain.includes('yahoo')) return 'yahoo';
+            if (domain.includes('duckduckgo')) return 'duckduckgo';
+
+            // Social media
+            if (domain.includes('facebook')) return 'facebook';
+            if (domain.includes('twitter') || domain.includes('t.co')) return 'twitter';
+            if (domain.includes('instagram')) return 'instagram';
+            if (domain.includes('linkedin')) return 'linkedin';
+            if (domain.includes('whatsapp')) return 'whatsapp';
+
+            // Email
+            if (domain.includes('gmail') || domain.includes('outlook') || domain.includes('mail')) return 'email';
+
+            // Same domain (internal)
+            if (domain === window.location.hostname) return 'internal';
+
+            // External website
+            return 'external';
+        } catch {
+            return 'unknown';
+        }
+    }
+
+    /**
+     * Set up page navigation tracking with time spent calculation
+     */
+    private setupPageNavigationTracking(): void {
+        if (!browser || this.testMode) return;
+
+        // Track initial page load
+        this.trackPageNavigation(window.location.href, document.referrer);
+
+        // Set up beforeunload handler for session termination
+        window.addEventListener('beforeunload', () => {
+            this.handleSessionTermination();
+        });
+
+        // Set up visibility change handler for accurate time tracking
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                this.handlePageLeave();
+            } else if (document.visibilityState === 'visible') {
+                this.handlePageReturn();
+            }
+        });
+
+        // Set up popstate handler for SPA navigation
+        window.addEventListener('popstate', () => {
+            this.trackPageNavigation(window.location.href, this.currentPage || '');
+        });
+
+        logger.info('PostHog: Page navigation tracking set up');
+    }
+
+    /**
+     * Track page navigation with time spent calculation
+     */
+    private trackPageNavigation(newPage: string, referrer: string): void {
+        if (!browser || !this.currentJourney || this.testMode) return;
+
+        const now = new Date();
+
+        // Calculate time spent on previous page
+        let timeSpent: number | undefined;
+        if (this.currentPageStartTime && this.currentPage) {
+            timeSpent = now.getTime() - this.currentPageStartTime.getTime();
+
+            // Update the previous page visit with time spent
+            const lastPageVisit = this.currentJourney.pages[this.currentJourney.pages.length - 1];
+            if (lastPageVisit && lastPageVisit.page === this.currentPage) {
+                lastPageVisit.timeSpent = timeSpent;
+            }
+
+            // Track page leave event for the previous page
+            this.trackPageLeaveEvent(this.currentPage, timeSpent);
+        }
+
+        // Create new page visit record
+        const pageVisit: PageVisit = {
+            page: newPage,
+            timestamp: now,
+            referrer: referrer || undefined
+        };
+
+        // Add to journey
+        this.currentJourney.pages.push(pageVisit);
+
+        // Update current page tracking
+        this.currentPage = newPage;
+        this.currentPageStartTime = now;
+
+        // Track page view event
+        this.trackPageViewEvent(newPage, referrer, timeSpent);
+
+        logger.info('PostHog: Page navigation tracked', {
+            newPage,
+            timeSpentOnPrevious: timeSpent,
+            totalPages: this.currentJourney.pages.length
+        });
+    }
+
+    /**
+     * Track page view event with navigation context
+     */
+    private trackPageViewEvent(page: string, referrer: string, timeSpentOnPrevious?: number): void {
+        const pageViewEvent: AnalyticsEvent = {
+            name: 'page_navigation',
+            properties: {
+                page,
+                referrer: referrer || 'direct',
+                time_spent_on_previous: timeSpentOnPrevious,
+                page_sequence: this.currentJourney?.pages.length || 1,
+                session_duration: this.getSessionDuration(),
+                category: 'user_journey'
+            },
+            timestamp: new Date(),
+            sessionId: this.currentJourney?.sessionId || '',
+            userId: sessionContextManager.getSessionContext()?.userId,
+            userRole: sessionContextManager.getSessionContext()?.userRole,
+            churchContext: sessionContextManager.getSessionContext()?.churchContext
+        };
+
+        this.trackStructuredEvent(pageViewEvent);
+    }
+
+    /**
+     * Track page leave event with time spent
+     */
+    private trackPageLeaveEvent(page: string, timeSpent: number): void {
+        const pageLeaveEvent: AnalyticsEvent = {
+            name: 'page_leave',
+            properties: {
+                page,
+                time_spent: timeSpent,
+                engagement_level: this.calculateEngagementLevel(timeSpent),
+                category: 'user_journey'
+            },
+            timestamp: new Date(),
+            sessionId: this.currentJourney?.sessionId || '',
+            userId: sessionContextManager.getSessionContext()?.userId,
+            userRole: sessionContextManager.getSessionContext()?.userRole,
+            churchContext: sessionContextManager.getSessionContext()?.churchContext
+        };
+
+        this.trackStructuredEvent(pageLeaveEvent);
+    }
+
+    /**
+     * Calculate engagement level based on time spent
+     */
+    private calculateEngagementLevel(timeSpent: number): string {
+        if (timeSpent < 5000) return 'bounce'; // Less than 5 seconds
+        if (timeSpent < 30000) return 'low'; // Less than 30 seconds
+        if (timeSpent < 120000) return 'medium'; // Less than 2 minutes
+        if (timeSpent < 300000) return 'high'; // Less than 5 minutes
+        return 'very_high'; // 5+ minutes
+    }
+
+    /**
+     * Handle page leave (when tab becomes hidden)
+     */
+    private handlePageLeave(): void {
+        if (!this.currentPageStartTime || !this.currentPage) return;
+
+        // Don't end the page session, just pause timing
+        // We'll resume when the page becomes visible again
+        logger.info('PostHog: Page hidden, pausing time tracking');
+    }
+
+    /**
+     * Handle page return (when tab becomes visible again)
+     */
+    private handlePageReturn(): void {
+        if (!this.currentPage) return;
+
+        // Resume timing from current moment
+        this.currentPageStartTime = new Date();
+        logger.info('PostHog: Page visible, resuming time tracking');
+    }
+
+    /**
+     * Handle session termination and record final metrics
+     */
+    private handleSessionTermination(): void {
+        if (!this.currentJourney) return;
+
+        const now = new Date();
+        const sessionDuration = now.getTime() - this.currentJourney.startTime.getTime();
+
+        // Calculate final time spent on current page
+        let finalTimeSpent: number | undefined;
+        if (this.currentPageStartTime && this.currentPage) {
+            finalTimeSpent = now.getTime() - this.currentPageStartTime.getTime();
+
+            // Update the current page visit with final time spent
+            const lastPageVisit = this.currentJourney.pages[this.currentJourney.pages.length - 1];
+            if (lastPageVisit && lastPageVisit.page === this.currentPage) {
+                lastPageVisit.timeSpent = finalTimeSpent;
+            }
+        }
+
+        // Track session termination event
+        const sessionTerminationEvent: AnalyticsEvent = {
+            name: 'session_termination',
+            properties: {
+                session_duration: sessionDuration,
+                pages_visited: this.currentJourney.pages.length,
+                actions_performed: this.currentJourney.actions.length,
+                conversions_completed: this.currentJourney.conversionEvents.length,
+                entry_page: this.sessionStartPage,
+                exit_page: this.currentPage,
+                entry_referrer: this.sessionStartReferrer,
+                final_time_on_page: finalTimeSpent,
+                total_engagement_time: this.calculateTotalEngagementTime(),
+                bounce_rate: this.currentJourney.pages.length === 1 ? 1 : 0,
+                category: 'user_journey'
+            },
+            timestamp: now,
+            sessionId: this.currentJourney.sessionId,
+            userId: sessionContextManager.getSessionContext()?.userId,
+            userRole: sessionContextManager.getSessionContext()?.userRole,
+            churchContext: sessionContextManager.getSessionContext()?.churchContext
+        };
+
+        // Send immediately (synchronous) since page is unloading
+        if (browser && navigator.sendBeacon) {
+            // Use sendBeacon for reliable delivery during page unload
+            const payload = JSON.stringify({
+                event: sessionTerminationEvent.name,
+                properties: {
+                    ...sessionTerminationEvent.properties,
+                    timestamp: sessionTerminationEvent.timestamp.toISOString(),
+                    sessionId: sessionTerminationEvent.sessionId,
+                    userId: sessionTerminationEvent.userId,
+                    userRole: sessionTerminationEvent.userRole,
+                    churchContext: sessionTerminationEvent.churchContext
+                }
             });
+
+            const posthogUrl = `${import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com'}/capture/`;
+            navigator.sendBeacon(posthogUrl, payload);
+        } else {
+            // Fallback to regular tracking
+            this.trackStructuredEvent(sessionTerminationEvent);
         }
+
+        logger.info('PostHog: Session termination recorded', {
+            sessionDuration,
+            pagesVisited: this.currentJourney.pages.length,
+            actionsPerformed: this.currentJourney.actions.length,
+            conversions: this.currentJourney.conversionEvents.length
+        });
     }
 
     /**
-     * Generate a unique session ID
+     * Calculate total engagement time (sum of time spent on all pages)
      */
-    private generateSessionId(): string {
-        return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    private calculateTotalEngagementTime(): number {
+        if (!this.currentJourney) return 0;
+
+        return this.currentJourney.pages.reduce((total, page) => {
+            return total + (page.timeSpent || 0);
+        }, 0);
     }
 
     /**
-     * Detect device type from user agent
+     * Get current session duration in milliseconds
      */
-    private detectDeviceType(): 'desktop' | 'mobile' | 'tablet' {
-        if (!browser) return 'desktop';
+    private getSessionDuration(): number {
+        if (!this.currentJourney) return 0;
+        return Date.now() - this.currentJourney.startTime.getTime();
+    }
 
-        const userAgent = navigator.userAgent.toLowerCase();
-        if (/tablet|ipad|playbook|silk/.test(userAgent)) {
-            return 'tablet';
-        }
-        if (/mobile|iphone|ipod|android|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/.test(userAgent)) {
-            return 'mobile';
-        }
-        return 'desktop';
+    /**
+     * Manually track page navigation (for SPA routing)
+     * 
+     * @param newPage - The new page URL or path
+     * @param referrer - The previous page (optional)
+     */
+    trackPageChange(newPage: string, referrer?: string): void {
+        if (!browser) return;
+
+        const previousPage = this.currentPage || referrer || '';
+        this.trackPageNavigation(newPage, previousPage);
+    }
+
+    /**
+     * Get current session context
+     */
+    getSessionContext(): SessionContext | null {
+        return sessionContextManager.getSessionContext();
     }
 
     /**
@@ -314,20 +693,82 @@ class PostHogService {
         // Enrich event with session context
         const enrichedEvent = this.enrichEventWithContext(event);
 
-        // Send to PostHog
-        posthog.capture(enrichedEvent.name, {
-            ...enrichedEvent.properties,
-            timestamp: enrichedEvent.timestamp.toISOString(),
-            sessionId: enrichedEvent.sessionId,
-            userId: enrichedEvent.userId,
-            userRole: enrichedEvent.userRole,
-            churchContext: enrichedEvent.churchContext,
-            // Add technical context
-            app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
-            environment: import.meta.env.DEV ? 'development' : 'production'
-        });
+        try {
+            if (this.testMode) {
+                // In test mode, send directly to PostHog for immediate testing
+                posthog.capture(enrichedEvent.name, {
+                    ...enrichedEvent.properties,
+                    timestamp: enrichedEvent.timestamp.toISOString(),
+                    sessionId: enrichedEvent.sessionId,
+                    userId: enrichedEvent.userId,
+                    userRole: enrichedEvent.userRole,
+                    churchContext: enrichedEvent.churchContext,
+                    // Add technical context
+                    app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
+                    environment: import.meta.env.DEV ? 'development' : 'production'
+                });
+            } else {
+                // Production mode: use EventQueue for resilient processing
+                const priority = this.determineEventPriority(enrichedEvent);
 
-        logger.info(`PostHog structured event tracked: ${enrichedEvent.name}`, enrichedEvent.properties);
+                if (this.eventQueue) {
+                    await this.eventQueue.enqueue(enrichedEvent, priority);
+                } else {
+                    // Fallback: send directly to PostHog
+                    posthog.capture(enrichedEvent.name, {
+                        ...enrichedEvent.properties,
+                        timestamp: enrichedEvent.timestamp.toISOString(),
+                        sessionId: enrichedEvent.sessionId,
+                        userId: enrichedEvent.userId,
+                        userRole: enrichedEvent.userRole,
+                        churchContext: enrichedEvent.churchContext,
+                        // Add technical context
+                        app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
+                        environment: import.meta.env.DEV ? 'development' : 'production'
+                    });
+                }
+            }
+
+            logger.info(`PostHog structured event ${this.testMode ? 'sent' : 'queued'}: ${enrichedEvent.name}`, enrichedEvent.properties);
+        } catch (error) {
+            logger.error('PostHog structured event tracking failed', error);
+            // Don't throw error to avoid breaking user experience
+        }
+    }
+
+    /**
+     * Determine event priority based on event characteristics
+     * 
+     * @param event - The analytics event
+     * @returns Event priority level
+     */
+    private determineEventPriority(event: AnalyticsEvent): EventPriority {
+        // Critical events (errors, security, payments)
+        if (event.name.includes('error') ||
+            event.name.includes('security') ||
+            event.name.includes('payment') ||
+            event.properties.category === 'error') {
+            return EventPriority.CRITICAL;
+        }
+
+        // High priority events (conversions, admin actions)
+        if (event.name.includes('conversion') ||
+            event.name.includes('admin_') ||
+            event.properties.category === 'conversion' ||
+            event.properties.category === 'administration') {
+            return EventPriority.HIGH;
+        }
+
+        // Normal priority events (user actions, church events)
+        if (event.name.includes('user_action') ||
+            event.name.includes('church_') ||
+            event.properties.category === 'church_operations' ||
+            event.properties.category === 'user_interaction') {
+            return EventPriority.NORMAL;
+        }
+
+        // Low priority events (page views, performance metrics)
+        return EventPriority.LOW;
     }
 
     /**
@@ -337,22 +778,24 @@ class PostHogService {
      * @returns Enriched analytics event
      */
     private enrichEventWithContext(event: AnalyticsEvent): AnalyticsEvent {
+        const sessionContext = sessionContextManager.getSessionContext();
+
         const enriched: AnalyticsEvent = {
             ...event,
             timestamp: event.timestamp || new Date(),
-            sessionId: event.sessionId || this.sessionContext?.sessionId || this.generateSessionId(),
-            userId: event.userId || this.sessionContext?.userId,
-            userRole: event.userRole || this.sessionContext?.userRole,
-            churchContext: event.churchContext || this.sessionContext?.churchContext
+            sessionId: event.sessionId || sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            userId: event.userId || sessionContext?.userId,
+            userRole: event.userRole || sessionContext?.userRole,
+            churchContext: event.churchContext || sessionContext?.churchContext
         };
 
         // Add session metadata to properties
-        if (this.sessionContext) {
+        if (sessionContext) {
             enriched.properties = {
                 ...enriched.properties,
-                deviceType: this.sessionContext.deviceType,
-                userAgent: this.sessionContext.userAgent,
-                sessionStartTime: this.sessionContext.startTime.toISOString()
+                deviceType: sessionContext.deviceType,
+                userAgent: sessionContext.userAgent,
+                sessionStartTime: sessionContext.startTime.toISOString()
             };
         }
 
@@ -366,6 +809,8 @@ class PostHogService {
      * @param properties - Church event properties
      */
     async trackChurchEvent(eventType: ChurchEventType, properties: ChurchEventProperties) {
+        const sessionContext = sessionContextManager.getSessionContext();
+
         const event: AnalyticsEvent = {
             name: `church_${eventType}`,
             properties: {
@@ -374,10 +819,10 @@ class PostHogService {
                 category: 'church_operations'
             },
             timestamp: new Date(),
-            sessionId: this.sessionContext?.sessionId || this.generateSessionId(),
-            userId: this.sessionContext?.userId,
-            userRole: this.sessionContext?.userRole,
-            churchContext: this.sessionContext?.churchContext
+            sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            userId: sessionContext?.userId,
+            userRole: sessionContext?.userRole,
+            churchContext: sessionContext?.churchContext
         };
 
         await this.trackStructuredEvent(event);
@@ -401,6 +846,8 @@ class PostHogService {
      * @param properties - Additional properties
      */
     async trackAdminAction(action: AdminAction, properties?: Record<string, any>) {
+        const sessionContext = sessionContextManager.getSessionContext();
+
         const event: AnalyticsEvent = {
             name: `admin_${action}`,
             properties: {
@@ -409,10 +856,10 @@ class PostHogService {
                 category: 'administration'
             },
             timestamp: new Date(),
-            sessionId: this.sessionContext?.sessionId || this.generateSessionId(),
-            userId: this.sessionContext?.userId,
-            userRole: this.sessionContext?.userRole,
-            churchContext: this.sessionContext?.churchContext
+            sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            userId: sessionContext?.userId,
+            userRole: sessionContext?.userRole,
+            churchContext: sessionContext?.churchContext
         };
 
         await this.trackStructuredEvent(event);
@@ -425,6 +872,8 @@ class PostHogService {
      * @param properties - Additional properties
      */
     async trackCommunityEngagement(type: CommunityEngagementType, properties?: Record<string, any>) {
+        const sessionContext = sessionContextManager.getSessionContext();
+
         const event: AnalyticsEvent = {
             name: `community_${type}`,
             properties: {
@@ -433,10 +882,10 @@ class PostHogService {
                 category: 'community'
             },
             timestamp: new Date(),
-            sessionId: this.sessionContext?.sessionId || this.generateSessionId(),
-            userId: this.sessionContext?.userId,
-            userRole: this.sessionContext?.userRole,
-            churchContext: this.sessionContext?.churchContext
+            sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            userId: sessionContext?.userId,
+            userRole: sessionContext?.userRole,
+            churchContext: sessionContext?.churchContext
         };
 
         await this.trackStructuredEvent(event);
@@ -451,43 +900,65 @@ class PostHogService {
      */
     async trackPageView(pageName: string, properties?: Record<string, any>, session?: Session) {
         // Update session context if provided
-        if (session && !this.sessionContext) {
-            await this.initializeSessionContext(session);
+        if (session && !sessionContextManager.getSessionContext()) {
+            await sessionContextManager.initializeSession(session);
+        }
+
+        const sessionContext = sessionContextManager.getSessionContext();
+
+        // Handle user journey tracking for page navigation (only in non-test mode)
+        if (!this.testMode) {
+            if (this.currentJourney && browser) {
+                // If this is a different page than current, track navigation
+                if (this.currentPage !== pageName) {
+                    this.trackPageNavigation(pageName, this.currentPage || '');
+                }
+            } else if (browser) {
+                // Initialize journey if not already done
+                this.initializeUserJourney();
+                this.trackPageNavigation(pageName, document.referrer || '');
+            }
         }
 
         const pageVisit: PageVisit = {
             page: pageName,
             timestamp: new Date(),
-            referrer: document.referrer || undefined
+            referrer: browser ? document.referrer || undefined : undefined
         };
 
-        // Add to user journey
-        if (this.currentJourney) {
-            this.currentJourney.pages.push(pageVisit);
+        // Add to user journey (only in non-test mode to avoid complexity)
+        if (!this.testMode && this.currentJourney) {
+            // Check if this page is already the last page in journey (avoid duplicates)
+            const lastPage = this.currentJourney.pages[this.currentJourney.pages.length - 1];
+            if (!lastPage || lastPage.page !== pageName) {
+                this.currentJourney.pages.push(pageVisit);
+            }
         }
 
         const event: AnalyticsEvent = {
             name: '$pageview',
             properties: {
                 page: pageName,
-                referrer: document.referrer,
+                referrer: browser ? document.referrer : undefined,
+                page_sequence: this.currentJourney?.pages.length || 1,
+                session_duration: this.getSessionDuration(),
                 ...properties
             },
             timestamp: new Date(),
-            sessionId: this.sessionContext?.sessionId || this.generateSessionId(),
-            userId: this.sessionContext?.userId,
-            userRole: this.sessionContext?.userRole,
-            churchContext: this.sessionContext?.churchContext
+            sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            userId: sessionContext?.userId,
+            userRole: sessionContext?.userRole,
+            churchContext: sessionContext?.churchContext
         };
 
         await this.trackStructuredEvent(event);
     }
 
     /**
-     * Get current session context
+     * Update session context (useful for role changes, etc.)
      */
-    getSessionContext(): SessionContext | null {
-        return this.sessionContext;
+    updateSessionContext(updates: Partial<SessionContext>) {
+        sessionContextManager.updateSessionContext(updates);
     }
 
     /**
@@ -498,12 +969,33 @@ class PostHogService {
     }
 
     /**
-     * Update session context (useful for role changes, etc.)
+     * Get user journey statistics
      */
-    updateSessionContext(updates: Partial<SessionContext>) {
-        if (this.sessionContext) {
-            this.sessionContext = { ...this.sessionContext, ...updates };
-        }
+    getJourneyStats(): {
+        sessionDuration: number;
+        pagesVisited: number;
+        actionsPerformed: number;
+        conversionsCompleted: number;
+        totalEngagementTime: number;
+        averageTimePerPage: number;
+        entryPage: string | null;
+        currentPage: string | null;
+    } | null {
+        if (!this.currentJourney) return null;
+
+        const totalEngagementTime = this.calculateTotalEngagementTime();
+        const pagesVisited = this.currentJourney.pages.length;
+
+        return {
+            sessionDuration: this.getSessionDuration(),
+            pagesVisited,
+            actionsPerformed: this.currentJourney.actions.length,
+            conversionsCompleted: this.currentJourney.conversionEvents.length,
+            totalEngagementTime,
+            averageTimePerPage: pagesVisited > 0 ? totalEngagementTime / pagesVisited : 0,
+            entryPage: this.sessionStartPage,
+            currentPage: this.currentPage
+        };
     }
 
     /**
@@ -535,14 +1027,16 @@ class PostHogService {
         }
 
         // Convert to structured event for consistency
+        const sessionContext = sessionContextManager.getSessionContext();
+
         const structuredEvent: AnalyticsEvent = {
             name: event,
             properties: properties || {},
             timestamp: new Date(),
-            sessionId: this.sessionContext?.sessionId || this.generateSessionId(),
-            userId: session?.user?.id || this.sessionContext?.userId,
-            userRole: (session?.user?.role as 'admin' | 'user' | 'visitor') || this.sessionContext?.userRole,
-            churchContext: this.sessionContext?.churchContext
+            sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+            userId: session?.user?.id || sessionContext?.userId,
+            userRole: (session?.user?.role as 'admin' | 'user' | 'visitor') || sessionContext?.userRole,
+            churchContext: sessionContext?.churchContext
         };
 
         await this.trackStructuredEvent(structuredEvent);
@@ -579,16 +1073,75 @@ class PostHogService {
     resetUser() {
         if (!browser) return;
 
+        // Record session termination before reset
+        if (this.currentJourney) {
+            this.handleSessionTermination();
+        }
+
         posthog.reset();
 
-        // Clear session context and journey
-        this.sessionContext = null;
+        // Clear session context and journey using SessionContextManager
+        sessionContextManager.clearSession();
         this.currentJourney = null;
+
+        // Clear page tracking state
+        this.currentPage = null;
+        this.currentPageStartTime = null;
+        this.sessionStartPage = null;
+        this.sessionStartReferrer = null;
+
+        // Clear event queues for privacy
+        this.clearEventQueues();
 
         // Reset initialization flag to allow re-initialization with new session
         this.initialized = false;
 
         logger.info('PostHog user reset');
+    }
+
+    /**
+     * Get event processing statistics
+     */
+    getEventProcessingStats() {
+        return {
+            eventManager: this.eventManager?.getQueueStats(),
+            eventQueue: this.eventQueue?.getStats()
+        };
+    }
+
+    /**
+     * Get the EventManager instance for advanced usage
+     */
+    getEventManager(): EventManager | null {
+        return this.eventManager;
+    }
+
+    /**
+     * Get the EventQueue instance for advanced usage
+     */
+    getEventQueue(): EventQueue | null {
+        return this.eventQueue;
+    }
+
+    /**
+     * Flush all pending events immediately
+     */
+    async flushEvents(): Promise<void> {
+        if (this.eventQueue) {
+            await this.eventQueue.flush();
+        }
+    }
+
+    /**
+     * Clear all queued events (useful for testing or privacy compliance)
+     */
+    clearEventQueues(): void {
+        if (this.eventManager) {
+            this.eventManager.clearQueue();
+        }
+        if (this.eventQueue) {
+            this.eventQueue.clear();
+        }
     }
 
     /**

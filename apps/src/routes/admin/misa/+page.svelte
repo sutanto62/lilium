@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { ChurchEvent } from '$core/entities/Event';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import DatePicker from '$src/lib/components/DatePicker.svelte';
 	import { formatDate } from '$src/lib/utils/dateUtils';
@@ -31,17 +30,7 @@
 	let selectedDate = $state<Date | undefined>(undefined);
 	let showAlert = $state(true);
 
-	// TODO: sync filtered date with loaded data (maximum 2 weeks)
-	const events = $derived(
-		data.events.filter((event: ChurchEvent) => {
-			const eventDate = new Date(event.date);
-			const isFuture = eventDate >= new Date();
-
-			if (!selectedDate) return isFuture;
-
-			return eventDate.toDateString() === selectedDate.toDateString();
-		})
-	);
+	const events = data.events;
 
 	onMount(async () => {
 		const session = page.data.session || undefined;
@@ -88,7 +77,7 @@
 </Breadcrumb>
 
 <div class="mb-4">
-	<Heading tag="h1" class="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white"
+	<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl"
 		>Misa</Heading
 	>
 
@@ -158,7 +147,7 @@
 					<TableBodyCell>
 						<a
 							href="/admin/misa/{event.id}"
-							class="text-primary-600 dark:text-primary-500 font-medium hover:underline"
+							class="font-medium text-primary-600 hover:underline dark:text-primary-500"
 						>
 							Edit
 						</a>

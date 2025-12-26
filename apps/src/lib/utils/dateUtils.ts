@@ -118,19 +118,51 @@ export function formatDate(dateString: string, format: DateFormat = 'short', loc
 }
 
 /**
- * Get the week number of a given date.
+ * Get the week number of a given date following ISO 8601 standard.
  * 
  * If no date is provided, the current date is used.
+ * Week 1 is the first week that contains at least 4 days of the year.
+ * If the last week of the year has fewer than 4 days, it belongs to the next year's week 1.
  * 
  * @param date - The date to get the week number of.
  * @returns The week number of the given date.
  */
 export function getWeekNumber(date?: string): number {
 	const eventDate = date ? new Date(date) : new Date();
-	const startOfYear = new Date(eventDate.getFullYear(), 0, 1);
+	const year = eventDate.getFullYear();
+	const startOfYear = new Date(year, 0, 1);
+	const endOfYear = new Date(year, 11, 31);
+
+	// Calculate days from start of year
 	const days = Math.floor((eventDate.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-	const adjustedDay = (startOfYear.getDay() + 6) % 7;
-	const weekNumber = Math.ceil((days + adjustedDay + 1) / 7);
+	const adjustedDay = (startOfYear.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+
+	// Calculate week number
+	let weekNumber = Math.ceil((days + adjustedDay + 1) / 7);
+
+	// Handle edge cases for year boundaries
+
+	// If we're in the first week but it has fewer than 4 days of the current year,
+	// it belongs to the previous year's last week
+	if (weekNumber === 1 && adjustedDay > 3) {
+		// This date belongs to the previous year's last week
+		const prevYear = year - 1;
+		const prevYearEnd = new Date(prevYear, 11, 31);
+		return getWeekNumber(prevYearEnd.toISOString().split('T')[0]);
+	}
+
+	// Check if we're in the last week of the year
+	const endOfYearDay = (endOfYear.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+	const daysInLastWeek = endOfYearDay + 1;
+
+	// If the last week has fewer than 4 days, dates in that week belong to next year's week 1
+	if (daysInLastWeek < 4) {
+		const lastFullWeekStart = new Date(year, 11, 31 - endOfYearDay);
+		if (eventDate >= lastFullWeekStart) {
+			return 1; // This date belongs to next year's week 1
+		}
+	}
+
 	return weekNumber;
 }
 
@@ -138,14 +170,25 @@ export function getWeekNumber(date?: string): number {
  * Get current and specified number of upcoming week numbers.
  * 
  * If no parameters are provided, returns current and next week numbers.
+ * Properly handles year boundary cases by calculating actual dates for each week.
  * 
  * @param weeks - Number of upcoming weeks to include (default: 1)
  * @param date - Optional date to get the week numbers of (default: current date)
  * @returns Array of week numbers starting from current week
  */
 export function getWeekNumbers(weeks: number = 1, date?: string): number[] {
-	const currentWeekNumber = getWeekNumber(date);
-	return Array.from({ length: weeks + 1 }, (_, i) => currentWeekNumber + i);
+	const startDate = date ? new Date(date) : new Date();
+	const weekNumbers: number[] = [];
+
+	// Generate week numbers by calculating actual dates for each week
+	for (let i = 0; i <= weeks; i++) {
+		const currentDate = new Date(startDate);
+		currentDate.setDate(startDate.getDate() + (i * 7)); // Add 7 days for each week
+		const weekNumber = getWeekNumber(currentDate.toISOString().split('T')[0]);
+		weekNumbers.push(weekNumber);
+	}
+
+	return weekNumbers;
 }
 
 /**

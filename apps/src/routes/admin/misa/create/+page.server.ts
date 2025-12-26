@@ -1,4 +1,6 @@
-import type { ChurchEvent, EventType } from "$core/entities/Event";
+import type { ChurchEvent } from "$core/entities/Event";
+import { EventType } from "$core/entities/Event";
+import { ServiceError } from "$core/errors/ServiceError";
 import { ChurchService } from "$core/service/ChurchService";
 import { EventService } from "$core/service/EventService";
 import { hasRole } from "$src/auth";
@@ -43,46 +45,99 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions: Actions = {
     default: async ({ request, locals }: RequestEvent) => {
+        logger.info('admin_misa_create: Starting event creation');
+
         const session = await locals.auth();
         if (!hasRole(session, 'admin')) {
-            return {
+            logger.warn('admin_misa_create: Unauthorized access attempt');
+            return fail(403, {
                 success: false,
-                error: 'Unauthorized'
-            };
+                error: 'Anda tidak memiliki izin untuk membuat jadwal misa'
+            });
         }
 
         if (!session?.user?.cid) {
-            return {
+            logger.error('admin_misa_create: Church ID not found in session');
+            return fail(400, {
                 success: false,
-                error: 'Church ID not found'
-            };
+                error: 'ID gereja tidak ditemukan. Silakan login ulang.'
+            });
         }
 
         const formData = await request.formData();
-        const newEvent: Omit<ChurchEvent, 'id' | 'createdAt'> = {
-            church: session?.user?.cid as string,
-            date: formData.get('date') as string,
-            mass: formData.get('mass') as string,
-            type: formData.get('type') as EventType,
-            code: formData.get('code') as string,
-            description: formData.get('description') as string,
-            weekNumber: Number(formData.get('weekNumber')) || null,
-            isComplete: 0,
-            active: 1,
+        const date = formData.get('date') as string;
+        const mass = formData.get('mass') as string;
+        const type = formData.get('type') as EventType;
+        const code = formData.get('code') as string;
+        const description = formData.get('description') as string;
+        const weekNumber = formData.get('weekNumber') ? Number(formData.get('weekNumber')) : null;
+
+        // Validation
+        if (!date) {
+            return fail(400, { error: 'Tanggal harus diisi' });
         }
 
-        const eventService = new EventService(session?.user?.cid as string);
+        const dateObj = new Date(date);
+        if (isNaN(dateObj.getTime())) {
+            return fail(400, { error: 'Tanggal tidak valid' });
+        }
+
+        if (!mass) {
+            return fail(400, { error: 'Jenis Misa harus dipilih' });
+        }
+
+        if (!code || code.trim().length === 0) {
+            return fail(400, { error: 'Kode harus diisi' });
+        }
+
+        if (!description || description.trim().length === 0) {
+            return fail(400, { error: 'Nama harus diisi' });
+        }
+
+        if (!type || (type !== EventType.MASS && type !== EventType.FEAST)) {
+            return fail(400, { error: 'Jenis perayaan tidak valid' });
+        }
+
+        const newEvent: Omit<ChurchEvent, 'id' | 'createdAt'> = {
+            church: session.user.cid,
+            date: date,
+            mass: mass,
+            type: type,
+            code: code.trim(),
+            description: description.trim(),
+            weekNumber: weekNumber,
+            isComplete: 0,
+            active: 1,
+        };
+
+        const eventService = new EventService(session.user.cid);
 
         try {
             const insertedEvent = await eventService.createEvent(newEvent);
+            logger.info('admin_misa_create: Successfully created event', { eventId: insertedEvent.id });
             return {
                 success: true,
                 message: 'Misa berhasil dibuat'
             };
         } catch (error) {
-            logger.error(`Failed to create event: ${error}`);
+            logger.error('admin_misa_create: Failed to create event', { error, date, mass });
+            
+            // Handle ServiceError specifically
+            if (error instanceof ServiceError) {
+                if (error.type === 'DUPLICATE_ERROR') {
+                    return fail(400, {
+                        error: 'Jadwal misa untuk tanggal dan jenis misa ini sudah ada. Silakan edit jadwal yang ada atau pilih tanggal/jenis misa lain.'
+                    });
+                }
+                if (error.type === 'VALIDATION_ERROR') {
+                    return fail(400, {
+                        error: error.message || 'Data yang dimasukkan tidak valid. Silakan periksa kembali.'
+                    });
+                }
+            }
+            
             return fail(500, {
-                error: `Gagal membuat misa ${error}`
+                error: 'Gagal membuat misa. Silakan coba lagi atau hubungi administrator.'
             });
         }
     }

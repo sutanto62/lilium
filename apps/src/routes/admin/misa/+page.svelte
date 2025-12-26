@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { invalidate, replaceState } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import DatePicker from '$src/lib/components/DatePicker.svelte';
 	import { tracker } from '$src/lib/utils/analytics';
-	import { formatDate } from '$src/lib/utils/dateUtils';
+	import { formatDate, formatDateLocal } from '$src/lib/utils/dateUtils';
 	import {
 		Alert,
 		Breadcrumb,
@@ -37,7 +37,8 @@
 	let showConfirmModal = $state(false);
 	let isSubmitting = $state(false);
 
-	const events = data.events;
+	// Use $derived to make events reactive to data changes
+	const events = $derived(data.events);
 
 	// Initialize selectedDate from URL search params
 	$effect(() => {
@@ -61,8 +62,9 @@
 			return;
 		}
 
-		// Format date as YYYY-MM-DD for URL
-		const dateStr = selected.toISOString().split('T')[0];
+		// Format date as YYYY-MM-DD for URL using local timezone
+		// This avoids timezone issues where toISOString() converts to UTC
+		const dateStr = formatDateLocal(selected);
 
 		// Track date filter usage with PostHog
 		await tracker.track(
@@ -74,17 +76,19 @@
 			page
 		);
 
-		// Update URL with new date parameter using replaceState
-		// This avoids conflicts with SvelteKit's router
+		// Update URL with new date parameter and trigger load function
 		const url = new URL(page.url);
 		url.searchParams.set('date', dateStr);
+		const newUrl = url.pathname + url.search;
 
-		// Use replaceState to update URL without adding to history
-		// replaceState takes (url, state) where url is pathname + search
-		replaceState(url.pathname + url.search, {});
-
-		// Invalidate to reload data with new search params
-		await invalidate(url);
+		// Only navigate if URL actually changed
+		if (newUrl !== page.url.pathname + page.url.search) {
+			// Invalidate first to mark all data as stale
+			await invalidate(() => true);
+			// Navigate with replaceState to update URL without adding to history
+			// This will trigger the load function with new search params
+			await goto(newUrl, { replaceState: true, noScroll: true });
+		}
 	}
 
 	// Handle bulk create confirmation
@@ -120,11 +124,13 @@
 		const now = new Date();
 		const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 		const lastDayOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+		const startDate = formatDateLocal(nextMonth);
+		const endDate = formatDateLocal(lastDayOfNextMonth);
 		return {
-			startDate: nextMonth.toISOString().split('T')[0],
-			endDate: lastDayOfNextMonth.toISOString().split('T')[0],
-			startDateFormatted: formatDate(nextMonth.toISOString().split('T')[0], 'long'),
-			endDateFormatted: formatDate(lastDayOfNextMonth.toISOString().split('T')[0], 'long')
+			startDate,
+			endDate,
+			startDateFormatted: formatDate(startDate, 'long'),
+			endDateFormatted: formatDate(endDate, 'long')
 		};
 	});
 

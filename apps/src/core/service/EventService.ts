@@ -44,26 +44,57 @@ export class EventService {
 
 
 	/**
-	 * Retrieves events by week number for upcoming 2 weeks
+	 * Retrieves events by week number(s)
+	 * 
+	 * Behavior:
+	 * - If weekNumber is provided: retrieves events for that week and the next week (2 weeks total)
+	 *   Year boundary handling: When weekNumber is 52 or 53, also includes week 1 to catch next year's
+	 *   events. The date filter ensures only events from the correct time period are returned.
+	 * - If weekNumbers array is provided: retrieves events for the specified week numbers
+	 * - If neither is provided: returns empty array (invalid input)
+	 * 
+	 * Important: Week numbers are stored without year context. The date filter (isToday) ensures
+	 * events from the correct time period are returned, even when week numbers repeat across years.
+	 * 
+	 * Example edge cases:
+	 * - weekNumber: 52 (Dec 26, 2025) → queries [52, 53, 1] to catch week 52 of 2025 and week 1 of 2026
+	 * - weekNumber: 53 → queries [53, 1] to catch week 53 of current year and week 1 of next year
+	 * 
 	 * @param options - Configuration options for retrieving events
-	 * @param options.weekNumber - The week number to retrieve events for
-	 * @param options.weekNumbers - Optional array of specific week numbers to retrieve
-	 * @param options.isToday - If true, includes events from today onwards
-	 * @param options.limit - The maximum number of events to retrieve, omit to return all events
+	 * @param options.weekNumber - Single week number (will retrieve this week + next week, handles year boundaries)
+	 * @param options.weekNumbers - Array of specific week numbers to retrieve (alternative to weekNumber)
+	 * @param options.isToday - If true, includes events from today onwards; if false, only future events
+	 * @param options.limit - Optional limit on number of events to return
 	 * @returns A promise that resolves to an array of Event objects
 	 */
 	async retrieveEventsByWeekRange(options: WeekRangeOptions = {}): Promise<ChurchEvent[]> {
 		const { weekNumber, weekNumbers, isToday = false, limit } = options;
 
-		// TODO: fix to retrieve events for upcoming 2 weeks or single week
-		// const upcomingWeeks = weekNumber ? [weekNumber, weekNumber + 1] : (weekNumbers ?? []);
+		// Transform single weekNumber to array [weekNumber, nextWeek] (2 weeks)
+		// Handle year boundaries: if weekNumber is 52 or 53, next week might be week 1 of next year
+		// Since week numbers are stored without year context, we include both possibilities:
+		// - The sequential next week (capped at 53)
+		// - Week 1 (in case next week crosses year boundary)
+		// The date filter (isToday) ensures only events from the correct time period are returned
+		let upcomingWeeks: number[] = weekNumber !== undefined
+			? (() => {
+				const nextWeekSequential = Math.min(weekNumber + 1, 53);
+				// If we're in week 52 or 53, next week might be week 1 of next year
+				// Include both to handle year boundary (date filter will ensure correct results)
+				if (weekNumber >= 52) {
+					return [weekNumber, nextWeekSequential, 1];
+				}
+				return [weekNumber, nextWeekSequential];
+			})()
+			: (weekNumbers ?? []);
 
-		// transform weekNumber to weekNumbers
-		let upcomingWeeks: number[] = [];
-		if (weekNumber) {
-			upcomingWeeks = [weekNumber, weekNumber + 1];
-		} else if (weekNumbers) {
-			upcomingWeeks = weekNumbers;
+		// Remove duplicates (e.g., if weekNumber is 53, [53, 53, 1] becomes [53, 1])
+		upcomingWeeks = [...new Set(upcomingWeeks)];
+
+		// Handle edge case: if no week numbers provided, return empty array
+		if (upcomingWeeks.length === 0) {
+			logger.warn('EventService.retrieveEventsByWeekRange: No week numbers provided', { options });
+			return [];
 		}
 
 		const events = await repo.listEventsByWeekNumber(this.churchId, upcomingWeeks, isToday, limit);

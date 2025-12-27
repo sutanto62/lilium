@@ -4,6 +4,7 @@
 	import type { ChurchEvent as MassEvent } from '$core/entities/Event';
 	import type { Lingkungan, Usher, Wilayah } from '$core/entities/Schedule';
 	import { statsigService } from '$src/lib/application/StatsigService';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
 	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
@@ -43,6 +44,36 @@
 			} catch (e) {
 				console.error('Failed to parse ushers data:', e);
 			}
+		}
+
+		// Track error state
+		if (form?.error) {
+			tracker.track(
+				'tatib_error',
+				{
+					event_type: 'form_error',
+					error_message: form.error,
+					has_form_data: !!form.formData
+				},
+				page.data.session,
+				page
+			);
+		}
+
+		// Track success state
+		if (form?.success) {
+			tracker.track(
+				'tatib_success',
+				{
+					event_type: 'form_success',
+					lingkungan: form.json?.lingkungan,
+					wilayah: form.json?.wilayahName,
+					mass: form.json?.mass,
+					ushers_count: form.json?.ushers?.length || 0
+				},
+				page.data.session,
+				page
+			);
 		}
 	});
 
@@ -95,19 +126,33 @@
 		const isValid = hasExactPpg && hasExactKolekte && hasMinimumUshers;
 
 		if (isSubmitted) {
-			await statsigService.logEvent(
-				'tatib_validate_ushers',
-				isValid ? 'valid' : 'invalid',
-				page.data.session || undefined,
-				{
-					has_exact_ppg: hasExactPpg,
-					has_exact_kolekte: hasExactKolekte,
-					has_minimum_ushers: hasMinimumUshers,
-					number_of_ppg: numberOfPpg,
-					number_of_kolekte: numberOfKolekte,
-					total_ushers: usherList.length
-				}
-			);
+			const validationMetadata = {
+				has_exact_ppg: hasExactPpg,
+				has_exact_kolekte: hasExactKolekte,
+				has_minimum_ushers: hasMinimumUshers,
+				number_of_ppg: numberOfPpg,
+				number_of_kolekte: numberOfKolekte,
+				total_ushers: usherList.length,
+				validation_status: isValid ? 'valid' : 'invalid'
+			};
+
+			await Promise.all([
+				statsigService.logEvent(
+					'tatib_validate_ushers',
+					isValid ? 'valid' : 'invalid',
+					page.data.session || undefined,
+					validationMetadata
+				),
+				tracker.track(
+					'tatib_validate_ushers',
+					{
+						event_type: isValid ? 'valid' : 'invalid',
+						...validationMetadata
+					},
+					page.data.session,
+					page
+				)
+			]);
 		}
 
 		return isValid;
@@ -125,15 +170,63 @@
 		if (element) {
 			try {
 				await navigator.clipboard.writeText(transformText(element.innerHTML));
-				await statsigService.logEvent('tatib_copy_titik_tugas', 'button');
+				await Promise.all([
+					statsigService.logEvent(
+						'tatib_copy_titik_tugas',
+						'button',
+						page.data.session || undefined
+					),
+					tracker.track(
+						'tatib_copy_titik_tugas',
+						{
+							event_type: 'button_click',
+							action: 'copy_to_clipboard'
+						},
+						page.data.session,
+						page
+					)
+				]);
 			} catch (error) {
 				console.error('Failed to copy text: ', error);
+				const errorMetadata = {
+					error_type: error instanceof Error ? error.name : 'unknown',
+					error_message: error instanceof Error ? error.message : String(error)
+				};
+
+				await Promise.all([
+					statsigService.logEvent(
+						'tatib_error',
+						'copy_failed',
+						page.data.session || undefined,
+						errorMetadata
+					),
+					tracker.track(
+						'tatib_error',
+						{
+							event_type: 'copy_failed',
+							...errorMetadata
+						},
+						page.data.session,
+						page
+					)
+				]);
 			}
 		}
 	}
 
 	onMount(async () => {
-		await statsigService.logEvent('tatib_view', 'confirm', page.data.session || undefined);
+		await Promise.all([
+			statsigService.logEvent('tatib_view', 'confirm', page.data.session || undefined),
+			tracker.track(
+				'tatib_view',
+				{
+					event_type: 'page_load',
+					show_form: showForm
+				},
+				page.data.session,
+				page
+			)
+		]);
 	});
 
 	async function handleSubmit(e: SubmitEvent) {
@@ -145,17 +238,33 @@
 		}));
 		ushers = sanitizedUshers;
 
-		await statsigService.logEvent(
-			'tatib_confirm_ushers',
-			'submit',
-			page.data.session || undefined,
-			{
-				lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
-				wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
-				eventDate: selectedEventDate,
-				mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass
-			}
-		);
+		const submitMetadata = {
+			lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
+			wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
+			eventDate: selectedEventDate,
+			mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass,
+			total_ushers: sanitizedUshers.length,
+			number_of_ppg: sanitizedUshers.filter((u) => u.isPpg).length,
+			number_of_kolekte: sanitizedUshers.filter((u) => u.isKolekte).length
+		};
+
+		await Promise.all([
+			statsigService.logEvent(
+				'tatib_confirm_ushers',
+				'submit',
+				page.data.session || undefined,
+				submitMetadata
+			),
+			tracker.track(
+				'tatib_confirm_ushers',
+				{
+					event_type: 'submit',
+					...submitMetadata
+				},
+				page.data.session,
+				page
+			)
+		]);
 
 		(e.target as HTMLFormElement).submit();
 	}

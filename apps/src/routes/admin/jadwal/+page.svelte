@@ -41,24 +41,26 @@
 		)
 	);
 
-	let filteredEvents = $derived(
-		(async () => {
-			const filter = currentFilter as FilterStatus;
+	let filteredEvents = $derived(() => {
+		const filter = currentFilter as FilterStatus;
 
-			if (filter === 'confirmed') {
-				await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
-				return upcomingEvents.filter((event) => event.progress === 100);
-			} else if (filter === 'incomplete') {
-				await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
-				return upcomingEvents.filter((event) => event.progress > 0 && event.progress < 100);
-			} else if (filter === 'unconfirmed') {
-				await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
-				return upcomingEvents.filter((event) => event.progress === 0);
-			} else {
-				return upcomingEvents;
-			}
-		})()
-	);
+		if (filter === 'confirmed') {
+			return upcomingEvents.filter((event) => event.progress === 100);
+		} else if (filter === 'incomplete') {
+			return upcomingEvents.filter((event) => event.progress > 0 && event.progress < 100);
+		} else if (filter === 'unconfirmed') {
+			return upcomingEvents.filter((event) => event.progress === 0);
+		} else {
+			return upcomingEvents;
+		}
+	});
+
+	// Log analytics when filter changes
+	$effect(() => {
+		if (currentFilter !== 'all') {
+			statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
+		}
+	});
 
 	function setFilter(filter: FilterStatus) {
 		currentFilter = filter;
@@ -124,12 +126,14 @@
 		<TableHeadCell>Misa</TableHeadCell>
 		<TableHeadCell>Petugas</TableHeadCell>
 		<TableHeadCell>Status</TableHeadCell>
-		<!-- <TableHeadCell>
+		<!-- TODO: visual edit sign
+		<TableHeadCell>
 			<span class="sr-only">Edit</span>
-		</TableHeadCell> -->
+		</TableHeadCell> 
+		-->
 	</TableHead>
 	<TableBody>
-		{#each filteredEvents as event}
+		{#each filteredEvents() as event}
 			<TableBodyRow>
 				<TableBodyCell>{formatDate(event.date, 'long')}</TableBodyCell>
 				<TableBodyCell>

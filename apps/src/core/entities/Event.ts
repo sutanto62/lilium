@@ -4,6 +4,7 @@ export interface ChurchEvent {
 	church: string;
 	churchCode?: string | null;
 	mass: string;
+	massId?: string | null;
 	date: string;
 	weekNumber?: number | null;
 	createdAt?: number | null;

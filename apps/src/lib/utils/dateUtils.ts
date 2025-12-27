@@ -192,6 +192,32 @@ export function getWeekNumbers(weeks: number = 1, date?: string): number[] {
 }
 
 /**
+ * Get upcoming week numbers for a given week number, handling year boundaries.
+ * 
+ * Returns an array containing the current week and next week number(s).
+ * When the week is 52 or 53, includes week 1 to handle year boundary crossings.
+ * 
+ * @param weekNumber - The current week number (1-53)
+ * @returns Array of week numbers including current week and next week(s), with duplicates removed
+ * 
+ * @example
+ * getUpcomingWeekNumbers(52) // Returns [52, 53, 1]
+ * getUpcomingWeekNumbers(53) // Returns [53, 1]
+ * getUpcomingWeekNumbers(10) // Returns [10, 11]
+ */
+export function getUpcomingWeekNumbers(weekNumber: number): number[] {
+	const nextWeekSequential = Math.min(weekNumber + 1, 53);
+
+	// If we're in week 52 or 53, next week might be week 1 of next year
+	// Include both to handle year boundary (date filter will ensure correct results)
+	if (weekNumber >= 52) {
+		return [...new Set([weekNumber, nextWeekSequential, 1])];
+	}
+
+	return [weekNumber, nextWeekSequential];
+}
+
+/**
  * Get the Unix epoch time in seconds.
  * Sync with sqlite3 database unixepoch() function.
  * 

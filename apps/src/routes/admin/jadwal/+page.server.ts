@@ -31,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 	const { session } = await handlePageLoad(event, 'jadwal');
 
 	if (!session) {
-		logger.info(`Redirecting to signin page`);
+		logger.warn(`Redirecting to signin page`);
 		throw redirect(302, '/signin');
 	}
 
@@ -74,7 +74,7 @@ export const load: PageServerLoad = async (event) => {
 				const ushers = await usherService.retrieveUsherByEvent(event.id);
 
 				// Calculate usher statistics
-				const requiredPositions = await churchService.retrievePositionsByMass(massDetails.mass);
+				const requiredPositions = await churchService.retrievePositionsByMass(event.massId ? event.massId : '');
 				const totalUshers = requiredPositions?.length ?? 0;
 				const confirmedUshers = ushers?.length ?? 0;
 				const totalPpg = ushers.filter((usher) => usher.isPpg).length;
@@ -102,13 +102,38 @@ export const load: PageServerLoad = async (event) => {
 		throw error(500, 'Failed to fetch schedule data');
 	}
 
-	// Filter events into this week and past events based on week number
-	const currentWeek = getWeekNumber(new Date().toISOString());
+	// Filter events into current week + next week and past events
+	// Note: retrieveEventsByWeekRange already returns events for current week + next week with year boundary handling
+	// Since isToday=true was used, all events in eventsDetail are from today onwards
+	// We use date-based filtering to handle year boundaries correctly
+	const now = new Date();
+	const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+	// Calculate start of current week (Monday)
+	const dayOfWeek = (today.getDay() + 6) % 7; // Monday = 0, Sunday = 6
+	const startOfCurrentWeek = new Date(today);
+	startOfCurrentWeek.setDate(today.getDate() - dayOfWeek);
+	startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+	// Calculate end of next week (Sunday of next week, 13 days from start of current week)
+	const endOfNextWeek = new Date(startOfCurrentWeek);
+	endOfNextWeek.setDate(startOfCurrentWeek.getDate() + 13); // 14 days total (0-13 inclusive)
+	endOfNextWeek.setHours(23, 59, 59, 999);
+
+	// Filter events by actual dates (handles year boundaries correctly)
+	// This ensures we only include events within the next two weeks
 	const nextTwoWeeks = eventsDetail.filter((event) => {
-		const weekNumber = event.weekNumber ?? 0;
-		return weekNumber >= currentWeek && weekNumber <= currentWeek + 1;
+		const eventDate = new Date(event.date);
+		eventDate.setHours(0, 0, 0, 0);
+		return eventDate >= startOfCurrentWeek && eventDate <= endOfNextWeek;
 	});
-	const pastEvents = eventsDetail.filter((event) => (event.weekNumber ?? 0) < currentWeek);
+
+	// Past events (should be empty due to isToday filter, but kept for safety)
+	const pastEvents = eventsDetail.filter((event) => {
+		const eventDate = new Date(event.date);
+		eventDate.setHours(0, 0, 0, 0);
+		return eventDate < startOfCurrentWeek;
+	});
 
 	const activityItems = pastEvents.map(event => ({
 		link: `<a href="/admin/jadwal/${event.id}" class="font-semibold text-primary-600 dark:text-primary-500 hover:underline">${event.mass}</a>`,
@@ -116,7 +141,12 @@ export const load: PageServerLoad = async (event) => {
 		church: event.church,
 		churchCode: event.churchCode,
 		mass: event.mass,
-		progress: Math.round(event.usherCounts.progress)
+		massId: event.massId,
+		progress: Math.round(event.usherCounts.progress),
+		totalUshers: event.usherCounts.totalUshers,
+		confirmedUshers: event.usherCounts.confirmedUshers,
+		totalPpg: event.usherCounts.totalPpg,
+		totalKolekte: event.usherCounts.totalKolekte
 	}));
 
 	// Return masses and processed events

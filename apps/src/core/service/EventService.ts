@@ -10,7 +10,7 @@ import { EventType } from '$core/entities/Event';
 import type { UsherResponse } from "$core/entities/Usher";
 import { ServiceError } from '$core/errors/ServiceError';
 import { repo } from '$src/lib/server/db';
-import { getWeekNumber } from '$src/lib/utils/dateUtils';
+import { getUpcomingWeekNumbers, getWeekNumber } from '$src/lib/utils/dateUtils';
 import { logger } from '$src/lib/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { UsherService } from './UsherService';
@@ -72,24 +72,11 @@ export class EventService {
 
 		// Transform single weekNumber to array [weekNumber, nextWeek] (2 weeks)
 		// Handle year boundaries: if weekNumber is 52 or 53, next week might be week 1 of next year
-		// Since week numbers are stored without year context, we include both possibilities:
-		// - The sequential next week (capped at 53)
-		// - Week 1 (in case next week crosses year boundary)
+		// Since week numbers are stored without year context, we include both possibilities.
 		// The date filter (isToday) ensures only events from the correct time period are returned
 		let upcomingWeeks: number[] = weekNumber !== undefined
-			? (() => {
-				const nextWeekSequential = Math.min(weekNumber + 1, 53);
-				// If we're in week 52 or 53, next week might be week 1 of next year
-				// Include both to handle year boundary (date filter will ensure correct results)
-				if (weekNumber >= 52) {
-					return [weekNumber, nextWeekSequential, 1];
-				}
-				return [weekNumber, nextWeekSequential];
-			})()
+			? getUpcomingWeekNumbers(weekNumber)
 			: (weekNumbers ?? []);
-
-		// Remove duplicates (e.g., if weekNumber is 53, [53, 53, 1] becomes [53, 1])
-		upcomingWeeks = [...new Set(upcomingWeeks)];
 
 		// Handle edge case: if no week numbers provided, return empty array
 		if (upcomingWeeks.length === 0) {

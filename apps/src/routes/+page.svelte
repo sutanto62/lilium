@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import FeatureCard from '$components/FeatureCard.svelte';
 	import { statsigService } from '$src/lib/application/StatsigService';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { Heading, P } from 'flowbite-svelte';
 	import { FeatureDefault, Section } from 'flowbite-svelte-blocks';
 	import { onMount } from 'svelte';
@@ -11,8 +13,51 @@
 	}>();
 
 	onMount(async () => {
-		await statsigService.logEvent('home_view', 'menu');
+		const metadata = {
+			is_admin: data.isAdmin || false,
+			is_user: data.isUser || false,
+			no_saturday_sunday_enabled: data.isNoSaturdaySunday || false
+		};
+
+		await Promise.all([
+			statsigService.logEvent('home_view', 'menu', page.data.session || undefined, metadata),
+			tracker.track(
+				'home_view',
+				{
+					event_type: 'page_load',
+					...metadata
+				},
+				page.data.session,
+				page
+			)
+		]);
 	});
+
+	async function handleFeatureClick(featureName: string, href: string) {
+		const metadata = {
+			feature_name: featureName,
+			feature_href: href,
+			is_admin: data.isAdmin || false
+		};
+
+		await Promise.all([
+			statsigService.logEvent(
+				'home_feature_click',
+				'navigation',
+				page.data.session || undefined,
+				metadata
+			),
+			tracker.track(
+				'home_feature_click',
+				{
+					event_type: 'feature_navigation',
+					...metadata
+				},
+				page.data.session,
+				page
+			)
+		]);
+	}
 </script>
 
 <svelte:head>
@@ -37,6 +82,7 @@
 				description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
 				buttonHref="/admin/jadwal"
 				buttonText="Kelola"
+				onclick={() => handleFeatureClick('Jadwal Tata Tertib', '/admin/jadwal')}
 			/>
 			<FeatureCard
 				title="Pengaturan Misa"
@@ -44,6 +90,7 @@
 				buttonHref="/admin/misa"
 				buttonText="Misa"
 				buttonColor="alternative"
+				onclick={() => handleFeatureClick('Pengaturan Misa', '/admin/misa')}
 			/>
 		</FeatureDefault>
 	{/if}
@@ -53,6 +100,7 @@
 			description="Konfirmasi kehadiran tugas tata tertib lingkungan."
 			buttonHref="/f/tatib"
 			buttonText="Konfirmasi"
+			onclick={() => handleFeatureClick('Tugas Tata Tertib', '/f/tatib')}
 		/>
 
 		<FeatureCard
@@ -61,6 +109,7 @@
 			buttonHref="/lingkungan"
 			buttonText="Cek Titik Tugas"
 			buttonColor="alternative"
+			onclick={() => handleFeatureClick('Lingkungan', '/lingkungan')}
 		/>
 
 		<FeatureCard
@@ -69,6 +118,7 @@
 			buttonHref="/f/petunjuk"
 			buttonText="Baca"
 			buttonColor="alternative"
+			onclick={() => handleFeatureClick('Petunjuk Pemakaian', '/f/petunjuk')}
 		/>
 	</FeatureDefault>
 </Section>

@@ -1,28 +1,61 @@
 <script lang="ts">
 	import { Button, Card } from 'flowbite-svelte';
 
-	export let title: string;
-	export let description: string;
-	export let buttonHref: string;
-	export let buttonText: string;
-	export let buttonColor:
-		| 'red'
-		| 'yellow'
-		| 'green'
-		| 'purple'
-		| 'blue'
-		| 'light'
-		| 'dark'
-		| 'primary'
-		| 'alternative'
-		| 'secondary'
-		| 'gray'
-		| 'orange'
-		| 'amber'
-		| 'lime'
-		| 'emerald'
-		| 'teal'
-		| 'cyan' = 'primary';
+	const {
+		title,
+		description,
+		buttonHref,
+		buttonText,
+		buttonColor = 'primary' as
+			| 'red'
+			| 'yellow'
+			| 'green'
+			| 'purple'
+			| 'blue'
+			| 'light'
+			| 'dark'
+			| 'primary'
+			| 'alternative'
+			| 'secondary'
+			| 'gray'
+			| 'orange'
+			| 'amber'
+			| 'lime'
+			| 'emerald'
+			| 'teal'
+			| 'cyan',
+		onclick
+	} = $props<{
+		title: string;
+		description: string;
+		buttonHref: string;
+		buttonText: string;
+		buttonColor?:
+			| 'red'
+			| 'yellow'
+			| 'green'
+			| 'purple'
+			| 'blue'
+			| 'light'
+			| 'dark'
+			| 'primary'
+			| 'alternative'
+			| 'secondary'
+			| 'gray'
+			| 'orange'
+			| 'amber'
+			| 'lime'
+			| 'emerald'
+			| 'teal'
+			| 'cyan';
+		onclick?: () => void | Promise<void>;
+	}>();
+
+	function handleClick() {
+		if (onclick) {
+			onclick();
+		}
+	}
 </script>
 
 <Card class="flex h-full flex-col p-4 sm:p-6 md:p-8">
@@ -33,6 +66,8 @@
 		</p>
 	</div>
 	<div class="mt-auto">
-		<Button class="w-fit" href={buttonHref} color={buttonColor}>{buttonText}</Button>
+		<Button class="w-fit" href={buttonHref} color={buttonColor} onclick={handleClick}
+			>{buttonText}</Button
+		>
 	</div>
 </Card>

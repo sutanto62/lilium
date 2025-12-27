@@ -8,6 +8,7 @@ import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
 import { formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
+import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
@@ -60,11 +61,10 @@ function getCurrentDayName(): string {
  * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
  */
 export const load: PageServerLoad = async (event) => {
-	await statsigService.logEvent('tatib_view_server', 'load');
+	const startTime = Date.now();
 
-	// Get server time for logging and validation
-	const serverTime = new Date();
-	const formattedTime = serverTime.toISOString();
+	// Get session if available (public page, but users might be logged in)
+	const session = await event.locals.auth();
 
 	// Get church ID from cookie
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
@@ -95,6 +95,26 @@ export const load: PageServerLoad = async (event) => {
 			? [...new Set(events.map(event => event.date))]
 			: [];
 
+		// Track page load with performance and metadata
+		const pageLoadMetadata = {
+			load_time_ms: Date.now() - startTime,
+			total_events: events.length,
+			events_date_count: eventsDate.length,
+			wilayahs_count: wilayahs.length,
+			lingkungans_count: lingkungans.length,
+			show_form: showForm,
+			current_day: getCurrentDayName(),
+			has_events: events.length > 0
+		};
+
+		await Promise.all([
+			statsigService.logEvent('tatib_view_server', 'load', session || undefined, pageLoadMetadata),
+			posthogService.trackEvent('tatib_view_server', {
+				event_type: 'page_load',
+				...pageLoadMetadata
+			}, session || undefined)
+		]);
+
 		const returnData = {
 			church,
 			wilayahs,
@@ -110,7 +130,21 @@ export const load: PageServerLoad = async (event) => {
 		};
 		return returnData;
 	} catch (err) {
-		logger.error('Error fetching data:', err);
+		logger.error('tatib_view_server: Error fetching data', err);
+
+		const errorMetadata = {
+			error_type: err instanceof Error ? err.name : 'unknown',
+			error_message: err instanceof Error ? err.message : String(err)
+		};
+
+		await Promise.all([
+			statsigService.logEvent('tatib_error', 'data_fetch_failed', session || undefined, errorMetadata),
+			posthogService.trackEvent('tatib_error', {
+				event_type: 'data_fetch_failed',
+				...errorMetadata
+			}, session || undefined)
+		]);
+
 		throw error(500, 'Gagal memuat jadwal misa, wilayah, dan lingkungan');
 	}
 };
@@ -134,10 +168,27 @@ export const load: PageServerLoad = async (event) => {
  */
 
 export const actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, locals }) => {
+		const startTime = Date.now();
+
+		// Get session if available (public page, but users might be logged in)
+		const session = await locals.auth();
 
 		const churchId = cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 		if (!churchId) {
+			const errorMetadata = {
+				error_type: 'missing_church_id',
+				error_message: 'Tidak ada gereja yang terdaftar'
+			};
+
+			await Promise.all([
+				statsigService.logEvent('tatib_error', 'missing_church_id', session || undefined, errorMetadata),
+				posthogService.trackEvent('tatib_error', {
+					event_type: 'missing_church_id',
+					...errorMetadata
+				}, session || undefined)
+			]);
+
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' }); // check session cookie
 		}
 
@@ -168,6 +219,22 @@ export const actions = {
 		if (!showForm) {
 			const currentDay = getCurrentDayName();
 			logger.warn(`lingkungan ${lingkunganId} tried to confirm at closed window on ${currentDay}`);
+
+			const errorMetadata = {
+				error_type: 'closed_window',
+				error_message: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Kamis. Hari ini: ${currentDay}`,
+				current_day: currentDay,
+				lingkungan_id: lingkunganId
+			};
+
+			await Promise.all([
+				statsigService.logEvent('tatib_error', 'closed_window', session || undefined, errorMetadata),
+				posthogService.trackEvent('tatib_error', {
+					event_type: 'closed_window',
+					...errorMetadata
+				}, session || undefined)
+			]);
+
 			return fail(422, {
 				error: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Kamis. Hari ini: ${currentDay}`,
 				formData: formValues
@@ -176,6 +243,23 @@ export const actions = {
 
 		// Validate mandatory input 
 		if ((!scheduledEventId) || !wilayahId || !lingkunganId || !ushersJson) {
+			const errorMetadata = {
+				error_type: 'validation_error',
+				error_message: 'Mohon lengkapi semua isian.',
+				has_event_id: !!scheduledEventId,
+				has_wilayah_id: !!wilayahId,
+				has_lingkungan_id: !!lingkunganId,
+				has_ushers: !!ushersJson
+			};
+
+			await Promise.all([
+				statsigService.logEvent('tatib_error', 'validation_error', session || undefined, errorMetadata),
+				posthogService.trackEvent('tatib_error', {
+					event_type: 'validation_error',
+					...errorMetadata
+				}, session || undefined)
+			]);
+
 			return fail(422, { error: 'Mohon lengkapi semua isian.', formData: formValues });
 		}
 
@@ -193,16 +277,57 @@ export const actions = {
 			// Validate mass ushers position
 			if (massZonePositions.length === 0) {
 				logger.warn(`mass zone position not found: ${selectedMass?.name}.`);
+				const errorMetadata = {
+					error_type: 'mass_zone_position_not_found',
+					error_message: `Misa ${selectedMass?.name} belum memiliki titik tugas.`,
+					mass_name: selectedMass?.name
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'mass_zone_position_not_found', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'mass_zone_position_not_found',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				return fail(404, { error: `Misa ${selectedMass?.name} belum memiliki titik tugas.` });
 			}
 
 			if (!selectedMass) {
 				logger.warn(`mass not found.`);
+				const errorMetadata = {
+					error_type: 'mass_not_found',
+					error_message: 'Misa tidak ditemukan'
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'mass_not_found', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'mass_not_found',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				return fail(404, { error: `Misa tidak ditemukan` });
 			}
 
 			if (!selectedLingkungan) {
 				logger.warn(`lingkungan not found`);
+				const errorMetadata = {
+					error_type: 'lingkungan_not_found',
+					error_message: 'Lingkungan tidak ditemukan',
+					lingkungan_id: lingkunganId
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'lingkungan_not_found', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'lingkungan_not_found',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				return fail(404, { error: 'Lingkungan tidak ditemukan' });
 			}
 
@@ -212,12 +337,39 @@ export const actions = {
 				ushersArray = JSON.parse(ushersJson);
 			} catch (err) {
 				logger.warn(`failed to parse ushers list`);
+				const errorMetadata = {
+					error_type: 'parse_error',
+					error_message: 'Gagal parsing data petugas'
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'parse_error', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'parse_error',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				return fail(422, { error: 'Gagal parsing data petugas' });
 			}
 
 			const validation = validateUsherNames(ushersArray);
 			if (!validation.isValid) {
 				logger.warn(`invalid ushers list: ${validation.error}`);
+				const errorMetadata = {
+					error_type: 'validation_error',
+					error_message: validation.error,
+					ushers_count: ushersArray.length
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'validation_error', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'validation_error',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				return fail(422, { error: validation.error, formData: formValues });
 			}
 
@@ -232,25 +384,58 @@ export const actions = {
 			} catch (error: unknown) {
 				// Handle ServiceError types appropriately
 				if (error instanceof ServiceError) {
+					const errorMetadata = {
+						error_type: error.type,
+						error_message: error.message
+					};
+
 					switch (error.type) {
 						case ServiceErrorType.VALIDATION_ERROR:
+							await Promise.all([
+								statsigService.logEvent('tatib_error', 'validation_error', session || undefined, errorMetadata),
+								posthogService.trackEvent('tatib_error', {
+									event_type: 'validation_error',
+									...errorMetadata
+								}, session || undefined)
+							]);
 							return fail(422, {
 								error: error.message,
 								formData: formValues
 							});
 						case ServiceErrorType.DUPLICATE_ERROR:
+							await Promise.all([
+								statsigService.logEvent('tatib_error', 'duplicate_error', session || undefined, errorMetadata),
+								posthogService.trackEvent('tatib_error', {
+									event_type: 'duplicate_error',
+									...errorMetadata
+								}, session || undefined)
+							]);
 							return fail(400, {
 								error: error.message,
 								formData: formValues
 							});
 						case ServiceErrorType.DATABASE_ERROR:
-							logger.error('Database error in usher assignment:', error);
+							logger.error('tatib_error: Database error in usher assignment', error);
+							await Promise.all([
+								statsigService.logEvent('tatib_error', 'database_error', session || undefined, errorMetadata),
+								posthogService.trackEvent('tatib_error', {
+									event_type: 'database_error',
+									...errorMetadata
+								}, session || undefined)
+							]);
 							return fail(500, {
 								error: 'Terjadi kesalahan sistem. Silakan coba lagi.',
 								formData: formValues
 							});
 						default:
-							logger.error('Unknown service error:', error);
+							logger.error('tatib_error: Unknown service error', error);
+							await Promise.all([
+								statsigService.logEvent('tatib_error', 'unknown_service_error', session || undefined, errorMetadata),
+								posthogService.trackEvent('tatib_error', {
+									event_type: 'unknown_service_error',
+									...errorMetadata
+								}, session || undefined)
+							]);
 							return fail(500, {
 								error: 'Terjadi kesalahan internal.',
 								formData: formValues
@@ -259,7 +444,20 @@ export const actions = {
 				}
 
 				// Handle unexpected errors
-				logger.error('Unexpected error in usher assignment:', error);
+				logger.error('tatib_error: Unexpected error in usher assignment', error);
+				const errorMetadata = {
+					error_type: 'unexpected_error',
+					error_message: error instanceof Error ? error.message : 'Detail tidak diketahui'
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'unexpected_error', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'unexpected_error',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				return fail(500, {
 					error: 'Terjadi kesalahan internal: ' + (error instanceof Error ? error.message : 'Detail tidak diketahui'),
 					formData: formValues
@@ -272,16 +470,49 @@ export const actions = {
 				await queueManager.processQueue();
 				queueManager.reset();
 			} catch (err) {
-				logger.warn('failed processing queue:', err);
+				logger.warn('tatib_error: failed processing queue', err);
+				const errorMetadata = {
+					error_type: 'queue_processing_error',
+					error_message: err instanceof Error ? err.message : 'Detail tidak diketahui'
+				};
+
+				await Promise.all([
+					statsigService.logEvent('tatib_error', 'queue_processing_error', session || undefined, errorMetadata),
+					posthogService.trackEvent('tatib_error', {
+						event_type: 'queue_processing_error',
+						...errorMetadata
+					}, session || undefined)
+				]);
+
 				if (err instanceof Error)
 					return fail(404, { error: err.message });
 			}
 
 			const createdDate = new Date(epochCreatedDate);
+			const processingTime = Date.now() - startTime;
 
 			// Return ushers position to client
 			const submitted = formatDate(createdDate.toISOString(), 'datetime', 'id-ID', 'Asia/Jakarta');
 			logger.info(`lingkungan ${selectedLingkungan.name} confirmed for ${selectedMass.name} at ${submitted}`);
+
+			// Track successful submission
+			const successMetadata = {
+				processing_time_ms: processingTime,
+				lingkungan: selectedLingkungan.name,
+				wilayah: selectedLingkungan.wilayahName,
+				mass: selectedMass.name,
+				event_date: confirmedEvent.date,
+				ushers_count: ushersArray.length,
+				assigned_positions_count: queueManager.assignedUshers.length
+			};
+
+			await Promise.all([
+				statsigService.logEvent('tatib_confirm_ushers', 'success', session || undefined, successMetadata),
+				posthogService.trackEvent('tatib_confirm_ushers', {
+					event_type: 'success',
+					...successMetadata
+				}, session || undefined)
+			]);
 
 			// TODO: wrap returned data with timezone info
 			return {
@@ -295,7 +526,20 @@ export const actions = {
 				}
 			};
 		} catch (err) {
-			logger.warn('failed creating event:', err);
+			logger.warn('tatib_error: failed creating event', err);
+			const errorMetadata = {
+				error_type: err instanceof Error ? err.name : 'unknown',
+				error_message: err instanceof Error ? err.message : String(err)
+			};
+
+			await Promise.all([
+				statsigService.logEvent('tatib_error', 'unexpected_error', session || undefined, errorMetadata),
+				posthogService.trackEvent('tatib_error', {
+					event_type: 'unexpected_error',
+					...errorMetadata
+				}, session || undefined)
+			]);
+
 			return fail(500, { error: 'Terjadi kesalahan internal: ' + (err instanceof Error ? err.message : 'Detail tidak diketahui'), formData: formValues });
 		}
 	}

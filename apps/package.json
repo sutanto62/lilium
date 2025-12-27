@@ -19,6 +19,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:migrate:custom": "tsx scripts/migrate.ts",
 		"db:studio": "drizzle-kit studio",
+		"scan:events": "tsx scripts/scan-events.ts",
 		"changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
 		"changelog:first": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
 	},

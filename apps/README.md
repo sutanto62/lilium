@@ -17,7 +17,7 @@ A digital service information system built with SvelteKit, TypeScript, and SQLit
 
 ```bash
 git clone <repository-url>
-cd apps <repository-url>
+cd apps
 ```
 
 2. Initialize the project
@@ -52,7 +52,7 @@ npm run dev
 npm run db:generate
 ```
 
-Use `npx drizzle-kit drop` to remove the generated migrations if requqired. Do not remove the file manually.
+Use `npx drizzle-kit drop` to remove the generated migrations if required. Do not remove the file manually.
 
 2. Apply migrations
    Altering table might find challenges with drizzle-kit ORM migrations.
@@ -140,12 +140,21 @@ lilium/
 │   │   │   ├── jadwal/    # Schedule-related components
 │   │   │   └── Navigation.svelte
 │   │   ├── core/
-│   │   │   ├── entities/  # Core domain entities
-│   │   │   └── service/   # Business logic services
+│   │   │   ├── entities/      # Core domain entities
+│   │   │   ├── repositories/  # Repository interfaces
+│   │   │   └── service/       # Business logic services
 │   │   ├── lib/
+│   │   │   ├── application/ # Application services
+│   │   │   │   ├── StatsigService.ts    # Statsig integration
+│   │   │   │   ├── PostHogService.ts    # PostHog integration
+│   │   │   │   ├── AnalyticsTracker.ts  # Analytics tracker interface
+│   │   │   │   ├── EventManager.ts      # Event processing
+│   │   │   │   └── EventQueue.ts        # Event queuing system
 │   │   │   ├── server/    # Server-side code
+│   │   │   │   ├── adapters/  # Repository implementations
 │   │   │   │   └── db/    # Database configuration
 │   │   │   └── utils/     # Utility functions
+│   │   │       └── analytics.ts  # Analytics tracker utility
 │   │   ├── routes/        # SvelteKit routes
 │   │   │   ├── admin/     # Admin pages
 │   │   │   └── f/         # Frontend pages
@@ -162,7 +171,8 @@ lilium/
 Key points:
 
 1. Frontend Architecture:
-   - Built with SvelteKit and TypeScript
+   - Built with SvelteKit 5 and TypeScript
+   - Uses Svelte 5 runes ($props, $state, $derived, $effect)
    - Uses Tailwind CSS for styling
    - Flowbite components for UI elements
    - Clean architecture with separation of concerns
@@ -170,12 +180,16 @@ Key points:
    - SQLite with WAL mode for performance
    - Drizzle ORM for database operations
    - Migration management through drizzle-kit
+   - Repository pattern with interface-based design
 3. Core Features:
    - Church event management
    - Usher scheduling system
    - Authentication via MS Entra and Gmail
    - Role-based access control
-   - Feature flags and analytics via Statsig
-     - Feature flag management for controlled rollouts
-     - User analytics and session replay
-     - A/B testing capabilities
+   - Dual analytics tracking (Statsig + PostHog)
+     - **Statsig**: Feature flag management, A/B testing, key event tracking
+     - **PostHog**: Comprehensive user analytics, session replay, business metrics
+     - Structured event tracking with rich metadata
+     - User journey analysis and conversion funnels
+     - Performance metrics and error tracking
+     - Server-side and client-side event tracking

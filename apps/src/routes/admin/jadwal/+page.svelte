@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { formatDate } from '$lib/utils/dateUtils';
 	import { statsigService } from '$src/lib/application/StatsigService.js';
+	import { tracker } from '$src/lib/utils/analytics';
 	import {
 		Breadcrumb,
 		BreadcrumbItem,
@@ -55,15 +56,77 @@
 		}
 	});
 
-	// Log analytics when filter changes
+	// Track empty states (business insights)
 	$effect(() => {
-		if (currentFilter !== 'all') {
-			statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
+		// Track empty filter results (business insight)
+		if (filteredEvents().length === 0 && upcomingEvents.length > 0) {
+			tracker.track(
+				'admin_jadwal_empty_filter',
+				{
+					filter: currentFilter,
+					total_events: upcomingEvents.length,
+					filter_type: currentFilter
+				},
+				page.data.session,
+				page
+			);
+		}
+
+		// Track completely empty page (business insight)
+		if (upcomingEvents.length === 0) {
+			tracker.track(
+				'admin_jadwal_empty',
+				{
+					has_past_events: data.pastWeek.length > 0
+				},
+				page.data.session,
+				page
+			);
 		}
 	});
 
-	function setFilter(filter: FilterStatus) {
+	async function setFilter(filter: FilterStatus) {
+		const previousFilter = currentFilter;
 		currentFilter = filter;
+
+		const filteredCount = filteredEvents().length;
+
+		// Track with Statsig (key events)
+		statsigService.logEvent('admin_jadwal_filter', 'change', page.data.session || undefined, {
+			previous_filter: previousFilter,
+			new_filter: filter,
+			filtered_count: filteredCount,
+			total_count: upcomingEvents.length
+		});
+
+		// Track with PostHog (business context)
+		await tracker.track(
+			'admin_jadwal_filter_change',
+			{
+				previous_filter: previousFilter,
+				new_filter: filter,
+				filtered_count: filteredCount,
+				total_count: upcomingEvents.length,
+				filter_type: filter
+			},
+			page.data.session,
+			page
+		);
+	}
+
+	async function handleEventClick(eventId: string, eventDate: string, progress: number) {
+		// PostHog autocapture handles the click, we add business context
+		await tracker.track(
+			'admin_jadwal_event_navigate',
+			{
+				event_id: eventId,
+				event_date: eventDate,
+				progress_percentage: progress,
+				progress_status: progress === 100 ? 'complete' : progress > 0 ? 'partial' : 'unconfirmed'
+			},
+			page.data.session,
+			page
+		);
 	}
 
 	onMount(async () => {
@@ -140,6 +203,7 @@
 					<a
 						href="/admin/jadwal/{event.id}"
 						class="font-medium text-primary-600 hover:underline dark:text-primary-500"
+						onclick={() => handleEventClick(event.id, event.date, event.progress)}
 					>
 						{event.mass}
 					</a>

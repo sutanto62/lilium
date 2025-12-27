@@ -3,6 +3,7 @@ import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { UsherService } from '$core/service/UsherService';
+import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
@@ -26,6 +27,7 @@ interface EventWithUsherCounts extends ChurchEvent {
  * @type {import('./$types').PageServerLoad}
  */
 export const load: PageServerLoad = async (event) => {
+	const startTime = Date.now();
 
 	// Check if the user is authenticated
 	const { session } = await handlePageLoad(event, 'jadwal');
@@ -34,8 +36,6 @@ export const load: PageServerLoad = async (event) => {
 		logger.warn(`Redirecting to signin page`);
 		throw redirect(302, '/signin');
 	}
-
-	await statsigService.logEvent('jadwal_view', 'event', session || undefined);
 
 	const churchId = session.user?.cid;
 	if (!churchId) {
@@ -99,6 +99,21 @@ export const load: PageServerLoad = async (event) => {
 		);
 	} catch (err) {
 		logger.error('Error fetching masses and events:', err);
+
+		// Track error with context
+		const errorMetadata = {
+			error_type: err instanceof Error ? err.name : 'unknown',
+			error_message: err instanceof Error ? err.message : String(err)
+		};
+
+		await Promise.all([
+			statsigService.logEvent('admin_jadwal_error', 'data_fetch_failed', session || undefined, errorMetadata),
+			posthogService.trackEvent('admin_jadwal_error', {
+				event_type: 'data_fetch_failed',
+				...errorMetadata
+			}, session || undefined)
+		]);
+
 		throw error(500, 'Failed to fetch schedule data');
 	}
 
@@ -148,6 +163,24 @@ export const load: PageServerLoad = async (event) => {
 		totalPpg: event.usherCounts.totalPpg,
 		totalKolekte: event.usherCounts.totalKolekte
 	}));
+
+	// Track page load with performance and metadata
+	const pageLoadMetadata = {
+		total_events: eventsDetail.length,
+		next_two_weeks_count: nextTwoWeeks.length,
+		past_events_count: pastEvents.length,
+		masses_count: masses.length,
+		load_time_ms: Date.now() - startTime,
+		has_events: eventsDetail.length > 0
+	};
+
+	await Promise.all([
+		statsigService.logEvent('admin_jadwal_view', 'load', session || undefined, pageLoadMetadata),
+		posthogService.trackEvent('admin_jadwal_view', {
+			event_type: 'page_load',
+			...pageLoadMetadata
+		}, session || undefined)
+	]);
 
 	// Return masses and processed events
 	return {

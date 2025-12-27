@@ -1,0 +1,624 @@
+---
+description: Analytics event tracking guidelines using Statsig and PostHog
+globs: **/*.ts,**/*.svelte
+alwaysApply: true
+---
+
+# Event Tracking Rules
+
+For general project rules, see `.cursor/rules/project-rules.mdc`.
+For naming conventions, see `.cursor/rules/conventions.mdc`.
+
+## Dual Tracking Strategy
+
+Use both **Statsig** and **PostHog** for comprehensive analytics coverage:
+
+- **Statsig**: Server-side events, key business events, error tracking
+- **PostHog**: Client-side business events, user interactions, empty states
+- **PostHog Autocapture**: Automatically tracks clicks and pageviews - leverage this instead of manual tracking
+
+### When to Use Each Platform
+
+```typescript
+// ✅ Good: Server-side dual tracking
+await Promise.all([
+  statsigService.logEvent('admin_jadwal_view', 'load', session || undefined, metadata),
+  posthogService.trackEvent('admin_jadwal_view', { event_type: 'page_load', ...metadata }, session || undefined)
+]);
+
+// ✅ Good: Client-side Statsig for key events
+statsigService.logEvent('admin_jadwal_filter', 'change', page.data.session || undefined, metadata);
+
+// ✅ Good: Client-side PostHog for business context
+await tracker.track('admin_jadwal_filter_change', metadata, page.data.session, page);
+
+// ❌ Bad: Only using one platform
+await statsigService.logEvent('admin_jadwal_view', 'load', session);
+```
+
+## Event Naming Convention
+
+Follow the pattern: `{page}_{action}_{context}`
+
+- Use **snake_case** for event names (per naming conventions)
+- Be descriptive and specific
+- Include page/feature context in the name
+
+```typescript
+// ✅ Good: Descriptive event names
+'admin_jadwal_view'           // Page view
+'admin_jadwal_filter_change'  // Filter interaction
+'admin_jadwal_event_navigate' // Event navigation
+'admin_jadwal_empty'          // Empty state
+'admin_jadwal_error'          // Error tracking
+
+// ❌ Bad: Vague or inconsistent naming
+'jadwal_view'                 // Missing context
+'filterClick'                 // Wrong casing, not descriptive
+'event_click'                 // Missing page context
+```
+
+## Server-Side Tracking (`+page.server.ts`)
+
+### Page Load Tracking
+
+Always track page loads with performance metrics and metadata:
+
+```typescript
+// ✅ Good: Comprehensive page load tracking
+export const load: PageServerLoad = async (event) => {
+  const startTime = Date.now();
+  
+  // ... data fetching logic ...
+  
+  const pageLoadMetadata = {
+    total_events: eventsDetail.length,
+    next_two_weeks_count: nextTwoWeeks.length,
+    past_events_count: pastEvents.length,
+    masses_count: masses.length,
+    load_time_ms: Date.now() - startTime,
+    has_events: eventsDetail.length > 0
+  };
+
+  await Promise.all([
+    statsigService.logEvent('admin_jadwal_view', 'load', session || undefined, pageLoadMetadata),
+    posthogService.trackEvent('admin_jadwal_view', {
+      event_type: 'page_load',
+      ...pageLoadMetadata
+    }, session || undefined)
+  ]);
+  
+  return { /* data */ };
+};
+```
+
+### Error Tracking
+
+Always track errors with full context:
+
+```typescript
+// ✅ Good: Error tracking with context
+} catch (err) {
+  logger.error('Error fetching data:', err);
+  
+  const errorMetadata = {
+    error_type: err instanceof Error ? err.name : 'unknown',
+    error_message: err instanceof Error ? err.message : String(err)
+  };
+
+  await Promise.all([
+    statsigService.logEvent('admin_jadwal_error', 'data_fetch_failed', session || undefined, errorMetadata),
+    posthogService.trackEvent('admin_jadwal_error', {
+      event_type: 'data_fetch_failed',
+      ...errorMetadata
+    }, session || undefined)
+  ]);
+  
+  throw error(500, 'Failed to fetch data');
+}
+```
+
+## Client-Side Tracking (`+page.svelte`)
+
+### Import Pattern
+
+```typescript
+// ✅ Good: Import both services
+import { statsigService } from '$src/lib/application/StatsigService.js';
+import { tracker } from '$src/lib/utils/analytics';
+```
+
+### Filter Change Tracking
+
+Track filter changes with both platforms and rich metadata:
+
+```typescript
+// ✅ Good: Dual tracking with metadata
+async function setFilter(filter: FilterStatus) {
+  const previousFilter = currentFilter;
+  currentFilter = filter;
+  const filteredCount = filteredEvents().length;
+
+  // Track with Statsig (key events)
+  statsigService.logEvent('admin_jadwal_filter', 'change', page.data.session || undefined, {
+    previous_filter: previousFilter,
+    new_filter: filter,
+    filtered_count: filteredCount,
+    total_count: upcomingEvents.length
+  });
+
+  // Track with PostHog (business context)
+  await tracker.track(
+    'admin_jadwal_filter_change',
+    {
+      previous_filter: previousFilter,
+      new_filter: filter,
+      filtered_count: filteredCount,
+      total_count: upcomingEvents.length,
+      filter_type: filter
+    },
+    page.data.session,
+    page
+  );
+}
+```
+
+### Event Navigation Tracking
+
+Add business context to autocaptured clicks:
+
+```typescript
+// ✅ Good: Business context for autocaptured clicks
+async function handleEventClick(eventId: string, eventDate: string, progress: number) {
+  // PostHog autocapture handles the click, we add business context
+  await tracker.track(
+    'admin_jadwal_event_navigate',
+    {
+      event_id: eventId,
+      event_date: eventDate,
+      progress_percentage: progress,
+      progress_status: progress === 100 ? 'complete' : progress > 0 ? 'partial' : 'unconfirmed'
+    },
+    page.data.session,
+    page
+  );
+}
+
+// In template
+<a
+  href="/admin/jadwal/{event.id}"
+  onclick={() => handleEventClick(event.id, event.date, event.progress)}
+>
+  {event.mass}
+</a>
+```
+
+### Empty State Tracking
+
+Track empty states for UX insights:
+
+```typescript
+// ✅ Good: Empty state tracking
+$effect(() => {
+  // Track empty filter results
+  if (filteredEvents().length === 0 && upcomingEvents.length > 0) {
+    tracker.track(
+      'admin_jadwal_empty_filter',
+      {
+        filter: currentFilter,
+        total_events: upcomingEvents.length,
+        filter_type: currentFilter
+      },
+      page.data.session,
+      page
+    );
+  }
+
+  // Track completely empty page
+  if (upcomingEvents.length === 0) {
+    tracker.track(
+      'admin_jadwal_empty',
+      {
+        has_past_events: data.pastWeek.length > 0
+      },
+      page.data.session,
+      page
+    );
+  }
+});
+```
+
+## PostHog Autocapture
+
+### Leverage Autocapture
+
+PostHog automatically tracks:
+- ✅ All button clicks
+- ✅ All link clicks
+- ✅ Page views (via layout)
+- ✅ Form interactions
+
+**Do NOT manually track these basic interactions.** Instead, add business context when needed:
+
+```typescript
+// ✅ Good: Autocapture handles click, we add business metadata
+async function handleEventClick(eventId: string, progress: number) {
+  await tracker.track('admin_jadwal_event_navigate', {
+    event_id: eventId,
+    progress_percentage: progress
+  }, page.data.session, page);
+}
+
+// ❌ Bad: Manually tracking basic clicks (autocapture already does this)
+async function handleButtonClick() {
+  await tracker.track('button_clicked', { button: 'submit' }, page.data.session, page);
+}
+```
+
+### Define PostHog Actions
+
+After implementation, define events as "actions" in PostHog dashboard for retroactive analysis:
+- Filter button clicks (use autocaptured clicks with conditions)
+- Event link clicks (use autocaptured clicks with URL pattern)
+- Empty states
+- Custom business events
+
+## Metadata Guidelines
+
+### Always Include Context
+
+```typescript
+// ✅ Good: Rich metadata
+await tracker.track('admin_jadwal_filter_change', {
+  previous_filter: previousFilter,
+  new_filter: filter,
+  filtered_count: filteredCount,
+  total_count: upcomingEvents.length,
+  filter_type: filter
+}, page.data.session, page);
+
+// ❌ Bad: Minimal metadata
+await tracker.track('admin_jadwal_filter_change', {
+  filter: filter
+}, page.data.session, page);
+```
+
+### Metadata Naming
+
+Use **snake_case** for metadata keys (per naming conventions):
+
+```typescript
+// ✅ Good: snake_case metadata
+{
+  total_events: 10,
+  next_two_weeks_count: 5,
+  load_time_ms: 250,
+  has_events: true
+}
+
+// ❌ Bad: camelCase metadata
+{
+  totalEvents: 10,
+  nextTwoWeeksCount: 5,
+  loadTimeMs: 250,
+  hasEvents: true
+}
+```
+
+### Common Metadata Patterns
+
+#### Page Load Metadata
+```typescript
+{
+  total_events: number,
+  next_two_weeks_count: number,
+  past_events_count: number,
+  masses_count: number,
+  load_time_ms: number,
+  has_events: boolean
+}
+```
+
+#### Filter Change Metadata
+```typescript
+{
+  previous_filter: string,
+  new_filter: string,
+  filtered_count: number,
+  total_count: number,
+  filter_type: string
+}
+```
+
+#### Event Navigation Metadata
+```typescript
+{
+  event_id: string,
+  event_date: string,
+  progress_percentage: number,
+  progress_status: 'complete' | 'partial' | 'unconfirmed'
+}
+```
+
+#### Error Metadata
+```typescript
+{
+  error_type: string,
+  error_message: string
+}
+```
+
+## Performance Tracking
+
+### Server-Side Performance
+
+Always track load time for server-side operations:
+
+```typescript
+// ✅ Good: Performance tracking
+export const load: PageServerLoad = async (event) => {
+  const startTime = Date.now();
+  
+  // ... data fetching ...
+  
+  await statsigService.logEvent('admin_jadwal_view', 'load', session || undefined, {
+    load_time_ms: Date.now() - startTime,
+    // ... other metadata
+  });
+};
+```
+
+## Error Handling
+
+### Track Errors Gracefully
+
+```typescript
+// ✅ Good: Error tracking with type safety
+} catch (err) {
+  const errorMetadata = {
+    error_type: err instanceof Error ? err.name : 'unknown',
+    error_message: err instanceof Error ? err.message : String(err)
+  };
+  
+  await Promise.all([
+    statsigService.logEvent('admin_jadwal_error', 'data_fetch_failed', session || undefined, errorMetadata),
+    posthogService.trackEvent('admin_jadwal_error', {
+      event_type: 'data_fetch_failed',
+      ...errorMetadata
+    }, session || undefined)
+  ]);
+  
+  throw error(500, 'Failed to fetch data');
+}
+```
+
+## Reactive Tracking with Svelte 5
+
+### Use `$effect` for Reactive Tracking
+
+```typescript
+// ✅ Good: Reactive tracking with $effect
+$effect(() => {
+  if (filteredEvents().length === 0 && upcomingEvents.length > 0) {
+    tracker.track('admin_jadwal_empty_filter', metadata, page.data.session, page);
+  }
+});
+
+// ❌ Bad: Using onMount for reactive tracking
+onMount(() => {
+  // This only runs once, not reactive
+  tracker.track('admin_jadwal_empty_filter', metadata, page.data.session, page);
+});
+```
+
+### Page Load Tracking
+
+```typescript
+// ✅ Good: Using $effect for page load (reactive to form state)
+$effect(() => {
+  const session = page.data.session || undefined;
+  
+  if (!form?.success && !form?.error) {
+    statsigService.logEvent('admin_misa_view', 'load', session);
+  }
+});
+
+// ✅ Also acceptable: Using onMount for one-time page load
+onMount(async () => {
+  await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
+});
+```
+
+## Event Inventory
+
+### Overview
+
+All analytics events are documented in the **Events Inventory** (`doc/events-inventory.md`). This centralized document tracks:
+- Event names and their locations
+- Platforms used (Statsig/PostHog)
+- Metadata fields
+- Purpose and triggers
+
+### Before Adding New Events
+
+1. **Check the inventory**: Review `doc/events-inventory.md` for existing similar events
+2. **Avoid duplicates**: Use existing events when possible
+3. **Follow naming**: Ensure new events follow the `{page}_{action}_{context}` pattern
+4. **Document immediately**: Update the inventory when adding new events
+
+### Maintaining the Inventory
+
+#### Adding New Events
+
+1. Check `doc/events-inventory.md` for existing similar events
+2. Follow naming convention: `{page}_{action}_{context}`
+3. Implement tracking code following project rules
+4. Update inventory document with new event entry:
+   ```markdown
+   ### {event_name}
+   - **Platforms**: Statsig / PostHog / Both
+   - **Locations**: 
+     - Server: `file:line` (if applicable)
+     - Client: `file:line` (if applicable)
+   - **Purpose**: Brief description
+   - **Metadata**: List of metadata fields
+   - **Trigger**: When this event fires
+   - **Last Updated**: Date
+   ```
+5. Run scanner script to verify: `npm run scan:events`
+
+#### Updating Existing Events
+
+1. Update tracking code
+2. Update inventory document entry
+3. Update "Last Updated" date
+4. Note any breaking changes in metadata
+
+#### Regular Audits
+
+Run the scanner script monthly to verify inventory is up-to-date:
+
+```bash
+npm run scan:events
+```
+
+Compare output with `doc/events-inventory.md` and update any missing entries.
+
+### Scanner Script
+
+The `scripts/scan-events.ts` script automatically extracts events from the codebase:
+
+```bash
+# Generate markdown report (default)
+npm run scan:events
+
+# Generate JSON output
+npm run scan:events -- --json
+
+# Save to file
+npm run scan:events -- --output events-report.md
+```
+
+The scanner:
+- Extracts event names from tracking calls
+- Identifies file locations and line numbers
+- Detects platform (Statsig/PostHog)
+- Parses metadata fields
+- Groups events by platform
+
+### Event Categories
+
+Events in the inventory are categorized as:
+1. **Page Views**: Server and client-side page load events
+2. **User Interactions**: Filter changes, clicks, form submissions
+3. **Business Events**: Custom business logic events
+4. **Errors**: Error tracking events
+5. **Empty States**: UX insight events
+6. **Performance**: Performance-related events
+
+## Best Practices
+
+### 1. Track Business Context, Not Basic Interactions
+
+```typescript
+// ✅ Good: Business context
+await tracker.track('admin_jadwal_event_navigate', {
+  event_id: eventId,
+  progress_percentage: progress,
+  progress_status: 'complete'
+}, page.data.session, page);
+
+// ❌ Bad: Basic interaction (autocapture handles this)
+await tracker.track('link_clicked', {
+  url: '/admin/jadwal/123'
+}, page.data.session, page);
+```
+
+### 2. Use Parallel Execution for Dual Tracking
+
+```typescript
+// ✅ Good: Parallel execution
+await Promise.all([
+  statsigService.logEvent('admin_jadwal_view', 'load', session, metadata),
+  posthogService.trackEvent('admin_jadwal_view', { event_type: 'page_load', ...metadata }, session)
+]);
+
+// ❌ Bad: Sequential execution
+await statsigService.logEvent('admin_jadwal_view', 'load', session, metadata);
+await posthogService.trackEvent('admin_jadwal_view', metadata, session);
+```
+
+### 3. Always Include Session Context
+
+```typescript
+// ✅ Good: Session context included
+await tracker.track('admin_jadwal_filter_change', metadata, page.data.session, page);
+
+// ❌ Bad: Missing session context
+await tracker.track('admin_jadwal_filter_change', metadata);
+```
+
+### 4. Use Type-Safe Error Handling
+
+```typescript
+// ✅ Good: Type-safe error handling
+const errorMetadata = {
+  error_type: err instanceof Error ? err.name : 'unknown',
+  error_message: err instanceof Error ? err.message : String(err)
+};
+
+// ❌ Bad: Unsafe error handling
+const errorMetadata = {
+  error_type: err.name,  // May not exist
+  error_message: err.message  // May not exist
+};
+```
+
+### 5. Track Empty States for UX Insights
+
+```typescript
+// ✅ Good: Track empty states
+$effect(() => {
+  if (filteredEvents().length === 0 && upcomingEvents.length > 0) {
+    tracker.track('admin_jadwal_empty_filter', {
+      filter: currentFilter,
+      total_events: upcomingEvents.length
+    }, page.data.session, page);
+  }
+});
+```
+
+## What NOT to Track
+
+### Don't Track Basic Interactions (Autocapture Handles These)
+
+- ❌ Basic button clicks (autocapture tracks these)
+- ❌ Basic link clicks (autocapture tracks these)
+- ❌ Page views (layout handles this)
+- ❌ Form submissions (autocapture tracks these)
+
+### Do Track Business Context
+
+- ✅ Filter changes with metadata
+- ✅ Event navigation with progress context
+- ✅ Empty states (UX insights)
+- ✅ Server-side performance metrics
+- ✅ Error conditions with context
+- ✅ Custom business logic events
+
+## Testing Tracking
+
+### Verify Events Fire Correctly
+
+1. Check browser console for tracking calls
+2. Verify events appear in Statsig dashboard
+3. Verify events appear in PostHog dashboard
+4. Verify PostHog autocapture is working
+5. Check metadata is included in all events
+
+### Common Issues
+
+- **Events not firing**: Check if session is available
+- **Missing metadata**: Verify all required fields are included
+- **Duplicate events**: Ensure `$effect` conditions are correct
+- **Autocapture not working**: Verify PostHog is initialized in layout

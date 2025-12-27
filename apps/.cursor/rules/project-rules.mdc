@@ -12,6 +12,7 @@ This document consolidates coding standards and best practices for the Lilium In
 - Svelte 5: `.cursor/rules/svelte5.mdc`
 - Clean Architecture: `.cursor/rules/clean-code.mdc`
 - Naming Conventions: `.cursor/rules/conventions.mdc`
+- Event Tracking: `.cursor/rules/event-tracking.mdc`
 
 ## Code Organization
 

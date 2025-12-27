@@ -20,6 +20,8 @@
 	import { onMount } from 'svelte';
 
 	import type { Usher } from '$core/entities/Schedule';
+	import { statsigService } from '$src/lib/application/StatsigService';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { UserAddSolid } from 'flowbite-svelte-icons';
 	import UsherListShortcut from './UsherListShortcut.svelte';
 
@@ -103,7 +105,12 @@
 		screenWidth = window.innerWidth;
 	}
 
-	function handleRoleChange(index: number, role: 'PPG' | 'Kolekte') {
+	async function handleRoleChange(index: number, role: 'PPG' | 'Kolekte') {
+		const previousState = {
+			isPpg: ushers[index]?.isPpg || false,
+			isKolekte: ushers[index]?.isKolekte || false
+		};
+
 		ushers = ushers.map((usher: Usher, i: number) => {
 			if (i === index) {
 				if (role === 'PPG') {
@@ -114,11 +121,57 @@
 			}
 			return usher;
 		});
+
+		const newState = {
+			isPpg: ushers[index]?.isPpg || false,
+			isKolekte: ushers[index]?.isKolekte || false
+		};
+
+		// Track role change with metadata
+		const metadata = {
+			event_type: 'role_change',
+			role: role,
+			usher_index: index,
+			previous_is_ppg: previousState.isPpg,
+			previous_is_kolekte: previousState.isKolekte,
+			new_is_ppg: newState.isPpg,
+			new_is_kolekte: newState.isKolekte,
+			current_ppg_count: ushers.filter((u: Usher) => u.isPpg).length,
+			current_kolekte_count: ushers.filter((u: Usher) => u.isKolekte).length,
+			total_ushers: ushers.length
+		};
+
+		await Promise.all([
+			statsigService.logEvent(
+				'tatib_ushers_role_change',
+				role,
+				page.data.session || undefined,
+				metadata
+			),
+			tracker.track('tatib_ushers_role_change', metadata, page.data.session, page)
+		]);
 	}
 
-	function addUsher() {
+	async function addUsher() {
 		if (ushers.length >= maxUshers) {
 			showMaxAlert = true;
+
+			const metadata = {
+				event_type: 'max_limit_reached',
+				current_count: ushers.length,
+				max_limit: maxUshers
+			};
+
+			await Promise.all([
+				statsigService.logEvent(
+					'tatib_ushers_max_limit',
+					'reached',
+					page.data.session || undefined,
+					metadata
+				),
+				tracker.track('tatib_ushers_max_limit', metadata, page.data.session, page)
+			]);
+
 			setTimeout(() => {
 				showMaxAlert = false;
 			}, 3000); // Hide alert after 3 seconds
@@ -126,6 +179,7 @@
 			return;
 		}
 
+		const previousCount = ushers.length;
 		ushers = [
 			...ushers,
 			{
@@ -135,6 +189,26 @@
 				sequence: ushers.length
 			}
 		];
+
+		// Track usher addition
+		const metadata = {
+			event_type: 'usher_added',
+			previous_count: previousCount,
+			new_count: ushers.length,
+			max_limit: maxUshers,
+			current_ppg_count: ushers.filter((u: Usher) => u.isPpg).length,
+			current_kolekte_count: ushers.filter((u: Usher) => u.isKolekte).length
+		};
+
+		await Promise.all([
+			statsigService.logEvent(
+				'tatib_ushers_add',
+				'button',
+				page.data.session || undefined,
+				metadata
+			),
+			tracker.track('tatib_ushers_add', metadata, page.data.session, page)
+		]);
 	}
 
 	// function removeUsher(index: number) {
@@ -145,13 +219,56 @@
 	let numberOfPpg = $derived(ushers.filter((p: Usher) => p.isPpg).length);
 	let numberOfKolekte = $derived(ushers.filter((p: Usher) => p.isKolekte).length);
 	let numberOfUsher = $derived(ushers.length);
+	let previousProgress = $state(0);
+	let previousIsSubmitable = $state(false);
+
 	$effect(() => {
 		// Updated validation: exactly 2 PPG, exactly 3 Kolekte, minimum 6 ushers
 		isSubmitable = numberOfPpg === 2 && numberOfKolekte === 3 && numberOfUsher >= 6;
+
+		// Track progress milestones (25%, 50%, 75%, 100%)
+		const progressMilestones = [25, 50, 75, 100];
+		const currentProgress = progress;
+		const reachedMilestone = progressMilestones.find(
+			(milestone) => previousProgress < milestone && currentProgress >= milestone
+		);
+
+		if (reachedMilestone) {
+			const metadata = {
+				event_type: 'progress_milestone',
+				milestone: reachedMilestone,
+				current_progress: currentProgress,
+				filled_names_count: ushers.filter((u: Usher) => u.name.trim() !== '').length,
+				total_ushers: numberOfUsher
+			};
+
+			tracker.track('tatib_ushers_progress', metadata, page.data.session, page);
+		}
+
+		// Track when form becomes submitable
+		if (!previousIsSubmitable && isSubmitable) {
+			const metadata = {
+				event_type: 'form_ready',
+				ppg_count: numberOfPpg,
+				kolekte_count: numberOfKolekte,
+				total_ushers: numberOfUsher,
+				progress: currentProgress
+			};
+
+			tracker.track('tatib_ushers_form_ready', metadata, page.data.session, page);
+		}
+
+		previousProgress = currentProgress;
+		previousIsSubmitable = isSubmitable;
 	});
 
 	// Reset
-	function reset() {
+	async function reset() {
+		const previousCount = ushers.length;
+		const previousPpgCount = ushers.filter((u: Usher) => u.isPpg).length;
+		const previousKolekteCount = ushers.filter((u: Usher) => u.isKolekte).length;
+		const filledNamesCount = ushers.filter((u: Usher) => u.name.trim() !== '').length;
+
 		ushers = [
 			{
 				name: '',
@@ -161,6 +278,25 @@
 			}
 		];
 		selectedRole = null;
+
+		// Track reset action
+		const metadata = {
+			event_type: 'reset',
+			previous_count: previousCount,
+			previous_ppg_count: previousPpgCount,
+			previous_kolekte_count: previousKolekteCount,
+			previous_filled_names_count: filledNamesCount
+		};
+
+		await Promise.all([
+			statsigService.logEvent(
+				'tatib_ushers_reset',
+				'button',
+				page.data.session || undefined,
+				metadata
+			),
+			tracker.track('tatib_ushers_reset', metadata, page.data.session, page)
+		]);
 	}
 
 	function calculateProgress(usher: Usher[]) {

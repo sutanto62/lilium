@@ -1,41 +1,183 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import type { ChurchEvent } from '$core/entities/Event';
 	import type { Lingkungan, Wilayah } from '$core/entities/Schedule';
+	import { statsigService } from '$src/lib/application/StatsigService';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { Label, Select } from 'flowbite-svelte';
 	import { onMount } from 'svelte';
 
 	// Props
-	export let events: ChurchEvent[];
-	export let eventsDate: string[];
-	export let wilayahs: Wilayah[];
-	export let lingkungans: Lingkungan[];
-
-	export let selectedEventDate: string | null = null;
-	export let selectedEventId: string | null = null;
-	export let selectedWilayahId: string | null = null;
-	export let selectedLingkunganId: string | null = null;
+	let {
+		events,
+		eventsDate,
+		wilayahs,
+		lingkungans,
+		selectedEventDate = $bindable<string | null>(),
+		selectedEventId = $bindable<string | null>(),
+		selectedWilayahId = $bindable<string | null>(),
+		selectedLingkunganId = $bindable<string | null>()
+	} = $props<{
+		events: ChurchEvent[];
+		eventsDate: string[];
+		wilayahs: Wilayah[];
+		lingkungans: Lingkungan[];
+		selectedEventDate?: string | null;
+		selectedEventId?: string | null;
+		selectedWilayahId?: string | null;
+		selectedLingkunganId?: string | null;
+	}>();
 
 	// Local variables
-	let currentDate: string;
+	let currentDate = $state<string>('');
 
 	// Filter events by selected date
-	$: filteredEvents = selectedEventDate
-		? events.filter((events) => events.date === selectedEventDate)
-		: [];
+	const filteredEvents = $derived(
+		selectedEventDate ? events.filter((event: ChurchEvent) => event.date === selectedEventDate) : []
+	);
 
 	// Filter lingkungan based on selected wilayah
-	$: filteredLingkungans = selectedWilayahId
-		? lingkungans.filter((l) => l.wilayah === selectedWilayahId)
-		: [];
+	const filteredLingkungans = $derived(
+		selectedWilayahId ? lingkungans.filter((l: Lingkungan) => l.wilayah === selectedWilayahId) : []
+	);
 
-	// Reset selectedLingkungan when selectedWilayah changes
-	// $: if (selectedWilayahId !== null) {
-	// 	selectedLingkunganId = null;
-	// }
+	// Track date selection changes
+	$effect(() => {
+		if (selectedEventDate) {
+			const selectedEvent = events.find((e: ChurchEvent) => e.date === selectedEventDate);
+			const filteredCount = filteredEvents.length;
 
-	// $: if (selectedEventDate) {
-	// 	selectedEventId = events.find((event) => event.date === selectedEventDate)?.id || null;
-	// }
+			const metadata = {
+				selected_date: selectedEventDate,
+				filtered_events_count: filteredCount,
+				available_dates_count: eventsDate.length
+			};
+
+			Promise.all([
+				statsigService.logEvent(
+					'tatib_regional_date_select',
+					'select',
+					page.data.session || undefined,
+					metadata
+				),
+				tracker.track(
+					'tatib_regional_date_select',
+					{
+						event_type: 'date_selection',
+						...metadata
+					},
+					page.data.session,
+					page
+				)
+			]).catch(() => {
+				// Silently handle tracking errors
+			});
+		}
+	});
+
+	// Track event/mass selection changes
+	$effect(() => {
+		if (selectedEventId) {
+			const selectedEvent = events.find((e: ChurchEvent) => e.id === selectedEventId);
+			const selectedDate = selectedEvent?.date;
+
+			const metadata = {
+				event_id: selectedEventId,
+				event_date: selectedDate,
+				mass: selectedEvent?.mass,
+				available_events_count: filteredEvents.length
+			};
+
+			Promise.all([
+				statsigService.logEvent(
+					'tatib_regional_event_select',
+					'select',
+					page.data.session || undefined,
+					metadata
+				),
+				tracker.track(
+					'tatib_regional_event_select',
+					{
+						event_type: 'event_selection',
+						...metadata
+					},
+					page.data.session,
+					page
+				)
+			]).catch(() => {
+				// Silently handle tracking errors
+			});
+		}
+	});
+
+	// Track wilayah selection changes
+	$effect(() => {
+		if (selectedWilayahId) {
+			const selectedWilayah = wilayahs.find((w: Wilayah) => w.id === selectedWilayahId);
+			const filteredCount = filteredLingkungans.length;
+
+			const metadata = {
+				wilayah_id: selectedWilayahId,
+				wilayah_name: selectedWilayah?.name,
+				filtered_lingkungans_count: filteredCount,
+				total_wilayahs_count: wilayahs.length
+			};
+
+			Promise.all([
+				statsigService.logEvent(
+					'tatib_regional_wilayah_select',
+					'select',
+					page.data.session || undefined,
+					metadata
+				),
+				tracker.track(
+					'tatib_regional_wilayah_select',
+					{
+						event_type: 'wilayah_selection',
+						...metadata
+					},
+					page.data.session,
+					page
+				)
+			]).catch(() => {
+				// Silently handle tracking errors
+			});
+		}
+	});
+
+	// Track lingkungan selection changes
+	$effect(() => {
+		if (selectedLingkunganId) {
+			const selectedLingkungan = lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId);
+
+			const metadata = {
+				lingkungan_id: selectedLingkunganId,
+				lingkungan_name: selectedLingkungan?.name,
+				wilayah_id: selectedWilayahId,
+				available_lingkungans_count: filteredLingkungans.length
+			};
+
+			Promise.all([
+				statsigService.logEvent(
+					'tatib_regional_lingkungan_select',
+					'select',
+					page.data.session || undefined,
+					metadata
+				),
+				tracker.track(
+					'tatib_regional_lingkungan_select',
+					{
+						event_type: 'lingkungan_selection',
+						...metadata
+					},
+					page.data.session,
+					page
+				)
+			]).catch(() => {
+				// Silently handle tracking errors
+			});
+		}
+	});
 
 	onMount(() => {
 		const now = new Date();
@@ -59,7 +201,7 @@
 		<Select
 			class="mt-2"
 			id="select-date"
-			items={eventsDate.map((date) => ({
+			items={eventsDate.map((date: string) => ({
 				value: date,
 				name: new Date(date).toLocaleDateString('id-ID', {
 					weekday: 'long',
@@ -78,7 +220,7 @@
 		<Select
 			class="mt-0"
 			id="select-feast"
-			items={filteredEvents.map((e) => ({ value: e.id, name: `${e.description}` }))}
+			items={filteredEvents.map((e: ChurchEvent) => ({ value: e.id, name: `${e.description}` }))}
 			bind:value={selectedEventId}
 		/>
 	</Label>
@@ -89,7 +231,7 @@
 			<Select
 				class="mt-2"
 				id="select-wilayah"
-				items={wilayahs.map((e) => ({ value: e.id, name: e.name }))}
+				items={wilayahs.map((e: Wilayah) => ({ value: e.id, name: e.name }))}
 				bind:value={selectedWilayahId}
 			/>
 		</Label>
@@ -99,7 +241,7 @@
 			<Select
 				class="mt-2"
 				id="select-lingkungan"
-				items={filteredLingkungans.map((e) => ({ value: e.id, name: e.name }))}
+				items={filteredLingkungans.map((e: Lingkungan) => ({ value: e.id, name: e.name }))}
 				bind:value={selectedLingkunganId}
 			/>
 		</Label>

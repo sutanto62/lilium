@@ -1,5 +1,8 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
+	import { statsigService } from '$src/lib/application/StatsigService.js';
+	import { tracker } from '$src/lib/utils/analytics';
 	import {
 		DarkMode,
 		Footer,
@@ -10,6 +13,35 @@
 		FooterLinkGroup
 	} from 'flowbite-svelte';
 	import { GithubSolid } from 'flowbite-svelte-icons';
+
+	async function handleExternalLinkClick(
+		linkType: 'github' | 'church' | 'contributors' | 'license',
+		url: string
+	) {
+		const metadata = {
+			link_type: linkType,
+			link_url: url
+		};
+
+		// Track with Statsig (key events)
+		statsigService.logEvent(
+			'footer_external_link',
+			'click',
+			page.data.session || undefined,
+			metadata
+		);
+
+		// Track with PostHog (business context)
+		await tracker.track(
+			'footer_external_link_click',
+			{
+				event_type: 'external_navigation',
+				...metadata
+			},
+			page.data.session,
+			page
+		);
+	}
 </script>
 
 <Footer footerType="socialmedia" class="bg-transparent text-sm shadow-none">
@@ -21,17 +53,30 @@
 				alt="Lilium Inter Spinas Logo"
 				name="Lilium Inter Spinas"
 				spanClass="text-lg font-bold text-[#eb4f27]"
+				onclick={() => handleExternalLinkClick('github', 'https://github.com/sutanto62/lilium')}
 			/>
 			<ul class="list-unstyled small">
 				<li class="mb-2">
 					Persembahan untuk Bunda Maria dari
-					<a href="https://github.com/sutanto62/lilium/graphs/contributors">kontributor Lilium</a>.
+					<a
+						href="https://github.com/sutanto62/lilium/graphs/contributors"
+						onclick={() =>
+							handleExternalLinkClick(
+								'contributors',
+								'https://github.com/sutanto62/lilium/graphs/contributors'
+							)}>kontributor Lilium</a
+					>.
 				</li>
 				<li class="mb-2">
 					Kode dilisensikan <a
 						href="https://github.com/sutanto62/lilium/blob/main/LICENSE"
 						target="_blank"
-						rel="license noopener">Apache 2.0</a
+						rel="license noopener"
+						onclick={() =>
+							handleExternalLinkClick(
+								'license',
+								'https://github.com/sutanto62/lilium/blob/main/LICENSE'
+							)}>Apache 2.0</a
 					>.
 				</li>
 				<li class="mb-2">Versi saat ini v1.0.0.</li>
@@ -43,7 +88,10 @@
 					Tentang Kami
 				</h2>
 				<FooterLinkGroup>
-					<FooterLink liClass="mb-4" href={env.PUBLIC_SITE_URL || '/'}
+					<FooterLink
+						liClass="mb-4"
+						href={env.PUBLIC_SITE_URL || '/'}
+						onclick={() => handleExternalLinkClick('church', env.PUBLIC_SITE_URL || '/')}
 						>{env.PUBLIC_SITE_CHURCH || 'Paroki'}</FooterLink
 					>
 				</FooterLinkGroup>
@@ -59,7 +107,10 @@
 			year={2024}
 		/>
 		<div class="mt-4 flex space-x-6 sm:mt-0 sm:justify-center rtl:space-x-reverse">
-			<FooterIcon href="https://github.com/sutanto62/lilium">
+			<FooterIcon
+				href="https://github.com/sutanto62/lilium"
+				onclick={() => handleExternalLinkClick('github', 'https://github.com/sutanto62/lilium')}
+			>
 				<GithubSolid
 					class="h-5 w-5 text-gray-500 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white"
 				/>

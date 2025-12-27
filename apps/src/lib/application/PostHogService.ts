@@ -9,11 +9,33 @@ import { sessionContextManager, type ChurchContext, type SessionContext } from '
 // Enhanced Analytics Interfaces
 
 /**
+ * Event property value types supported by PostHog.
+ * Uses snake_case keys per project naming conventions.
+ */
+export type PostHogPropertyValue = string | number | boolean | null | undefined | Date;
+
+/**
+ * Event properties for analytics events.
+ * Uses snake_case keys per project naming conventions.
+ */
+export type PostHogProperties = Record<string, PostHogPropertyValue>;
+
+/**
+ * User properties for PostHog user identification.
+ */
+export interface PostHogUserProperties {
+    email?: string;
+    role?: string;
+    cid?: string;
+    [key: string]: PostHogPropertyValue;
+}
+
+/**
  * Core analytics event structure with enriched context
  */
 export interface AnalyticsEvent {
     name: string;
-    properties: Record<string, any>;
+    properties: PostHogProperties;
     timestamp: Date;
     sessionId: string;
     userId?: string;
@@ -53,7 +75,7 @@ export interface UserAction {
     timestamp: Date;
     result: 'success' | 'failure' | 'cancelled';
     duration?: number;
-    properties?: Record<string, any>;
+    properties?: PostHogProperties;
 }
 
 /**
@@ -65,7 +87,7 @@ export interface ConversionEvent {
     stepOrder: number;
     timestamp: Date;
     conversionValue?: number;
-    properties?: Record<string, any>;
+    properties?: PostHogProperties;
 }
 
 /**
@@ -114,7 +136,7 @@ export interface ChurchEventProperties {
     scheduleId?: string;
     lingkunganId?: string;
     wilayahId?: string;
-    [key: string]: any;
+    [key: string]: PostHogPropertyValue;
 }
 
 
@@ -159,27 +181,42 @@ class PostHogService {
      * 
      * This constructor initializes the PostHog client with the provided configuration.
      * It sets up the client with the necessary options for development and production environments.
+     * 
+     * @throws Error if VITE_POSTHOG_KEY is not configured
      */
     private constructor() {
         // Check if we're in test mode
         this.testMode = import.meta.env.MODE === 'test' || import.meta.env.VITEST === 'true';
 
         if (browser) {
-            posthog.init(import.meta.env.VITE_POSTHOG_KEY, {
-                api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
-                person_profiles: 'identified_only',
-                capture_pageview: false, // We'll handle this manually
-                capture_pageleave: true,
-                loaded: (posthog) => {
-                    if (import.meta.env.DEV) {
-                        posthog.debug();
-                    }
-                }
-            });
+            const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
+            if (!posthogKey) {
+                const error = new Error('VITE_POSTHOG_KEY is not configured');
+                logger.error('PostHogService.constructor: Missing PostHog key', { error });
+                // Don't throw in browser - allow graceful degradation
+                return;
+            }
 
-            // Initialize EventManager and EventQueue only if not in test mode
-            if (!this.testMode) {
-                this.initializeEventProcessing();
+            try {
+                posthog.init(posthogKey, {
+                    api_host: import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com',
+                    person_profiles: 'identified_only',
+                    capture_pageview: false, // We'll handle this manually
+                    capture_pageleave: true,
+                    loaded: (posthog) => {
+                        if (import.meta.env.DEV) {
+                            posthog.debug();
+                        }
+                    }
+                });
+
+                // Initialize EventManager and EventQueue only if not in test mode
+                if (!this.testMode) {
+                    this.initializeEventProcessing();
+                }
+            } catch (error) {
+                logger.error('PostHogService.constructor: Failed to initialize PostHog', { error });
+                // Don't throw - allow graceful degradation
             }
         }
     }
@@ -242,7 +279,7 @@ class PostHogService {
             storageKey: 'lilium_analytics_queue'
         });
 
-        logger.info('PostHog event processing components initialized');
+        logger.info('PostHogService.initializeEventProcessing: Event processing components initialized');
     }
 
     /**
@@ -253,7 +290,7 @@ class PostHogService {
      * 
      * @returns The singleton instance of the PostHogService
      */
-    static getInstance() {
+    static getInstance(): PostHogService {
         if (!PostHogService.instance) {
             PostHogService.instance = new PostHogService();
         }
@@ -268,26 +305,31 @@ class PostHogService {
      * 
      * @param session - Optional session object for initial context setup
      */
-    async use(session?: Session) {
+    async use(session?: Session): Promise<void> {
         if (this.initialized || !browser) {
-            logger.info('PostHog client already initialized or not in browser');
             return;
         }
 
-        this.initialized = true;
+        try {
+            this.initialized = true;
 
-        // Initialize session context using SessionContextManager
-        if (session) {
-            await sessionContextManager.initializeSession(session);
+            // Initialize session context using SessionContextManager
+            if (session) {
+                await sessionContextManager.initializeSession(session);
+            }
+
+            // Initialize user journey tracking
+            this.initializeUserJourney();
+
+            // Set up page navigation tracking
+            this.setupPageNavigationTracking();
+
+            logger.info('PostHogService.use: PostHog client initialized with enhanced analytics');
+        } catch (error) {
+            logger.error('PostHogService.use: Failed to initialize PostHog client', { error });
+            this.initialized = false;
+            throw error;
         }
-
-        // Initialize user journey tracking
-        this.initializeUserJourney();
-
-        // Set up page navigation tracking
-        this.setupPageNavigationTracking();
-
-        logger.info('PostHog client initialized with enhanced analytics');
     }
 
     /**
@@ -314,7 +356,7 @@ class PostHogService {
         // Capture entry point information
         this.captureEntryPoint();
 
-        logger.info('PostHog: User journey tracking initialized', {
+        logger.info('PostHogService.initializeUserJourney: User journey tracking initialized', {
             sessionId: sessionContext.sessionId
         });
     }
@@ -352,7 +394,7 @@ class PostHogService {
 
         this.trackStructuredEvent(entryPointEvent);
 
-        logger.info('PostHog: Entry point captured', {
+        logger.info('PostHogService.captureEntryPoint: Entry point captured', {
             entryPage: currentUrl,
             referrer: referrer || 'direct',
             isHomepage
@@ -436,7 +478,7 @@ class PostHogService {
             this.trackPageNavigation(window.location.href, this.currentPage || '');
         });
 
-        logger.info('PostHog: Page navigation tracking set up');
+        logger.info('PostHogService.setupPageNavigationTracking: Page navigation tracking set up');
     }
 
     /**
@@ -479,7 +521,7 @@ class PostHogService {
         // Track page view event
         this.trackPageViewEvent(newPage, referrer, timeSpent);
 
-        logger.info('PostHog: Page navigation tracked', {
+        logger.info('PostHogService.trackPageNavigation: Page navigation tracked', {
             newPage,
             timeSpentOnPrevious: timeSpent,
             totalPages: this.currentJourney.pages.length
@@ -551,7 +593,7 @@ class PostHogService {
 
         // Don't end the page session, just pause timing
         // We'll resume when the page becomes visible again
-        logger.info('PostHog: Page hidden, pausing time tracking');
+        logger.info('PostHogService.handlePageLeave: Page hidden, pausing time tracking');
     }
 
     /**
@@ -562,7 +604,7 @@ class PostHogService {
 
         // Resume timing from current moment
         this.currentPageStartTime = new Date();
-        logger.info('PostHog: Page visible, resuming time tracking');
+        logger.info('PostHogService.handlePageReturn: Page visible, resuming time tracking');
     }
 
     /**
@@ -631,7 +673,7 @@ class PostHogService {
             this.trackStructuredEvent(sessionTerminationEvent);
         }
 
-        logger.info('PostHog: Session termination recorded', {
+        logger.info('PostHogService.handleSessionTermination: Session termination recorded', {
             sessionDuration,
             pagesVisited: this.currentJourney.pages.length,
             actionsPerformed: this.currentJourney.actions.length,
@@ -683,17 +725,22 @@ class PostHogService {
      * 
      * @param event - The structured analytics event
      */
-    async trackStructuredEvent(event: AnalyticsEvent) {
+    async trackStructuredEvent(event: AnalyticsEvent): Promise<void> {
         if (!browser) return;
 
-        if (!this.initialized) {
-            await this.use();
+        if (!event || !event.name || typeof event.name !== 'string') {
+            logger.warn('PostHogService.trackStructuredEvent: Invalid event', { event });
+            return;
         }
 
-        // Enrich event with session context
-        const enrichedEvent = this.enrichEventWithContext(event);
-
         try {
+            if (!this.initialized) {
+                await this.use();
+            }
+
+            // Enrich event with session context
+            const enrichedEvent = this.enrichEventWithContext(event);
+
             if (this.testMode) {
                 // In test mode, send directly to PostHog for immediate testing
                 posthog.capture(enrichedEvent.name, {
@@ -729,9 +776,12 @@ class PostHogService {
                 }
             }
 
-            logger.info(`PostHog structured event ${this.testMode ? 'sent' : 'queued'}: ${enrichedEvent.name}`, enrichedEvent.properties);
+            logger.info(`PostHogService.trackStructuredEvent: Event ${this.testMode ? 'sent' : 'queued'}`, {
+                eventName: enrichedEvent.name,
+                properties: enrichedEvent.properties
+            });
         } catch (error) {
-            logger.error('PostHog structured event tracking failed', error);
+            logger.error('PostHogService.trackStructuredEvent: Failed to track event', { event: event.name, error });
             // Don't throw error to avoid breaking user experience
         }
     }
@@ -808,7 +858,7 @@ class PostHogService {
      * @param eventType - The type of church event
      * @param properties - Church event properties
      */
-    async trackChurchEvent(eventType: ChurchEventType, properties: ChurchEventProperties) {
+    async trackChurchEvent(eventType: ChurchEventType, properties: ChurchEventProperties): Promise<void> {
         const sessionContext = sessionContextManager.getSessionContext();
 
         const event: AnalyticsEvent = {
@@ -845,7 +895,7 @@ class PostHogService {
      * @param action - The administrative action type
      * @param properties - Additional properties
      */
-    async trackAdminAction(action: AdminAction, properties?: Record<string, any>) {
+    async trackAdminAction(action: AdminAction, properties?: PostHogProperties): Promise<void> {
         const sessionContext = sessionContextManager.getSessionContext();
 
         const event: AnalyticsEvent = {
@@ -871,7 +921,7 @@ class PostHogService {
      * @param type - The engagement type
      * @param properties - Additional properties
      */
-    async trackCommunityEngagement(type: CommunityEngagementType, properties?: Record<string, any>) {
+    async trackCommunityEngagement(type: CommunityEngagementType, properties?: PostHogProperties): Promise<void> {
         const sessionContext = sessionContextManager.getSessionContext();
 
         const event: AnalyticsEvent = {
@@ -898,7 +948,11 @@ class PostHogService {
      * @param properties - Additional properties for the page view
      * @param session - Optional session object for user context
      */
-    async trackPageView(pageName: string, properties?: Record<string, any>, session?: Session) {
+    async trackPageView(pageName: string, properties?: PostHogProperties, session?: Session): Promise<void> {
+        if (!pageName || typeof pageName !== 'string') {
+            logger.warn('PostHogService.trackPageView: Invalid page name', { pageName });
+            return;
+        }
         // Update session context if provided
         if (session && !sessionContextManager.getSessionContext()) {
             await sessionContextManager.initializeSession(session);
@@ -957,7 +1011,7 @@ class PostHogService {
     /**
      * Update session context (useful for role changes, etc.)
      */
-    updateSessionContext(updates: Partial<SessionContext>) {
+    updateSessionContext(updates: Partial<SessionContext>): void {
         sessionContextManager.updateSessionContext(updates);
     }
 
@@ -1010,36 +1064,46 @@ class PostHogService {
      * await posthogService.trackEvent('button_clicked', { button_name: 'signup' });
      * ```
      */
-    async trackEvent(event: string, properties?: Record<string, any>, session?: Session) {
+    async trackEvent(event: string, properties?: PostHogProperties, session?: Session): Promise<void> {
         if (!browser) return;
 
-        if (!this.initialized) {
-            await this.use(session);
+        if (!event || typeof event !== 'string') {
+            logger.warn('PostHogService.trackEvent: Invalid event name', { event });
+            return;
         }
 
-        // Update user context if session is provided
-        if (session?.user) {
-            this.identifyUser(session.user.name || 'anonymous', {
-                email: session.user.email,
-                role: session.user.role,
-                cid: session.user.cid
-            });
+        try {
+            if (!this.initialized) {
+                await this.use(session);
+            }
+
+            // Update user context if session is provided
+            if (session?.user) {
+                this.identifyUser(session.user.name || 'anonymous', {
+                    email: session.user.email || undefined,
+                    role: session.user.role || undefined,
+                    cid: session.user.cid || undefined
+                });
+            }
+
+            // Convert to structured event for consistency
+            const sessionContext = sessionContextManager.getSessionContext();
+
+            const structuredEvent: AnalyticsEvent = {
+                name: event,
+                properties: properties || {},
+                timestamp: new Date(),
+                sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+                userId: session?.user?.id || sessionContext?.userId,
+                userRole: (session?.user?.role as 'admin' | 'user' | 'visitor') || sessionContext?.userRole,
+                churchContext: sessionContext?.churchContext
+            };
+
+            await this.trackStructuredEvent(structuredEvent);
+        } catch (error) {
+            logger.error('PostHogService.trackEvent: Failed to track event', { event, error });
+            // Don't throw - event tracking failures shouldn't break the application
         }
-
-        // Convert to structured event for consistency
-        const sessionContext = sessionContextManager.getSessionContext();
-
-        const structuredEvent: AnalyticsEvent = {
-            name: event,
-            properties: properties || {},
-            timestamp: new Date(),
-            sessionId: sessionContext?.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-            userId: session?.user?.id || sessionContext?.userId,
-            userRole: (session?.user?.role as 'admin' | 'user' | 'visitor') || sessionContext?.userRole,
-            churchContext: sessionContext?.churchContext
-        };
-
-        await this.trackStructuredEvent(structuredEvent);
     }
 
     /**
@@ -1048,11 +1112,20 @@ class PostHogService {
      * @param userId - The unique identifier for the user
      * @param properties - Additional user properties
      */
-    identifyUser(userId: string, properties?: Record<string, any>) {
+    identifyUser(userId: string, properties?: PostHogUserProperties): void {
         if (!browser) return;
 
-        posthog.identify(userId, properties);
-        logger.info(`PostHog user identified: ${userId}`, properties);
+        if (!userId || typeof userId !== 'string') {
+            logger.warn('PostHogService.identifyUser: Invalid userId', { userId });
+            return;
+        }
+
+        try {
+            posthog.identify(userId, properties);
+            logger.info('PostHogService.identifyUser: User identified', { userId, properties });
+        } catch (error) {
+            logger.error('PostHogService.identifyUser: Failed to identify user', { userId, error });
+        }
     }
 
     /**
@@ -1060,49 +1133,65 @@ class PostHogService {
      * 
      * @param properties - Properties to set for the current user
      */
-    setUserProperties(properties: Record<string, any>) {
+    setUserProperties(properties: PostHogUserProperties): void {
         if (!browser) return;
 
-        posthog.people.set(properties);
-        logger.info('PostHog user properties set', properties);
+        if (!properties || typeof properties !== 'object') {
+            logger.warn('PostHogService.setUserProperties: Invalid properties', { properties });
+            return;
+        }
+
+        try {
+            posthog.people.set(properties);
+            logger.info('PostHogService.setUserProperties: User properties set', { properties });
+        } catch (error) {
+            logger.error('PostHogService.setUserProperties: Failed to set user properties', { error });
+        }
     }
 
     /**
      * Reset the user (useful for logout).
      */
-    resetUser() {
+    resetUser(): void {
         if (!browser) return;
 
-        // Record session termination before reset
-        if (this.currentJourney) {
-            this.handleSessionTermination();
+        try {
+            // Record session termination before reset
+            if (this.currentJourney) {
+                this.handleSessionTermination();
+            }
+
+            posthog.reset();
+
+            // Clear session context and journey using SessionContextManager
+            sessionContextManager.clearSession();
+            this.currentJourney = null;
+
+            // Clear page tracking state
+            this.currentPage = null;
+            this.currentPageStartTime = null;
+            this.sessionStartPage = null;
+            this.sessionStartReferrer = null;
+
+            // Clear event queues for privacy
+            this.clearEventQueues();
+
+            // Reset initialization flag to allow re-initialization with new session
+            this.initialized = false;
+
+            logger.info('PostHogService.resetUser: User reset');
+        } catch (error) {
+            logger.error('PostHogService.resetUser: Failed to reset user', { error });
         }
-
-        posthog.reset();
-
-        // Clear session context and journey using SessionContextManager
-        sessionContextManager.clearSession();
-        this.currentJourney = null;
-
-        // Clear page tracking state
-        this.currentPage = null;
-        this.currentPageStartTime = null;
-        this.sessionStartPage = null;
-        this.sessionStartReferrer = null;
-
-        // Clear event queues for privacy
-        this.clearEventQueues();
-
-        // Reset initialization flag to allow re-initialization with new session
-        this.initialized = false;
-
-        logger.info('PostHog user reset');
     }
 
     /**
      * Get event processing statistics
      */
-    getEventProcessingStats() {
+    getEventProcessingStats(): {
+        eventManager: ReturnType<EventManager['getQueueStats']> | undefined;
+        eventQueue: ReturnType<EventQueue['getStats']> | undefined;
+    } {
         return {
             eventManager: this.eventManager?.getQueueStats(),
             eventQueue: this.eventQueue?.getStats()
@@ -1149,7 +1238,7 @@ class PostHogService {
      * 
      * @returns The PostHog instance
      */
-    getInstance() {
+    getInstance(): typeof posthog {
         return posthog;
     }
 }

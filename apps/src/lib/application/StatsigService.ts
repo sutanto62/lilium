@@ -6,6 +6,22 @@ import { StatsigAutoCapturePlugin } from '@statsig/web-analytics';
 import { logger } from '../utils/logger';
 
 /**
+ * Metadata type for event tracking.
+ * Uses snake_case keys per project naming conventions.
+ */
+export type StatsigMetadata = Record<string, string | number | boolean | null | undefined>;
+
+/**
+ * Custom user properties for Statsig user updates.
+ */
+export interface StatsigUserCustom {
+    email?: string;
+    role?: string;
+    cid?: string;
+    [key: string]: string | number | boolean | null | undefined;
+}
+
+/**
  * StatsigService - A singleton service for managing feature flags and analytics via Statsig
  * 
  * This service provides a centralized way to interact with Statsig's feature flagging
@@ -22,32 +38,46 @@ import { logger } from '../utils/logger';
  * - Initialize: await statsigService.use()
  * - Check feature flags: await statsigService.checkGate('flag_name')
  */
-
 class StatsigService {
     private static instance: StatsigService;
-    private client: StatsigClient;
+    private client: StatsigClient | null = null;
     private initialized = false;
+    private initializationPromise: Promise<void> | null = null;
 
     /**
      * Create a new instance of the StatsigService.
      * 
      * This constructor initializes the Statsig client with the provided configuration.
      * It sets up the client with the necessary plugins for session replay and auto-capture analytics.
+     * 
+     * @throws Error if VITE_STATSIG_CLIENT_KEY is not configured
      */
     private constructor() {
-        const plugins = browser ? [
-            new StatsigSessionReplayPlugin(),
-            new StatsigAutoCapturePlugin()
-        ] : [];
-        const environment = {
-            tier: import.meta.env.DEV ? 'development' : 'production'
-        };
-        this.client = new StatsigClient(import.meta.env.VITE_STATSIG_CLIENT_KEY, {
-            userID: 'anonymous',
-        }, {
-            plugins,
-            environment
-        });
+        const clientKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
+        if (!clientKey) {
+            const error = new Error('VITE_STATSIG_CLIENT_KEY is not configured');
+            logger.error('StatsigService.constructor: Missing Statsig client key', { error });
+            throw error;
+        }
+
+        try {
+            const plugins = browser ? [
+                new StatsigSessionReplayPlugin(),
+                new StatsigAutoCapturePlugin()
+            ] : [];
+            const environment = {
+                tier: import.meta.env.DEV ? 'development' : 'production'
+            };
+            this.client = new StatsigClient(clientKey, {
+                userID: 'anonymous',
+            }, {
+                plugins,
+                environment
+            });
+        } catch (error) {
+            logger.error('StatsigService.constructor: Failed to create Statsig client', { error });
+            throw error;
+        }
     }
 
     /**
@@ -58,7 +88,7 @@ class StatsigService {
      * 
      * @returns The singleton instance of the StatsigService
      */
-    static getInstance() {
+    static getInstance(): StatsigService {
         if (!StatsigService.instance) {
             StatsigService.instance = new StatsigService();
         }
@@ -70,15 +100,39 @@ class StatsigService {
      * 
      * This method initializes the Statsig client if it hasn't been initialized yet.
      * It ensures that the client is initialized before any feature flag checks or analytics are performed.
+     * Uses a promise to prevent concurrent initialization attempts.
+     * 
+     * @throws Error if initialization fails
      */
-    async use() {
+    async use(): Promise<void> {
         if (this.initialized) {
-            logger.info('Statsig client already initialized');
             return;
         }
-        await this.client.initializeAsync();
-        await this.client.flush();
-        this.initialized = true;
+
+        if (this.initializationPromise) {
+            return this.initializationPromise;
+        }
+
+        if (!this.client) {
+            const error = new Error('Statsig client not initialized');
+            logger.error('StatsigService.use: Client not available', { error });
+            throw error;
+        }
+
+        this.initializationPromise = (async () => {
+            try {
+                await this.client!.initializeAsync();
+                await this.client!.flush();
+                this.initialized = true;
+                logger.info('StatsigService.use: Statsig client initialized successfully');
+            } catch (error) {
+                logger.error('StatsigService.use: Failed to initialize Statsig client', { error });
+                this.initializationPromise = null;
+                throw error;
+            }
+        })();
+
+        return this.initializationPromise;
     }
 
     /**
@@ -95,39 +149,125 @@ class StatsigService {
      * }
      * ```
      */
-    async checkGate(gateName: string) {
-        if (!this.initialized) {
-            await this.use();
+    async checkGate(gateName: string): Promise<boolean> {
+        if (!gateName || typeof gateName !== 'string') {
+            logger.warn('StatsigService.checkGate: Invalid gate name', { gateName });
+            return false;
         }
-        const result = await this.client.checkGate(gateName);
-        return result;
+
+        try {
+            if (!this.initialized) {
+                await this.use();
+            }
+
+            if (!this.client) {
+                logger.error('StatsigService.checkGate: Client not available', { gateName });
+                return false;
+            }
+
+            const result = await this.client.checkGate(gateName);
+            return result;
+        } catch (error) {
+            logger.error('StatsigService.checkGate: Failed to check gate', { gateName, error });
+            return false;
+        }
     }
 
-    async updateUser(userID: string, custom?: Record<string, any>) {
-        if (!this.initialized) {
-            await this.use();
+    /**
+     * Update the current user context for Statsig.
+     * 
+     * @param userID - The unique identifier for the user
+     * @param custom - Optional custom user properties (email, role, cid, etc.)
+     * @throws Error if update fails
+     */
+    async updateUser(userID: string, custom?: StatsigUserCustom): Promise<void> {
+        if (!userID || typeof userID !== 'string') {
+            logger.warn('StatsigService.updateUser: Invalid userID', { userID });
+            return;
         }
-        await this.client.updateUserAsync({ userID, email: custom?.email });
-    }
 
-    async logEvent(event: string, eventValue?: string | number, session?: Session, metadata?: Record<string, any>) {
-        if (!this.initialized) {
-            await this.use();
-        }
+        try {
+            if (!this.initialized) {
+                await this.use();
+            }
 
-        if (session?.user) {
+            if (!this.client) {
+                logger.error('StatsigService.updateUser: Client not available', { userID });
+                return;
+            }
+
             await this.client.updateUserAsync({
-                userID: session.user.name || 'anonymous',
-                email: session?.user.email || undefined,
-                custom: {
-                    role: session?.user.role,
-                    cid: session?.user.cid
-                }
+                userID,
+                email: custom?.email,
+                custom: custom ? {
+                    ...custom,
+                    email: undefined // Remove email from custom as it's a top-level property
+                } : undefined
             });
+        } catch (error) {
+            logger.error('StatsigService.updateUser: Failed to update user', { userID, error });
+            throw error;
+        }
+    }
+
+    /**
+     * Log an event to Statsig with optional metadata.
+     * 
+     * @param event - The event name (should follow snake_case naming convention)
+     * @param eventValue - Optional event value (string or number)
+     * @param session - Optional session object for user context
+     * @param metadata - Optional metadata object (should use snake_case keys)
+     * @throws Error if logging fails
+     */
+    async logEvent(
+        event: string,
+        eventValue?: string | number,
+        session?: Session,
+        metadata?: StatsigMetadata
+    ): Promise<void> {
+        if (!event || typeof event !== 'string') {
+            logger.warn('StatsigService.logEvent: Invalid event name', { event });
+            return;
         }
 
-        await this.client.logEvent(event, eventValue, metadata);
-        await this.client.flush();
+        try {
+            if (!this.initialized) {
+                await this.use();
+            }
+
+            if (!this.client) {
+                logger.error('StatsigService.logEvent: Client not available', { event });
+                return;
+            }
+
+            // Update user context if session is provided
+            if (session?.user) {
+                await this.client.updateUserAsync({
+                    userID: session.user.name || 'anonymous',
+                    email: session.user.email || undefined,
+                    custom: {
+                        role: session.user.role,
+                        cid: session.user.cid
+                    }
+                });
+            }
+
+            // Convert metadata to string values as Statsig expects Record<string, string>
+            const stringMetadata: Record<string, string> | undefined = metadata
+                ? Object.entries(metadata).reduce((acc, [key, value]) => {
+                    if (value !== null && value !== undefined) {
+                        acc[key] = String(value);
+                    }
+                    return acc;
+                }, {} as Record<string, string>)
+                : undefined;
+
+            await this.client.logEvent(event, eventValue, stringMetadata);
+            await this.client.flush();
+        } catch (error) {
+            logger.error('StatsigService.logEvent: Failed to log event', { event, eventValue, error });
+            // Don't throw - event logging failures shouldn't break the application
+        }
     }
 }
 

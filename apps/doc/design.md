@@ -550,6 +550,128 @@ export class QueueManager {
 }
 ```
 
+### Soft Deletion Pattern
+
+The system uses soft deletion (active flag) instead of hard deletes to maintain audit trails and preserve historical data integrity.
+
+**Purpose:**
+- Preserve data for historical reference and reporting
+- Maintain referential integrity for existing records
+- Enable audit trails
+- Allow recovery if needed
+
+**Implementation:**
+
+Soft deletion is implemented using an `active` column (integer, 1 = active, 0 = inactive) on tables that support it:
+
+- `church_position`: Positions can be deactivated without affecting existing usher assignments
+- `mass_zone`: Zone assignments to masses can be deactivated without breaking existing events
+
+**Pattern for Positions:**
+
+```typescript
+// Deactivate position (soft delete)
+export async function deactivatePosition(
+  db: ReturnType<typeof drizzle>,
+  positionId: string
+): Promise<boolean> {
+  try {
+    const result = await db
+      .update(church_position)
+      .set({ active: 0 })
+      .where(eq(church_position.id, positionId))
+      .returning();
+    
+    return result.length > 0;
+  } catch (error) {
+    throw new DatabaseError(`Failed to deactivate position: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Query only active positions
+export async function findActivePositions(
+  db: ReturnType<typeof drizzle>,
+  zoneId: string
+): Promise<ChurchPosition[]> {
+  const result = await db
+    .select()
+    .from(church_position)
+    .where(and(
+      eq(church_position.zone, zoneId),
+      eq(church_position.active, 1) // Only active positions
+    ));
+  
+  return result.map(mapToChurchPosition);
+}
+```
+
+**Pattern for Mass-Zone Associations:**
+
+```typescript
+// Deactivate mass-zone association (soft delete)
+export async function deactivateMassZone(
+  db: ReturnType<typeof drizzle>,
+  massId: string,
+  zoneId: string
+): Promise<boolean> {
+  try {
+    const result = await db
+      .update(mass_zone)
+      .set({ active: 0 })
+      .where(and(
+        eq(mass_zone.mass, massId),
+        eq(mass_zone.zone, zoneId)
+      ))
+      .returning();
+    
+    return result.length > 0;
+  } catch (error) {
+    throw new DatabaseError(`Failed to deactivate mass-zone association: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+// Query only active mass-zone associations
+export async function listActivePositionsByMass(
+  db: ReturnType<typeof drizzle>,
+  churchId: string,
+  massId: string
+): Promise<ChurchPosition[]> {
+  const result = await db
+    .select()
+    .from(church_position)
+    .leftJoin(church_zone, eq(church_position.zone, church_zone.id))
+    .leftJoin(mass_zone, eq(mass_zone.zone, church_zone.id))
+    .where(and(
+      eq(mass_zone.mass, massId),
+      eq(mass_zone.active, 1), // Only active associations
+      eq(church_position.active, 1), // Only active positions
+      eq(church_zone.active, 1) // Only active zones
+    ));
+  
+  return result.map(mapToChurchPosition);
+}
+```
+
+**Impact on Existing Data:**
+
+1. **Deactivated Positions:**
+   - Existing usher assignments (event_usher) remain in database
+   - Historical assignments are preserved
+   - Deactivated positions do not appear in position selection lists for new assignments
+   - Queries for active positions filter by `active = 1`
+
+2. **Deactivated Mass-Zone Associations:**
+   - Existing events remain in database
+   - Historical event data is preserved
+   - New events use only active mass-zone associations
+   - Position queries for new events filter by `mass_zone.active = 1`
+
+**Key Principles:**
+- Always filter by `active = 1` when querying for available/current data
+- Use soft deletion for entities that have historical relationships
+- Preserve referential integrity by keeping inactive records
+- Document the impact of deactivation on related queries
+
 ## Authentication & Authorization Design
 
 ### OAuth Flow

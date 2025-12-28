@@ -141,9 +141,194 @@ The system serves three primary user roles:
 
 **REQ-EVENT-017**: The system SHALL calculate and display completion progress for each event.
 
-### 3. Usher Scheduling (Jadwal)
+### 3. Facility Management
 
-#### 3.1 Schedule Viewing
+#### 3.1 Church Management
+
+**User Story**: As a church administrator, I want to manage church information (create, view, update, deactivate) so that I can maintain accurate church data and support multi-church operations.
+
+**REQ-FACILITY-001**: Admin users SHALL be able to create new churches.
+
+**REQ-FACILITY-002**: Admin users SHALL be able to view list of all churches.
+
+**REQ-FACILITY-003**: Admin users SHALL be able to update existing church information.
+
+**REQ-FACILITY-004**: Admin users SHALL be able to deactivate churches (soft delete via active flag).
+
+**REQ-FACILITY-005**: Church creation SHALL require:
+- Church ID (unique)
+- Church code (unique)
+- Church name
+
+**REQ-FACILITY-006**: Church SHALL support optional fields:
+- Parish name
+
+**REQ-FACILITY-007**: The system SHALL enforce unique church codes across all churches.
+
+**REQ-FACILITY-008**: The system SHALL enforce unique church IDs.
+
+**REQ-FACILITY-009**: When deactivating a church, the system SHALL use soft deletion (set active flag to 0).
+
+#### 3.2 Zone Group Management
+
+**User Story**: As a church administrator, I want to manage zone groups (create, view, update, deactivate) so that I can organize zones hierarchically within each church.
+
+**REQ-FACILITY-010**: Admin users SHALL be able to create new zone groups.
+
+**REQ-FACILITY-011**: Admin users SHALL be able to view list of zone groups filtered by church.
+
+**REQ-FACILITY-012**: Admin users SHALL be able to update existing zone group information.
+
+**REQ-FACILITY-013**: Admin users SHALL be able to deactivate zone groups (soft delete via active flag).
+
+**REQ-FACILITY-014**: Zone group creation SHALL require:
+- Zone group ID (unique)
+- Church ID (must reference existing active church)
+- Zone group name
+
+**REQ-FACILITY-015**: Zone group SHALL support optional fields:
+- Code
+- Description
+- Sequence (for ordering)
+
+**REQ-FACILITY-016**: The system SHALL validate that the church exists and is active before creating a zone group.
+
+**REQ-FACILITY-017**: When deactivating a zone group, the system SHALL use soft deletion (set active flag to 0).
+
+#### 3.3 Zone Management
+
+**User Story**: As a church administrator, I want to manage zones within zone groups (create, view, update, deactivate) so that I can organize usher positions effectively.
+
+**REQ-FACILITY-018**: Admin users SHALL be able to create new zones.
+
+**REQ-FACILITY-019**: Admin users SHALL be able to view list of zones filtered by church.
+
+**REQ-FACILITY-020**: Admin users SHALL be able to view zones filtered by zone group.
+
+**REQ-FACILITY-021**: Admin users SHALL be able to update existing zone information.
+
+**REQ-FACILITY-022**: Admin users SHALL be able to deactivate zones (soft delete via active flag).
+
+**REQ-FACILITY-023**: Zone creation SHALL require:
+- Zone ID (unique)
+- Church ID (must reference existing active church)
+- Zone group ID (must reference existing active zone group) - **MANDATORY**
+- Zone name
+
+**REQ-FACILITY-024**: Zone SHALL support optional fields:
+- Code
+- Description
+- Sequence (for ordering within zone group)
+
+**REQ-FACILITY-025**: The system SHALL validate that both church and zone group exist and are active before creating a zone.
+
+**REQ-FACILITY-026**: The system SHALL enforce that all zones belong to a zone group (zone_group_id is mandatory, not optional).
+
+**REQ-FACILITY-027**: When deactivating a zone, the system SHALL use soft deletion (set active flag to 0).
+
+#### 3.4 Position Management
+
+**User Story**: As a church administrator, I want to manage positions within zones (create, view, update, deactivate) so that I can define available usher roles for scheduling.
+
+**REQ-FACILITY-028**: Admin users SHALL be able to create new positions.
+
+**REQ-FACILITY-029**: Admin users SHALL be able to view list of positions filtered by zone.
+
+**REQ-FACILITY-030**: Admin users SHALL be able to view positions filtered by church.
+
+**REQ-FACILITY-031**: Admin users SHALL be able to update existing position information.
+
+**REQ-FACILITY-032**: Admin users SHALL be able to deactivate positions (soft delete via active flag).
+
+**REQ-FACILITY-033**: Position creation SHALL require:
+- Position ID (unique)
+- Zone ID (must reference existing active zone)
+- Position name
+- Position type (must be one of: 'usher', 'prodiakon', 'peta')
+
+**REQ-FACILITY-034**: Position SHALL support optional fields:
+- Code
+- Description
+- is_ppg flag (boolean, defaults to false)
+- Sequence (for ordering within zone)
+
+**REQ-FACILITY-035**: The system SHALL validate that the zone exists and is active before creating a position.
+
+**REQ-FACILITY-036**: The system SHALL validate position type is one of: 'usher', 'prodiakon', 'peta'.
+
+**REQ-FACILITY-037**: When deactivating a position, the system SHALL use soft deletion (set active flag to 0).
+
+**REQ-FACILITY-038**: Deactivated positions SHALL not appear in position selection lists for new usher assignments.
+
+**REQ-FACILITY-039**: Existing usher assignments to deactivated positions SHALL remain in the database but be excluded from active queries.
+
+#### 3.5 Facility Management UI
+
+**User Story**: As a church administrator, I want to access facility management interfaces on my mobile device so that I can manage facilities from anywhere.
+
+**REQ-FACILITY-040**: Facility management interfaces SHALL be mobile responsive.
+
+**REQ-FACILITY-041**: Facility management interfaces SHALL respect user's mobile device width.
+
+**REQ-FACILITY-042**: Facility management interfaces SHALL not require horizontal scrolling on any device.
+
+**REQ-FACILITY-043**: Facility management interfaces SHALL be accessible only to admin users.
+
+### 4. Mass Zone Configuration
+
+#### 4.1 Zone Assignment for Mass
+
+**User Story**: As a church administrator, I want to assign zones to mass services so that I can configure which zones are used for each mass type.
+
+**REQ-MASSZONE-001**: Admin users SHALL be able to assign zones to mass services.
+
+**REQ-MASSZONE-002**: Admin users SHALL be able to remove zones from mass services (soft delete via active flag).
+
+**REQ-MASSZONE-003**: Admin users SHALL be able to view all zones assigned to a mass service.
+
+**REQ-MASSZONE-004**: Admin users SHALL be able to update the sequence/order of zones within a mass service.
+
+**REQ-MASSZONE-005**: The system SHALL support assigning multiple zones to a single mass service.
+
+**REQ-MASSZONE-006**: The system SHALL support assigning the same zone to multiple mass services.
+
+**REQ-MASSZONE-007**: Zone assignment SHALL require:
+- Mass ID (must reference existing active mass)
+- Zone ID (must reference existing active zone)
+
+**REQ-MASSZONE-008**: Zone assignment SHALL support optional fields:
+- Sequence (for ordering zones within mass)
+- Active flag (defaults to 1)
+
+**REQ-MASSZONE-009**: The system SHALL validate that the zone belongs to the same church as the mass before assignment.
+
+**REQ-MASSZONE-010**: The system SHALL validate that both mass and zone exist and are active before creating assignment.
+
+#### 4.2 Mass Zone Soft Deletion Impact
+
+**User Story**: As a church administrator, I want to remove zones from mass services so that I can update mass configurations without breaking existing events.
+
+**REQ-MASSZONE-011**: When removing a zone from a mass, the system SHALL use soft deletion (set active flag to 0).
+
+**REQ-MASSZONE-012**: Deactivated mass-zone associations SHALL not appear in position queries for new events.
+
+**REQ-MASSZONE-013**: Existing events that reference deactivated mass-zone associations SHALL remain in the database but use only active zones for new usher assignments.
+
+#### 4.3 Mass Zone Configuration UI
+
+**User Story**: As a church administrator, I want to configure mass zones on my mobile device so that I can manage configurations from anywhere.
+
+**REQ-MASSZONE-014**: Mass zone configuration interfaces SHALL be mobile responsive.
+
+**REQ-MASSZONE-015**: Mass zone configuration interfaces SHALL respect user's mobile device width.
+
+**REQ-MASSZONE-016**: Mass zone configuration interfaces SHALL not require horizontal scrolling on any device.
+
+**REQ-MASSZONE-017**: Mass zone configuration interfaces SHALL be accessible only to admin users.
+
+### 5. Usher Scheduling (Jadwal)
+
+#### 5.1 Schedule Viewing
 
 **REQ-SCHED-001**: Users SHALL be able to view event schedules with usher assignments.
 
@@ -170,7 +355,7 @@ The system serves three primary user roles:
 
 **REQ-SCHED-005**: Admin users SHALL be able to view detailed schedule information including all ushers and their assignments.
 
-#### 3.2 Schedule Printing
+#### 5.2 Schedule Printing
 
 **REQ-SCHED-006**: The system SHALL provide functionality to print schedules in a formatted layout.
 
@@ -181,7 +366,7 @@ The system serves three primary user roles:
 - Organized list of ushers by zone
 - Separate sections for PPG and Kolekte assignments
 
-#### 3.3 Position Distribution
+#### 5.3 Position Distribution
 
 **REQ-SCHED-008**: The system SHALL support automated position assignment using configurable algorithms:
 - Round-robin distribution (fair rotation)
@@ -196,9 +381,9 @@ The system serves three primary user roles:
 
 **REQ-SCHED-011**: The system SHALL ensure position uniqueness per event (each position assigned to at most one usher).
 
-### 4. Queue Management
+### 6. Queue Management
 
-#### 4.1 Queue Submission
+#### 6.1 Queue Submission
 
 **REQ-QUEUE-001**: The system SHALL support queue-based processing of usher assignments.
 
@@ -206,7 +391,7 @@ The system serves three primary user roles:
 
 **REQ-QUEUE-003**: The system SHALL maintain a queue of pending assignment confirmations.
 
-#### 4.2 Queue Processing
+#### 6.2 Queue Processing
 
 **REQ-QUEUE-004**: The system SHALL process confirmation queues to assign positions to unassigned ushers.
 
@@ -221,9 +406,9 @@ The system serves three primary user roles:
 
 **REQ-QUEUE-007**: The system SHALL log warnings for ushers that cannot be assigned due to constraint violations.
 
-### 5. Community Features (Lingkungan)
+### 7. Community Features (Lingkungan)
 
-#### 5.1 Community Assignment Viewing
+#### 7.1 Community Assignment Viewing
 
 **REQ-COMM-001**: Users SHALL be able to view assignments filtered by their community (lingkungan).
 
@@ -236,7 +421,7 @@ The system serves three primary user roles:
 - Usher names
 - Assignment status
 
-#### 5.2 Task Confirmation
+#### 7.2 Task Confirmation
 
 **REQ-COMM-004**: Community representatives SHALL be able to confirm task assignments for their community.
 
@@ -246,9 +431,9 @@ The system serves three primary user roles:
 
 **REQ-COMM-007**: Upon confirmation, the system SHALL add the community to the processing queue.
 
-### 6. Public Features
+### 8. Public Features
 
-#### 6.1 Public Schedule Viewing
+#### 8.1 Public Schedule Viewing
 
 **REQ-PUB-001**: The system SHALL provide public routes for viewing schedules without authentication.
 
@@ -257,15 +442,15 @@ The system serves three primary user roles:
 - Task assignments (tatib - tata tertib)
 - Guidelines and regulations (petunjuk)
 
-#### 6.2 Guidelines and Regulations
+#### 8.2 Guidelines and Regulations
 
 **REQ-PUB-003**: The system SHALL provide access to usage guidelines and regulations.
 
 **REQ-PUB-004**: Public users SHALL be able to view important information and instructions.
 
-### 7. Analytics & Tracking
+### 9. Analytics & Tracking
 
-#### 7.1 Dual Platform Tracking
+#### 9.1 Dual Platform Tracking
 
 **REQ-ANALYTICS-001**: The system SHALL track analytics using two platforms:
 - **Statsig**: Feature flag management, A/B testing, key event tracking
@@ -276,7 +461,7 @@ The system serves three primary user roles:
 - Event context (timestamps, page information)
 - Business context (event types, completion status)
 
-#### 7.2 Event Tracking
+#### 9.2 Event Tracking
 
 **REQ-ANALYTICS-003**: The system SHALL track page view events for all routes.
 
@@ -296,7 +481,7 @@ The system serves three primary user roles:
 
 **REQ-ANALYTICS-007**: The system SHALL track empty states for UX insights.
 
-#### 7.3 Performance Monitoring
+#### 9.3 Performance Monitoring
 
 **REQ-ANALYTICS-008**: The system SHALL track performance metrics:
 - Page load times
@@ -305,7 +490,7 @@ The system serves three primary user roles:
 
 **REQ-ANALYTICS-009**: The system SHALL include performance metadata in analytics events.
 
-#### 7.4 User Journey Tracking
+#### 9.4 User Journey Tracking
 
 **REQ-ANALYTICS-010**: The system SHALL track user navigation paths through the application.
 
@@ -406,6 +591,9 @@ The system serves three primary user roles:
 - Create, read, update, and manage church events
 - View and manage schedules (Jadwal)
 - Access administrative dashboard
+- Manage church configurations
+- Manage zone groups, zones, and positions
+- Configure zones for mass services
 - Manage mass configurations
 - View all usher assignments
 - Print schedules
@@ -464,19 +652,27 @@ The system serves three primary user roles:
    - Required: id, name, church_id, day
    - Optional: code, time, briefing_time, sequence
 
-6. **ChurchZone**: Zone organization within church
+6. **ChurchZoneGroup**: Zone group organization within church
    - Required: id, church_id, name
-   - Optional: code, description, sequence, zone_group_id
+   - Optional: code, description, sequence, active flag
 
-7. **ChurchPosition**: Positions within zones
+7. **ChurchZone**: Zone organization within church
+   - Required: id, church_id, zone_group_id, name
+   - Optional: code, description, sequence, active flag
+
+8. **ChurchPosition**: Positions within zones
    - Required: id, zone_id, name, type
-   - Optional: code, description, is_ppg, sequence
+   - Optional: code, description, is_ppg, sequence, active flag
 
-8. **Wilayah**: Regional organization
+9. **MassZone**: Zone assignments to mass services
+   - Required: id, mass_id, zone_id
+   - Optional: sequence, active flag
+
+10. **Wilayah**: Regional organization
    - Required: id, name, church_id, sequence
    - Optional: code
 
-9. **Lingkungan**: Community within wilayah
+11. **Lingkungan**: Community within wilayah
    - Required: id, name, wilayah_id, church_id
    - Optional: sequence
 

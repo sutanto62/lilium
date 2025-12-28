@@ -134,13 +134,26 @@
 		};
 	});
 
-	// Modernize analytics: Replace onMount with $effect for reactive tracking
+	// Track page load and handle form analytics
 	$effect(() => {
 		const session = page.data.session || undefined;
 
-		// Track page load if no form state
-		if (!form?.success && !form?.error) {
-			statsigService.logEvent('admin_misa_view', 'load', session);
+		// Track page load if no form state and data is ready
+		if (!form?.success && !form?.error && data.events !== undefined) {
+			const hasDateFilter = !!page.url.searchParams.get('date');
+			const metadata = {
+				total_events: data.events?.length || 0,
+				has_events: (data.events?.length || 0) > 0,
+				has_date_filter: hasDateFilter,
+				selected_date: hasDateFilter ? page.url.searchParams.get('date') : null,
+				has_session: !!session
+			};
+
+			// Dual tracking for client-side page view
+			Promise.all([
+				statsigService.logEvent('admin_misa_view', 'load', session, metadata),
+				tracker.track('admin_misa_view', metadata, session, page)
+			]);
 		}
 
 		// Handle form result analytics and alerts

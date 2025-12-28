@@ -15,7 +15,6 @@
 		TableHead,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import { onMount } from 'svelte';
 
 	type EventListItem = {
 		date: string;
@@ -129,8 +128,26 @@
 		);
 	}
 
-	onMount(async () => {
-		await statsigService.logEvent('admin_jadwal_view', 'load', page.data.session || undefined);
+	// Track client-side page load
+	$effect(() => {
+		// Only track if we have data loaded (prevents tracking before data is ready)
+		if (data.currentWeek !== undefined) {
+			const session = page.data.session || undefined;
+			const metadata = {
+				total_events: data.currentWeek?.length || 0,
+				past_events_count: data.pastWeek?.length || 0,
+				masses_count: data.masses?.length || 0,
+				has_events: (data.currentWeek?.length || 0) > 0,
+				has_past_events: (data.pastWeek?.length || 0) > 0,
+				has_session: !!session
+			};
+
+			// Dual tracking for client-side page view
+			Promise.all([
+				statsigService.logEvent('admin_jadwal_view', 'load', session, metadata),
+				tracker.track('admin_jadwal_view', metadata, session, page)
+			]);
+		}
 	});
 </script>
 

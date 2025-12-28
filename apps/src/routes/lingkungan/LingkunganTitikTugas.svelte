@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import type { ChurchEvent } from '$core/entities/Event';
 	import type { UsherResponse } from '$core/entities/Usher';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import LightweightCalendar from '$src/lib/components/LightweightCalendar.svelte';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import {
 		Button,
@@ -117,12 +119,85 @@
 		);
 	});
 
+	// Track empty states
+	$effect(() => {
+		// Track empty events (no events available)
+		if (events.length === 0) {
+			tracker.track(
+				'lingkungan_titik_tugas_empty_events',
+				{
+					has_selected_date: !!selectedDate
+				},
+				page.data.session,
+				page
+			);
+		}
+
+		// Track empty filtered events (date selected but no events)
+		if (selectedDate && filteredEvents.length === 0 && events.length > 0) {
+			tracker.track(
+				'lingkungan_titik_tugas_empty_filtered',
+				{
+					selected_date: selectedDate.toISOString(),
+					total_events: events.length
+				},
+				page.data.session,
+				page
+			);
+		}
+
+		// Track empty ushers (event selected but no ushers)
+		if (selectedEventId && ushers.length === 0 && !isLoading && form?.success !== false) {
+			tracker.track(
+				'lingkungan_titik_tugas_empty_ushers',
+				{
+					event_id: selectedEventId,
+					has_events: events.length > 0
+				},
+				page.data.session,
+				page
+			);
+		}
+
+		// Track empty filter results (filter applied but no groups)
+		if (filterValue && filterValue !== '' && groupedUshers().length === 0 && ushers.length > 0) {
+			tracker.track(
+				'lingkungan_titik_tugas_empty_filter',
+				{
+					filter: filterValue,
+					total_ushers: ushers.length,
+					total_groups: Array.from(
+						new Set(ushers.map((u: UsherResponse) => `${u.wilayah}-${u.lingkungan}`))
+					).length
+				},
+				page.data.session,
+				page
+			);
+		}
+	});
+
 	async function handleCardClick(eventId: string) {
+		const previousEventId = selectedEventId;
 		selectedEventId = eventId;
 
-		await statsigService.logEvent('lingkungan_select_event', 'event', data.session || undefined, {
-			eventId: eventId
-		});
+		const selectedEventData = events.find((e) => e.id === eventId);
+		const metadata = {
+			event_id: eventId,
+			previous_event_id: previousEventId || null,
+			event_date: selectedEventData?.date || null,
+			event_description: selectedEventData?.description || null
+		};
+
+		// Dual tracking for event selection
+		await Promise.all([
+			statsigService.logEvent(
+				'lingkungan_titik_tugas_event_select',
+				'event',
+				data.session || undefined,
+				metadata
+			),
+			tracker.track('lingkungan_titik_tugas_event_select', metadata, page.data.session, page)
+		]);
 
 		// Trigger form submission to fetch ushers
 		if (formElement && selectedEventId) {
@@ -135,18 +210,83 @@
 		}
 	}
 
+	async function handleEventClick(eventId: string, eventDate: string) {
+		const metadata = {
+			event_id: eventId,
+			event_date: eventDate
+		};
+
+		// Dual tracking for event click (business context for autocaptured click)
+		await Promise.all([
+			statsigService.logEvent(
+				'lingkungan_titik_tugas_event_click',
+				'click',
+				data.session || undefined,
+				metadata
+			),
+			tracker.track('lingkungan_titik_tugas_event_click', metadata, page.data.session, page)
+		]);
+	}
+
 	async function handleDateSelect(date: Date) {
+		const previousDate = selectedDate;
 		selectedDate = date;
 
-		await statsigService.logEvent('lingkungan_select_date', 'date', data.session || undefined, {
-			date: date.toISOString()
-		});
+		const filteredCount = filteredEvents.length;
+		const metadata = {
+			date: date.toISOString(),
+			previous_date: previousDate?.toISOString() || null,
+			filtered_events_count: filteredCount,
+			total_events: events.length
+		};
 
-		// Filter events by selected date
-		filteredEvents = events.filter((event) => {
-			const eventDate = new Date(event.date);
-			return eventDate.toDateString() === selectedDate!.toDateString();
-		});
+		// Dual tracking for date selection
+		await Promise.all([
+			statsigService.logEvent(
+				'lingkungan_titik_tugas_date_select',
+				'date',
+				data.session || undefined,
+				metadata
+			),
+			tracker.track('lingkungan_titik_tugas_date_select', metadata, page.data.session, page)
+		]);
+	}
+
+	async function handleFilterChange(filter: string) {
+		const previousFilter = filterValue;
+		filterValue = filter;
+
+		const filteredCount = groupedUshers().length;
+		const metadata = {
+			previous_filter: previousFilter || 'all',
+			new_filter: filter || 'all',
+			filtered_groups_count: filteredCount,
+			total_ushers: ushers.length,
+			lingkungans_count: lingkungans.length
+		};
+
+		// Dual tracking for filter change
+		await Promise.all([
+			statsigService.logEvent(
+				'lingkungan_titik_tugas_filter',
+				'change',
+				data.session || undefined,
+				metadata
+			),
+			tracker.track('lingkungan_titik_tugas_filter_change', metadata, page.data.session, page)
+		]);
+	}
+
+	async function handlePetunjukModalOpen() {
+		showPetunjukModal = true;
+
+		const metadata = {
+			event_id: selectedEventId || null,
+			has_selected_event: !!selectedEventId
+		};
+
+		// Track modal open (PostHog autocapture handles click, we add business context)
+		await tracker.track('lingkungan_titik_tugas_petunjuk_open', metadata, page.data.session, page);
 	}
 </script>
 
@@ -248,9 +388,9 @@
 			{#if lingkungans.length > 1}
 				<div class="mb-4 flex justify-end">
 					<ButtonGroup>
-						<Button size="sm" onclick={() => (filterValue = '')}>Semua</Button>
+						<Button size="sm" onclick={() => handleFilterChange('')}>Semua</Button>
 						{#each lingkungans as lingkungan}
-							<Button size="sm" onclick={() => (filterValue = lingkungan)}>{lingkungan}</Button>
+							<Button size="sm" onclick={() => handleFilterChange(lingkungan)}>{lingkungan}</Button>
 						{/each}
 					</ButtonGroup>
 				</div>
@@ -347,7 +487,7 @@
 		<div class="rounded-xl bg-white p-4 sm:p-6 md:p-8">
 			Mohon baca <button
 				type="button"
-				onclick={() => (showPetunjukModal = true)}
+				onclick={() => handlePetunjukModalOpen()}
 				class="text-blue-600 hover:underline">Petunjuk Tugas</button
 			>
 		</div>

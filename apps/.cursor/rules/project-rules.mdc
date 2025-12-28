@@ -15,6 +15,10 @@ This document consolidates coding standards and best practices for the Lilium In
 - Event Tracking: `.cursor/rules/event-tracking.mdc`
 - Security: `.cursor/rules/security.mdc`
 
+For project documentation, see:
+- Requirements: `doc/requirements.md`
+- Design: `doc/design.md`
+
 ## Code Organization
 
 ### Clean Architecture Layers
@@ -195,3 +199,16 @@ See `.cursor/rules/testing.mdc` for detailed testing guidelines.
 - Separate server-side and client-side code
 
 See `.cursor/rules/svelte5.mdc` for detailed Svelte 5 guidelines.
+
+## Project Documentation
+
+For comprehensive project documentation, refer to:
+
+- **Requirements** (`doc/requirements.md`): Functional requirements, user stories, system capabilities, and non-functional requirements
+- **Design** (`doc/design.md`): Technical architecture, design patterns, algorithms, security design, and implementation details
+
+These documents provide essential context for:
+- Understanding system requirements and capabilities
+- Planning new features and changes
+- Understanding architectural decisions
+- Reference for design patterns and best practices

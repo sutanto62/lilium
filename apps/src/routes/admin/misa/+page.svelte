@@ -23,7 +23,7 @@
 		TableHeadCell,
 		Toolbar
 	} from 'flowbite-svelte';
-	import { CogSolid } from 'flowbite-svelte-icons';
+	import { CogSolid, FileSolid } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
 
 	const { data, form } = $props<{
@@ -231,7 +231,7 @@
 
 	<Toolbar embedded class="sm:flex-column w-full gap-4 py-4 text-gray-500 dark:text-gray-300">
 		<DatePicker bind:value={selectedDate} onselect={handleDateSelect} />
-		<div class="ml-4 space-x-2">
+		<div class="ml-4 flex space-x-2">
 			<form
 				method="POST"
 				class="w-full"
@@ -255,9 +255,27 @@
 					{:else}
 						<CogSolid class="mr-2" />
 					{/if}
-					+ Misa Bulan Depan
+					Buat Misa Bulan Depan
 				</Button>
 			</form>
+			<Button
+				color="primary"
+				class="whitespace-nowrap"
+				onclick={async () => {
+					await tracker.track(
+						'admin_misa_create_button_clicked',
+						{
+							source: 'list_page'
+						},
+						page.data.session,
+						page
+					);
+					await goto('/admin/misa/create');
+				}}
+			>
+				<FileSolid class="mr-2" />
+				Tambah Misa
+			</Button>
 		</div>
 	</Toolbar>
 

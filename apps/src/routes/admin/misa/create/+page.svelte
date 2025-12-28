@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { EventType } from '$core/entities/Event';
+	import { statsigService } from '$src/lib/application/StatsigService.js';
 	import DatePicker from '$src/lib/components/DatePicker.svelte';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { getWeekNumber } from '$src/lib/utils/dateUtils.js';
 	import {
 		Alert,
@@ -28,9 +31,59 @@
 	let weekNumber: number | undefined = $state(undefined);
 	let isSubmitting = $state(false);
 
-	// Auto-hide alerts after 10 seconds if form has result
+	// Track page load
 	$effect(() => {
-		if (form?.success || form?.error) {
+		const session = page.data.session || undefined;
+
+		// Only track if form hasn't been submitted yet (initial page load)
+		if (!form?.success && !form?.error && data.church?.masses !== undefined) {
+			const metadata = {
+				masses_count: data.church?.masses?.length || 0,
+				has_masses: (data.church?.masses?.length || 0) > 0
+			};
+
+			// Dual tracking for client-side page view
+			Promise.all([
+				statsigService.logEvent('admin_misa_create_view', 'load', session, metadata),
+				tracker.track('admin_misa_create_view', metadata, session, page)
+			]);
+		}
+	});
+
+	// Track form results and auto-hide alerts after 10 seconds
+	$effect(() => {
+		const session = page.data.session || undefined;
+
+		if (form?.success) {
+			// Track successful form submission
+			statsigService.logEvent('admin_misa_create', 'success', session);
+			tracker.track(
+				'admin_misa_create_success',
+				{
+					message: form.message || 'Event created successfully'
+				},
+				session,
+				page
+			);
+
+			setTimeout(() => {
+				showAlert = false;
+			}, 10000);
+			isSubmitting = false;
+		} else if (form?.error) {
+			// Track form submission error
+			statsigService.logEvent('admin_misa_create', 'error', session, {
+				error: form.error
+			});
+			tracker.track(
+				'admin_misa_create_error',
+				{
+					error: form.error
+				},
+				session,
+				page
+			);
+
 			setTimeout(() => {
 				showAlert = false;
 			}, 10000);
@@ -72,27 +125,77 @@
 
 		if (!date) {
 			dateError = 'Tanggal harus diisi';
+			// Track validation error
+			tracker.track(
+				'admin_misa_create_validation_error',
+				{
+					error_field: 'date',
+					error_type: 'missing'
+				},
+				page.data.session,
+				page
+			);
 			return false;
 		}
 
 		const dateObj = new Date(date);
 		if (isNaN(dateObj.getTime())) {
 			dateError = 'Tanggal tidak valid';
+			// Track validation error
+			tracker.track(
+				'admin_misa_create_validation_error',
+				{
+					error_field: 'date',
+					error_type: 'invalid'
+				},
+				page.data.session,
+				page
+			);
 			return false;
 		}
 
 		if (!mass) {
 			massError = 'Jenis Misa harus dipilih';
+			// Track validation error
+			tracker.track(
+				'admin_misa_create_validation_error',
+				{
+					error_field: 'mass',
+					error_type: 'missing'
+				},
+				page.data.session,
+				page
+			);
 			return false;
 		}
 
 		if (!code || code.trim().length === 0) {
 			codeError = 'Kode harus diisi';
+			// Track validation error
+			tracker.track(
+				'admin_misa_create_validation_error',
+				{
+					error_field: 'code',
+					error_type: 'missing'
+				},
+				page.data.session,
+				page
+			);
 			return false;
 		}
 
 		if (!description || description.trim().length === 0) {
 			descriptionError = 'Nama harus diisi';
+			// Track validation error
+			tracker.track(
+				'admin_misa_create_validation_error',
+				{
+					error_field: 'description',
+					error_type: 'missing'
+				},
+				page.data.session,
+				page
+			);
 			return false;
 		}
 
@@ -112,14 +215,14 @@
 	<BreadcrumbItem>Misa Baru</BreadcrumbItem>
 </Breadcrumb>
 
-<!-- on succes alert -->
+<!-- Success alert -->
 {#if form?.success && showAlert}
 	<Alert color="green" class="mb-4">
 		<p>Data misa berhasil disimpan</p>
 	</Alert>
 {/if}
 
-<!-- on error alert -->
+<!-- Error alert -->
 {#if form?.error && showAlert}
 	<Alert color="red" class="mb-4">
 		<p>{form.error}</p>
@@ -143,6 +246,25 @@
 						await update();
 					};
 				}
+
+				// Track form submission attempt
+				const session = page.data.session || undefined;
+				const date = formData.get('date') as string;
+				const mass = formData.get('mass') as string;
+				const type = formData.get('type') as string;
+
+				tracker.track(
+					'admin_misa_create_submit',
+					{
+						event_type: 'form_submission',
+						has_date: !!date,
+						has_mass: !!mass,
+						event_type_value: type
+					},
+					session,
+					page
+				);
+
 				return async ({ update }) => {
 					isSubmitting = true;
 					await update();
@@ -191,12 +313,14 @@
 			</div>
 
 			<div>
-				<Label for="description">Nama</Label>
+				<Label for="description">Nama Misa</Label>
+				<small>Nama muncul pada pilihan jadwal misa saat konfirmasi</small>
 				<Textarea
 					id="description"
 					name="description"
 					required
 					color={descriptionError ? 'red' : 'default'}
+					class="w-full"
 				/>
 				{#if descriptionError}
 					<p class="mt-1 text-sm text-red-600 dark:text-red-400">{descriptionError}</p>

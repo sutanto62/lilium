@@ -13,6 +13,7 @@ This document consolidates coding standards and best practices for the Lilium In
 - Clean Architecture: `.cursor/rules/clean-code.mdc`
 - Naming Conventions: `.cursor/rules/conventions.mdc`
 - Event Tracking: `.cursor/rules/event-tracking.mdc`
+- Security: `.cursor/rules/security.mdc`
 
 ## Code Organization
 
@@ -58,6 +59,8 @@ import { ChurchEvent, ServiceError } from '$core/entities/Event';
 - Use index files for public API when appropriate
 
 ## Error Handling
+
+For security considerations in error handling, see `.cursor/rules/security.mdc` (Error Handling Security section).
 
 ### ServiceError Pattern
 
@@ -173,6 +176,7 @@ See `.cursor/rules/typescript.mdc` for detailed TypeScript guidelines.
 - Use transactions for atomic operations
 
 See `.cursor/rules/database.mdc` for detailed database guidelines.
+See `.cursor/rules/security.mdc` for database security best practices.
 
 ## Testing
 

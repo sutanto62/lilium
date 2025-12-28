@@ -1,17 +1,17 @@
 # Analytics Events Inventory
 
-**Last Updated**: 2025-12-27
-**Total Events**: 48
+**Last Updated**: 2025-12-28
+**Total Events**: 56
 
 > **Note**: This inventory tracks all analytics events implemented across the codebase. Before adding new events, check this document to avoid duplicates and ensure consistent naming.
 
 ## Quick Reference
 
 ### Event Categories
-- **Empty States**: 2 events
-- **Errors**: 3 events
-- **User Interactions**: 17 events
-- **Page Views**: 10 events
+- **Empty States**: 6 events
+- **Errors**: 4 events
+- **User Interactions**: 20 events
+- **Page Views**: 9 events
 - **Business Events**: 4 events
 
 ### Platforms
@@ -32,8 +32,7 @@
 | `admin_view` | Statsig | `src/routes/admin/+page.svelte:9` | Track page loads | None |
 | `home_view` | Statsig + PostHog | `src/routes/+page.svelte:23`<br>`src/routes/+page.svelte:24` | Track page loads | `event_type` |
 | `home_view_server` | Statsig + PostHog | `src/routes/+page.server.ts:26`<br>`src/routes/+page.server.ts:27` | Track page server-side loads | `event_type` |
-| `lingkungan_view` | Statsig | `src/routes/lingkungan/+page.svelte:10` | Track page loads | None |
-| `lingkungan_view_server` | Statsig | `src/routes/lingkungan/+page.server.ts:10` | Track page server-side loads | None |
+| `lingkungan_titik_tugas_view` | Statsig + PostHog | `src/routes/lingkungan/+page.server.ts:31`<br>`src/routes/lingkungan/+page.server.ts:32`<br>`src/routes/lingkungan/+page.svelte:23`<br>`src/routes/lingkungan/+page.svelte:24` | Track page loads | `event_type` |
 | `misa_view_server` | Statsig | `src/routes/admin/misa/+page.server.ts:31` | Track page server-side loads | None |
 | `tatib_view` | Statsig + PostHog | `src/routes/f/tatib/+page.svelte:219`<br>`src/routes/f/tatib/+page.svelte:220` | Track page loads | `event_type`, `show_form` |
 | `tatib_view_server` | Statsig + PostHog | `src/routes/f/tatib/+page.server.ts:111`<br>`src/routes/f/tatib/+page.server.ts:112` | Track page server-side loads | `event_type` |
@@ -51,8 +50,11 @@
 | `button_clicked` | PostHog | `src/components/PostHogDemo.svelte:12`<br>`src/lib/application/PostHogService.ts:1064`<br>`src/lib/utils/analytics.ts:29` | Track button/link clicks | `button_name`, `action` |
 | `footer_external_link_click` | PostHog | `src/components/Footer.svelte:35` | Track external link clicks | `event_type` |
 | `home_feature_click` | Statsig + PostHog | `src/routes/+page.svelte:44`<br>`src/routes/+page.svelte:50` | Track feature navigation | `event_type` |
-| `lingkungan_select_date` | Statsig | `src/routes/lingkungan/LingkunganTitikTugas.svelte:141` | Track date selection in lingkungan page | `date` |
-| `lingkungan_select_event` | Statsig | `src/routes/lingkungan/LingkunganTitikTugas.svelte:123` | Track event selection in lingkungan page | `eventId` |
+| `lingkungan_titik_tugas_date_select` | Statsig + PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:245`<br>`src/routes/lingkungan/LingkunganTitikTugas.svelte:251` | Track date selection in lingkungan page | None |
+| `lingkungan_titik_tugas_event_click` | Statsig + PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:221`<br>`src/routes/lingkungan/LingkunganTitikTugas.svelte:227` | Track copy titik tugas button clicks | None |
+| `lingkungan_titik_tugas_event_select` | Statsig + PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:193`<br>`src/routes/lingkungan/LingkunganTitikTugas.svelte:199` | Track event selection in lingkungan page | None |
+| `lingkungan_titik_tugas_filter` | Statsig | `src/routes/lingkungan/LingkunganTitikTugas.svelte:270` | Track filter change interactions | None |
+| `lingkungan_titik_tugas_filter_change` | PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:276` | Track filter changes with business context | None |
 | `tatib_copy_titik_tugas` | Statsig + PostHog | `src/routes/f/tatib/+page.svelte:174`<br>`src/routes/f/tatib/+page.svelte:179` | Track copy titik tugas button clicks | `event_type`, `action` |
 | `tatib_regional_date_select` | Statsig + PostHog | `src/components/Regional.svelte:57`<br>`src/components/Regional.svelte:63` | Track date selection in lingkungan page | `event_type` |
 | `tatib_regional_event_select` | Statsig + PostHog | `src/components/Regional.svelte:92`<br>`src/components/Regional.svelte:98` | Track event selection in lingkungan page | `event_type` |
@@ -75,6 +77,7 @@
 |------------|----------|----------|---------|----------|
 | `admin_jadwal_error` | Statsig + PostHog | `src/routes/admin/jadwal/+page.server.ts:110`<br>`src/routes/admin/jadwal/+page.server.ts:111` | Track errors and failures | `event_type` |
 | `admin_misa_bulk_create_error` | PostHog | `src/routes/admin/misa/+page.svelte:167` | Track errors and failures | `error` |
+| `lingkungan_titik_tugas_error` | Statsig + PostHog | `src/routes/lingkungan/+page.server.ts:52`<br>`src/routes/lingkungan/+page.server.ts:99`<br>`src/routes/lingkungan/+page.server.ts:53`<br>`src/routes/lingkungan/+page.server.ts:100` | Track errors and failures | `event_type` |
 | `tatib_error` | Statsig + PostHog | `src/routes/f/tatib/+page.server.ts:141`<br>`src/routes/f/tatib/+page.server.ts:185`<br>`src/routes/f/tatib/+page.server.ts:231`<br>`src/routes/f/tatib/+page.server.ts:256`<br>`src/routes/f/tatib/+page.server.ts:287`<br>`src/routes/f/tatib/+page.server.ts:305`<br>`src/routes/f/tatib/+page.server.ts:324`<br>`src/routes/f/tatib/+page.server.ts:346`<br>`src/routes/f/tatib/+page.server.ts:366`<br>`src/routes/f/tatib/+page.server.ts:395`<br>`src/routes/f/tatib/+page.server.ts:407`<br>`src/routes/f/tatib/+page.server.ts:420`<br>`src/routes/f/tatib/+page.server.ts:433`<br>`src/routes/f/tatib/+page.server.ts:454`<br>`src/routes/f/tatib/+page.server.ts:480`<br>`src/routes/f/tatib/+page.server.ts:536`<br>`src/routes/f/tatib/+page.server.ts:142`<br>`src/routes/f/tatib/+page.server.ts:186`<br>`src/routes/f/tatib/+page.server.ts:232`<br>`src/routes/f/tatib/+page.server.ts:257`<br>`src/routes/f/tatib/+page.server.ts:288`<br>`src/routes/f/tatib/+page.server.ts:306`<br>`src/routes/f/tatib/+page.server.ts:325`<br>`src/routes/f/tatib/+page.server.ts:347`<br>`src/routes/f/tatib/+page.server.ts:367`<br>`src/routes/f/tatib/+page.server.ts:396`<br>`src/routes/f/tatib/+page.server.ts:408`<br>`src/routes/f/tatib/+page.server.ts:421`<br>`src/routes/f/tatib/+page.server.ts:434`<br>`src/routes/f/tatib/+page.server.ts:455`<br>`src/routes/f/tatib/+page.server.ts:481`<br>`src/routes/f/tatib/+page.server.ts:537`<br>`src/routes/f/tatib/+page.svelte:197`<br>`src/routes/f/tatib/+page.svelte:51`<br>`src/routes/f/tatib/+page.svelte:203` | Track errors and failures | `event_type` |
 
 ### Empty States
@@ -83,6 +86,10 @@
 |------------|----------|----------|---------|----------|
 | `admin_jadwal_empty` | PostHog | `src/routes/admin/jadwal/+page.svelte:77` | Track completely empty page state | `has_past_events` |
 | `admin_jadwal_empty_filter` | PostHog | `src/routes/admin/jadwal/+page.svelte:63` | Track empty filter results | None |
+| `lingkungan_titik_tugas_empty_events` | PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:126` | Track completely empty page state | `has_selected_date` |
+| `lingkungan_titik_tugas_empty_filter` | PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:164` | Track empty filter results | None |
+| `lingkungan_titik_tugas_empty_filtered` | PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:138` | Track empty filter results | `selected_date`, `total_events` |
+| `lingkungan_titik_tugas_empty_ushers` | PostHog | `src/routes/lingkungan/LingkunganTitikTugas.svelte:151` | Track completely empty page state | `event_id`, `has_events` |
 
 ---
 
@@ -96,7 +103,7 @@
 - **Metadata**: 
   - `has_past_events`: Has Past Events
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_jadwal_empty_filter
 - **Platforms**: PostHog
@@ -105,7 +112,7 @@
 - **Purpose**: Track empty filter results
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_jadwal_error
 - **Platforms**: Statsig + PostHog
@@ -115,7 +122,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_jadwal_event_navigate
 - **Platforms**: PostHog
@@ -124,7 +131,7 @@
 - **Purpose**: Track navigation events
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_jadwal_filter
 - **Platforms**: Statsig
@@ -137,7 +144,7 @@
   - `filtered_count`: Filtered Count
   - `total_count`: Total Count
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_jadwal_filter_change
 - **Platforms**: PostHog
@@ -146,7 +153,7 @@
 - **Purpose**: Track filter changes with business context
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_jadwal_view
 - **Platforms**: Statsig + PostHog
@@ -157,7 +164,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_bulk_create_clicked
 - **Platforms**: PostHog
@@ -168,7 +175,7 @@
   - `next_month_start`: Next Month Start
   - `next_month_end`: Next Month End
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_bulk_create_error
 - **Platforms**: PostHog
@@ -178,7 +185,7 @@
 - **Metadata**: 
   - `error`: Error
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_bulk_create_success
 - **Platforms**: PostHog
@@ -188,7 +195,7 @@
 - **Metadata**: 
   - `message`: Message
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_create
 - **Platforms**: Statsig
@@ -198,7 +205,7 @@
 - **Metadata**: 
   - `error`: Error
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_date_filter_used
 - **Platforms**: PostHog
@@ -208,7 +215,7 @@
 - **Metadata**: 
   - `selected_date`: Selected Date
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_edit_clicked
 - **Platforms**: PostHog
@@ -217,7 +224,7 @@
 - **Purpose**: Track button/link clicks
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_misa_view
 - **Platforms**: Statsig
@@ -226,7 +233,7 @@
 - **Purpose**: Track page loads
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### admin_view
 - **Platforms**: Statsig
@@ -235,7 +242,7 @@
 - **Purpose**: Track page loads
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### button_clicked
 - **Platforms**: PostHog
@@ -246,7 +253,7 @@
   - `button_name`: Button Name
   - `action`: Action
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### custom_event
 - **Platforms**: PostHog
@@ -255,7 +262,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### event_name
 - **Platforms**: PostHog
@@ -265,7 +272,7 @@
 - **Metadata**: 
   - `prop`: Prop
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### footer_external_link
 - **Platforms**: Statsig
@@ -274,7 +281,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### footer_external_link_click
 - **Platforms**: PostHog
@@ -284,7 +291,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### home_feature_click
 - **Platforms**: Statsig + PostHog
@@ -294,7 +301,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### home_view
 - **Platforms**: Statsig + PostHog
@@ -304,7 +311,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### home_view_server
 - **Platforms**: Statsig + PostHog
@@ -314,7 +321,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### jadwal_detail
 - **Platforms**: Statsig
@@ -324,45 +331,123 @@
 - **Metadata**: 
   - `eventId`: EventId
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
-### lingkungan_select_date
-- **Platforms**: Statsig
+### lingkungan_titik_tugas_date_select
+- **Platforms**: Statsig + PostHog
 - **Locations**: 
-  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:141`
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:245`, `src/routes/lingkungan/LingkunganTitikTugas.svelte:251`
 - **Purpose**: Track date selection in lingkungan page
-- **Metadata**: 
-  - `date`: Date
-- **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
-
-### lingkungan_select_event
-- **Platforms**: Statsig
-- **Locations**: 
-  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:123`
-- **Purpose**: Track event selection in lingkungan page
-- **Metadata**: 
-  - `eventId`: EventId
-- **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
-
-### lingkungan_view
-- **Platforms**: Statsig
-- **Locations**: 
-  - Client: `src/routes/lingkungan/+page.svelte:10`
-- **Purpose**: Track page loads
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
-### lingkungan_view_server
-- **Platforms**: Statsig
+### lingkungan_titik_tugas_empty_events
+- **Platforms**: PostHog
 - **Locations**: 
-  - Server: `src/routes/lingkungan/+page.server.ts:10`
-- **Purpose**: Track page server-side loads
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:126`
+- **Purpose**: Track completely empty page state
+- **Metadata**: 
+  - `has_selected_date`: Has Selected Date
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_empty_filter
+- **Platforms**: PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:164`
+- **Purpose**: Track empty filter results
 - **Metadata**: None
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_empty_filtered
+- **Platforms**: PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:138`
+- **Purpose**: Track empty filter results
+- **Metadata**: 
+  - `selected_date`: Selected Date
+  - `total_events`: Total Events
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_empty_ushers
+- **Platforms**: PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:151`
+- **Purpose**: Track completely empty page state
+- **Metadata**: 
+  - `event_id`: Event Id
+  - `has_events`: Has Events
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_error
+- **Platforms**: Statsig + PostHog
+- **Locations**: 
+  - Server: `src/routes/lingkungan/+page.server.ts:52`, `src/routes/lingkungan/+page.server.ts:99`, `src/routes/lingkungan/+page.server.ts:53`, `src/routes/lingkungan/+page.server.ts:100`
+- **Purpose**: Track errors and failures
+- **Metadata**: 
+  - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_event_click
+- **Platforms**: Statsig + PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:221`, `src/routes/lingkungan/LingkunganTitikTugas.svelte:227`
+- **Purpose**: Track copy titik tugas button clicks
+- **Metadata**: None
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_event_select
+- **Platforms**: Statsig + PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:193`, `src/routes/lingkungan/LingkunganTitikTugas.svelte:199`
+- **Purpose**: Track event selection in lingkungan page
+- **Metadata**: None
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_filter
+- **Platforms**: Statsig
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:270`
+- **Purpose**: Track filter change interactions
+- **Metadata**: None
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_filter_change
+- **Platforms**: PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:276`
+- **Purpose**: Track filter changes with business context
+- **Metadata**: None
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_petunjuk_open
+- **Platforms**: PostHog
+- **Locations**: 
+  - Client: `src/routes/lingkungan/LingkunganTitikTugas.svelte:289`
+- **Purpose**: Track user interaction
+- **Metadata**: None
+- **Trigger**: Client-side event
+- **Last Updated**: 2025-12-28
+
+### lingkungan_titik_tugas_view
+- **Platforms**: Statsig + PostHog
+- **Locations**: 
+  - Server: `src/routes/lingkungan/+page.server.ts:31`, `src/routes/lingkungan/+page.server.ts:32`
+  - Client: `src/routes/lingkungan/+page.svelte:23`, `src/routes/lingkungan/+page.svelte:24`
+- **Purpose**: Track page loads
+- **Metadata**: 
+  - `event_type`: Event Type
+- **Trigger**: Server-side event
+- **Last Updated**: 2025-12-28
 
 ### misa_view_server
 - **Platforms**: Statsig
@@ -371,7 +456,7 @@
 - **Purpose**: Track page server-side loads
 - **Metadata**: None
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### server_event
 - **Platforms**: PostHog
@@ -381,7 +466,7 @@
 - **Metadata**: 
   - `data`: Data
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_confirm_ushers
 - **Platforms**: Statsig + PostHog
@@ -392,7 +477,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_copy_titik_tugas
 - **Platforms**: Statsig + PostHog
@@ -403,7 +488,7 @@
   - `event_type`: Event Type
   - `action`: Action
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_error
 - **Platforms**: Statsig + PostHog
@@ -414,7 +499,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_regional_date_select
 - **Platforms**: Statsig + PostHog
@@ -424,7 +509,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_regional_event_select
 - **Platforms**: Statsig + PostHog
@@ -434,7 +519,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_regional_lingkungan_select
 - **Platforms**: Statsig + PostHog
@@ -444,7 +529,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_regional_wilayah_select
 - **Platforms**: Statsig + PostHog
@@ -454,7 +539,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_success
 - **Platforms**: PostHog
@@ -463,7 +548,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_ushers_add
 - **Platforms**: Statsig + PostHog
@@ -472,7 +557,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_ushers_form_ready
 - **Platforms**: PostHog
@@ -481,7 +566,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_ushers_max_limit
 - **Platforms**: Statsig + PostHog
@@ -490,7 +575,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_ushers_progress
 - **Platforms**: PostHog
@@ -499,7 +584,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_ushers_reset
 - **Platforms**: Statsig + PostHog
@@ -508,7 +593,7 @@
 - **Purpose**: Track user interaction
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_ushers_role_change
 - **Platforms**: Statsig + PostHog
@@ -517,7 +602,7 @@
 - **Purpose**: Track role change interactions
 - **Metadata**: None
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_validate_ushers
 - **Platforms**: Statsig + PostHog
@@ -527,7 +612,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_view
 - **Platforms**: Statsig + PostHog
@@ -538,7 +623,7 @@
   - `event_type`: Event Type
   - `show_form`: Show Form
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### tatib_view_server
 - **Platforms**: Statsig + PostHog
@@ -548,7 +633,7 @@
 - **Metadata**: 
   - `event_type`: Event Type
 - **Trigger**: Server-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 
 ### user_action
 - **Platforms**: PostHog
@@ -559,5 +644,5 @@
   - `action`: Action
   - `data`: Data
 - **Trigger**: Client-side event
-- **Last Updated**: 2025-12-27
+- **Last Updated**: 2025-12-28
 

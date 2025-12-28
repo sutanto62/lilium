@@ -76,7 +76,7 @@
 		"@sveltejs/kit": "^2.15.0",
 		"@types/html2canvas": "^0.5.35",
 		"baseline-browser-mapping": "^2.9.11",
-		"better-sqlite3": "^11.2.1",
+		"better-sqlite3": "^12.5.0",
 		"caniuse-lite": "^1.0.30001761",
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.31.4",

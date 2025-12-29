@@ -12,7 +12,7 @@
 		FooterLink,
 		FooterLinkGroup
 	} from 'flowbite-svelte';
-	import { GithubSolid } from 'flowbite-svelte-icons';
+	import GithubSolid from 'flowbite-svelte-icons/GithubSolid.svelte';
 
 	async function handleExternalLinkClick(
 		linkType: 'github' | 'church' | 'contributors' | 'license',
@@ -89,7 +89,7 @@
 				</h2>
 				<FooterLinkGroup>
 					<FooterLink
-						liClass="mb-4"
+						class="mb-4"
 						href={env.PUBLIC_SITE_URL || '/'}
 						onclick={() => handleExternalLinkClick('church', env.PUBLIC_SITE_URL || '/')}
 						>{env.PUBLIC_SITE_CHURCH || 'Paroki'}</FooterLink

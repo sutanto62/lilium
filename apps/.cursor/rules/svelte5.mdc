@@ -6,61 +6,34 @@ alwaysApply: true
 
 # Svelte 5 Rules
 
-For general project rules, see `.cursor/rules/project-rules.mdc`.
-For TypeScript patterns in components, see `.cursor/rules/typescript.mdc`.
-For naming conventions, see `.cursor/rules/conventions.mdc`.
-
-- Prioritize using Svelte 5 and propose migrating from Svelte 4.
-- Use runes for controlling reactivity.
-- Always review Svelte 5 recommendation or best practices first.
+- Prioritize Svelte 5, use runes for reactivity
+- Never use Svelte 4 patterns (`export let`, `onMount`, stores)
 
 ## Runes Usage
 
 ### $props() for Component Props
 
-Always use `$props()` with proper typing:
-
 ```svelte
-<!-- ✅ Good: Typed props with defaults -->
 <script lang="ts">
   const { data, form } = $props<{
     data: PageProps['data'];
     form: PageProps['form'];
   }>();
 </script>
-
-<!-- ❌ Bad: Svelte 4 export let pattern -->
-<script>
-  export let data;
-  export let form;
-</script>
 ```
 
 ### $state() for Reactive State
 
-Use `$state()` for component state:
-
 ```svelte
-<!-- ✅ Good: Typed state with $state() -->
 <script lang="ts">
   let selectedDate = $state<Date | undefined>(undefined);
-  let showAlert = $state(true);
   let isSubmitting = $state(false);
-</script>
-
-<!-- ❌ Bad: let without $state() -->
-<script>
-  let selectedDate = undefined;
-  let showAlert = true;
 </script>
 ```
 
 ### $derived() for Computed Values
 
-Use `$derived()` for computed/reactive values:
-
 ```svelte
-<!-- ✅ Good: Derived state -->
 <script lang="ts">
   let event = $state<ChurchEvent | null>(null);
   let isLoading = $derived(event === null);
@@ -78,92 +51,58 @@ Use `$derived()` for computed/reactive values:
 
 ### $effect() for Side Effects
 
-Use `$effect()` instead of `onMount` for reactive side effects:
-
 ```svelte
-<!-- ✅ Good: Reactive effect -->
 <script lang="ts">
   import { page } from '$app/state';
   
   $effect(() => {
     const dateParam = page.url.searchParams.get('date');
     if (dateParam && selectedDate === undefined) {
-      const parsedDate = new Date(dateParam);
-      if (!isNaN(parsedDate.getTime())) {
-        selectedDate = parsedDate;
-      }
+      selectedDate = new Date(dateParam);
     }
-  });
-</script>
-
-<!-- ❌ Bad: onMount (Svelte 4 pattern) -->
-<script>
-  import { onMount } from 'svelte';
-  
-  onMount(() => {
-    // Effect logic
   });
 </script>
 ```
 
 ### $bindable() for Two-Way Binding
 
-Use `$bindable()` for props that need two-way binding:
-
 ```svelte
-<!-- ✅ Good: Bindable prop -->
 <script lang="ts">
   let { value = $bindable<Date | undefined>() } = $props();
-</script>
-
-<!-- ❌ Bad: bind:value without $bindable() -->
-<script>
-  export let value;
 </script>
 ```
 
 ## Component Structure
 
-### Script Section Order
-
+Script section order:
 1. Imports (external → internal → aliases)
-2. Props definition with `$props()`
+2. Props with `$props()`
 3. State with `$state()`
-4. Derived values with `$derived()`
+4. Derived with `$derived()`
 5. Functions
 6. Effects with `$effect()`
 
 ```svelte
-<!-- ✅ Good: Proper structure -->
 <script lang="ts">
   // 1. Imports
   import { enhance } from '$app/forms';
-  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import type { PageProps } from './$types';
   
   // 2. Props
-  const { data, form } = $props<{
-    data: PageProps['data'];
-    form: PageProps['form'];
-  }>();
+  const { data, form } = $props<{ data: PageProps['data']; form: PageProps['form'] }>();
   
   // 3. State
   let selectedDate = $state<Date | undefined>(undefined);
-  let showAlert = $state(true);
   
   // 4. Derived
   const events = $derived(data.events);
   
   // 5. Functions
-  function handleDateSelect(date: Date) {
-    // Handler logic
-  }
+  function handleDateSelect(date: Date) { }
   
   // 6. Effects
-  $effect(() => {
-    // Side effect logic
-  });
+  $effect(() => { });
 </script>
 ```
 
@@ -174,9 +113,6 @@ Use `$bindable()` for props that need two-way binding:
 Use `+page.server.ts` for server-side logic:
 
 ```typescript
-// ✅ Good: Server-side load function
-import type { PageServerLoad } from './$types';
-
 export const load: PageServerLoad = async ({ params, url }) => {
   const events = await eventService.retrieveEventsByWeekRange({ weekNumber: 1 });
   return { events };
@@ -188,14 +124,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 Keep client-side logic in `.svelte` files:
 
 ```svelte
-<!-- ✅ Good: Client-side state management -->
 <script lang="ts">
   let isSubmitting = $state(false);
-  
-  function handleSubmit() {
-    isSubmitting = true;
-    // Form submission logic
-  }
+  function handleSubmit() { isSubmitting = true; }
 </script>
 ```
 
@@ -204,7 +135,6 @@ Keep client-side logic in `.svelte` files:
 ### Use enhance() for Form Handling
 
 ```svelte
-<!-- ✅ Good: Using enhance() -->
 <form
   method="POST"
   use:enhance={() => {
@@ -215,19 +145,12 @@ Keep client-side logic in `.svelte` files:
     };
   }}
 >
-  <!-- Form content -->
-</form>
 ```
 
 ### Inline Event Handlers
 
-Use inline handlers for simple actions:
-
 ```svelte
-<!-- ✅ Good: Inline handler -->
 <Button onclick={handleCancelBulkCreate}>Batal</Button>
-
-<!-- ✅ Good: Inline handler with event -->
 <Button onclick={(e) => handleClick(e)}>Click</Button>
 ```
 
@@ -236,20 +159,14 @@ Use inline handlers for simple actions:
 Always type props, state, and function parameters:
 
 ```svelte
-<!-- ✅ Good: Fully typed -->
 <script lang="ts">
   const { eventId = $bindable<string>() } = $props();
   let event = $state<ChurchEvent | null>(null);
-  
-  function handleEvent(event: ChurchEvent): void {
-    // Handler logic
-  }
+  function handleEvent(event: ChurchEvent): void { }
 </script>
 ```
 
 ## Prefer Runes Over Stores
-
-Use runes instead of Svelte stores when possible:
 
 ```svelte
 <!-- ✅ Good: Using runes -->
@@ -260,25 +177,7 @@ Use runes instead of Svelte stores when possible:
 
 <!-- ❌ Bad: Using stores (unless shared across components) -->
 <script>
-  import { writable, derived } from 'svelte/store';
+  import { writable } from 'svelte/store';
   const count = writable(0);
-  const doubled = derived(count, $count => $count * 2);
-</script>
-```
-
-## Component Props Validation
-
-Validate props when needed:
-
-```svelte
-<!-- ✅ Good: Props with validation -->
-<script lang="ts">
-  const { eventId = $bindable<string>() } = $props();
-  
-  $effect(() => {
-    if (!eventId) {
-      throw new Error('eventId is required');
-    }
-  });
 </script>
 ```

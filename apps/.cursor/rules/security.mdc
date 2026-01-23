@@ -1,394 +1,127 @@
 ---
 description: Web security guidelines covering authentication, authorization, input validation, secrets management, HTTP headers, and security best practices
 globs: **/*.ts,**/*.svelte
-alwaysApply: true
+alwaysApply: false 
 ---
 
 # Web Security Rules
 
-For general project rules, see `.cursor/rules/project-rules.mdc`.
-For database security patterns, see `.cursor/rules/database.mdc`.
-For error handling patterns, see `.cursor/rules/project-rules.mdc` (Error Handling section).
-
 ## Authentication & Authorization
-
-### OAuth Provider Security
-
-The application uses `@auth/sveltekit` with OAuth providers (Google, Microsoft Entra ID). Follow these security practices:
-
-```typescript
-// ✅ Good: OAuth provider configuration with environment variables
-import Google from '@auth/sveltekit/providers/google';
-import MicrosoftEntraID from '@auth/sveltekit/providers/microsoft-entra-id';
-
-const providers: Provider[] = [
-  MicrosoftEntraID({
-    clientId: import.meta.env.VITE_AUTH_MICROSOFT_APP_ID,
-    clientSecret: import.meta.env.VITE_AUTH_MICROSOFT_APP_SECRET,
-    issuer: import.meta.env.VITE_AUTH_MICROSOFT_ENTRA_APP_ISSUER
-  }),
-  Google({
-    clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-    clientSecret: import.meta.env.VITE_GOOGLE_CLIENT_SECRET
-  })
-];
-
-// ❌ Bad: Hardcoded credentials
-const providers = [
-  Google({
-    clientId: 'hardcoded-client-id',
-    clientSecret: 'hardcoded-secret'
-  })
-];
-```
 
 ### Session Management
 
 Always validate sessions before accessing protected resources:
 
 ```typescript
-// ✅ Good: Session validation in layout.server.ts
 export const load: LayoutServerLoad = async (event) => {
   const session = await event.locals.auth();
-  
-  // Redirect to signin if not authenticated
-  if (!session) {
-    throw redirect(302, '/signin');
-  }
-  
-  // Redirect if user is unregistered
-  if (session.user?.unregistered) {
-    throw redirect(302, '/');
-  }
-  
+  if (!session) throw redirect(302, '/signin');
+  if (session.user?.unregistered) throw redirect(302, '/');
   return { session };
-};
-
-// ❌ Bad: No session validation
-export const load: LayoutServerLoad = async (event) => {
-  // Missing session check - allows unauthorized access
-  return { data: sensitiveData };
 };
 ```
 
 ### Role-Based Access Control
 
-Use `hasRole()` and `requireRole()` functions for authorization checks:
+Use `hasRole()` for authorization checks:
 
 ```typescript
-// ✅ Good: Role-based access control
-import { hasRole, requireRole } from '$src/auth';
+import { hasRole } from '$src/auth';
 
 export const load: LayoutServerLoad = async (event) => {
   const session = await event.locals.auth();
-  
-  if (!session) {
+  if (!session || !hasRole(session, 'admin')) {
     throw redirect(302, '/signin');
   }
-  
-  // Check if user has admin role
-  if (!hasRole(session, 'admin')) {
-    throw redirect(302, '/');
-  }
-  
   return { session };
 };
 
-// ✅ Good: Enforcing role in form actions
+// In form actions
 export const actions: Actions = {
   default: async ({ request, locals }: RequestEvent) => {
     const session = await locals.auth();
     if (!hasRole(session, 'admin')) {
-      logger.warn('Unauthorized access attempt');
-      return fail(403, {
-        success: false,
-        error: 'Anda tidak memiliki izin untuk melakukan aksi ini'
-      });
+      return fail(403, { error: 'Anda tidak memiliki izin untuk melakukan aksi ini' });
     }
     // ... action logic
-  }
-};
-
-// ❌ Bad: No role checking
-export const actions: Actions = {
-  default: async ({ request, locals }: RequestEvent) => {
-    // Missing authorization check
-    const formData = await request.formData();
-    // ... dangerous operation without permission check
   }
 };
 ```
 
 ### Public Routes
 
-Some routes (`/f/*`, `/lingkungan`) are public and don't require authentication. Still validate inputs and protect against abuse:
+Public routes (`/f/*`, `/lingkungan`) still require input validation:
 
 ```typescript
-// ✅ Good: Public route with input validation
 export const actions = {
   default: async ({ request }) => {
-    const formData = await request.formData();
     const eventId = formData.get('eventId') as string;
-    
-    // Validate input even in public routes
     if (!eventId || typeof eventId !== 'string') {
       return fail(400, { error: 'Invalid event ID' });
     }
-    
-    // ... process request
+    // ... process
   }
 };
-
-// ❌ Bad: Public route without validation
-export const actions = {
-  default: async ({ request }) => {
-    const formData = await request.formData();
-    const eventId = formData.get('eventId'); // No validation
-    // ... vulnerable to injection attacks
-  }
-};
-```
-
-### JWT Token Security
-
-JWT tokens are managed by `@auth/sveltekit`. Ensure proper configuration:
-
-```typescript
-// ✅ Good: Secure JWT configuration
-export const { handle: authHandle } = SvelteKitAuth({
-  trustHost: true,
-  secret: import.meta.env.VITE_AUTH_SECRET, // Must be strong, random secret
-  providers: providers,
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (user && account) {
-        // Validate user exists in database
-        const dbUser = await repo.getUserByEmail(user.email ?? '');
-        if (!dbUser) {
-          return {
-            ...token,
-            role: 'visitor',
-            unregistered: true
-          };
-        }
-        token.role = dbUser.role;
-      }
-      return token;
-    }
-  }
-});
-
-// ❌ Bad: Weak secret or missing validation
-export const { handle: authHandle } = SvelteKitAuth({
-  secret: 'weak-secret', // Weak secret
-  providers: providers
-  // Missing user validation in callbacks
-});
-```
-
-### Unregistered User Handling
-
-Unregistered users are automatically assigned 'visitor' role and limited access:
-
-```typescript
-// ✅ Good: Unregistered user handling
-if (!dbUser) {
-  return {
-    ...token,
-    cid: '',
-    role: 'visitor',
-    lingkunganId: '',
-    unregistered: true
-  };
-}
-
-// In hooks or layout
-if (session?.user?.unregistered) {
-  logger.warn(`unregistered user ${session.user.email} detected`);
-  throw redirect(302, '/');
-}
 ```
 
 ## Environment Variables & Secrets
 
-### VITE_ Prefix Security Implications
+### VITE_ Prefix Security
 
-**CRITICAL**: Environment variables prefixed with `VITE_` are exposed to the client-side code. Never store secrets in `VITE_` prefixed variables.
-
-```typescript
-// ❌ Bad: Secrets in VITE_ variables (exposed to client)
-const secret = import.meta.env.VITE_AUTH_SECRET; // Exposed in browser!
-const dbPassword = import.meta.env.VITE_DB_PASSWORD; // Exposed in browser!
-
-// ✅ Good: Only non-sensitive config in VITE_ variables
-const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID; // OK - public OAuth client ID
-const churchId = import.meta.env.VITE_CHURCH_ID; // OK - public identifier
-const apiUrl = import.meta.env.VITE_API_URL; // OK - public endpoint
-```
-
-### Server-Only Secrets Management
-
-Use server-only environment variables (without `VITE_` prefix) for secrets:
+**CRITICAL**: `VITE_` prefixed variables are exposed to client. Never store secrets in `VITE_` variables.
 
 ```typescript
-// ✅ Good: Server-only secrets (in +page.server.ts, +layout.server.ts, hooks.server.ts)
-// These are NOT exposed to client
-const dbPassword = process.env.DATABASE_PASSWORD; // Server-only
+// ❌ Bad: Secrets exposed to client
+const secret = import.meta.env.VITE_AUTH_SECRET;
+
+// ✅ Good: Only non-sensitive config in VITE_
+const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID; // OK - public
+
+// ✅ Good: Server-only secrets (use process.env, no VITE_ prefix)
 const authSecret = process.env.AUTH_SECRET; // Server-only
-const apiKey = process.env.INTERNAL_API_KEY; // Server-only
-
-// ❌ Bad: Trying to access server-only env vars in client code
-// In +page.svelte or client-side code:
-const secret = process.env.AUTH_SECRET; // undefined in client!
 ```
 
-### Migration Guidance from VITE_ to Server-Only
+### Migration from VITE_ to Server-Only
 
-For sensitive values currently using `VITE_` prefix, migrate to server-only:
-
-**Current (Insecure)**:
-```typescript
-// ❌ Bad: Secret exposed to client
-const authSecret = import.meta.env.VITE_AUTH_SECRET;
-```
-
-**Migration Steps**:
 1. Remove `VITE_` prefix from environment variable name
 2. Update code to use `process.env` instead of `import.meta.env`
 3. Ensure code runs only on server (`.server.ts` files)
-4. Update `.env` files and deployment configuration
-
-**After Migration (Secure)**:
-```typescript
-// ✅ Good: Server-only secret
-// In auth.ts (server-side only)
-const authSecret = process.env.AUTH_SECRET;
-```
 
 ### Environment Variable Validation
 
-Always validate required environment variables at startup:
-
 ```typescript
-// ✅ Good: Environment variable validation
-const clientKey = import.meta.env.VITE_STATSIG_CLIENT_KEY;
-if (!clientKey) {
-  const error = new Error('VITE_STATSIG_CLIENT_KEY is not configured');
-  logger.error('StatsigService.constructor: Missing Statsig client key', { error });
-  throw error;
-}
-
-// ✅ Good: Validate server-only secrets
 const authSecret = process.env.AUTH_SECRET;
 if (!authSecret || authSecret.length < 32) {
   throw new Error('AUTH_SECRET must be at least 32 characters');
 }
 ```
 
-### Secret Rotation Practices
-
-- Rotate secrets regularly (every 90 days for production)
-- Use strong, random secrets (minimum 32 characters)
-- Never commit secrets to version control
-- Use different secrets for development, staging, and production
-- Update secrets in all environments simultaneously during rotation
-
 ## Input Validation & Sanitization
 
 ### Form Data Validation
 
-Always validate and sanitize form inputs before processing:
+Always validate and sanitize form inputs:
 
 ```typescript
-// ✅ Good: Comprehensive form validation
-export const actions: Actions = {
-  default: async ({ request, locals }: RequestEvent) => {
-    const formData = await request.formData();
-    const date = formData.get('date') as string;
-    const mass = formData.get('mass') as string;
-    const code = formData.get('code') as string;
-    const description = formData.get('description') as string;
-
-    // Validate required fields
-    if (!date) {
-      return fail(400, { error: 'Tanggal harus diisi' });
-    }
-
-    // Validate date format
-    const dateObj = new Date(date);
-    if (isNaN(dateObj.getTime())) {
-      return fail(400, { error: 'Tanggal tidak valid' });
-    }
-
-    // Validate string inputs
-    if (!code || code.trim().length === 0) {
-      return fail(400, { error: 'Kode harus diisi' });
-    }
-
-    if (!description || description.trim().length === 0) {
-      return fail(400, { error: 'Nama harus diisi' });
-    }
-
-    // Validate enum/type
-    const type = formData.get('type') as EventType;
-    if (!type || (type !== EventType.MASS && type !== EventType.FEAST)) {
-      return fail(400, { error: 'Jenis perayaan tidak valid' });
-    }
-
-    // Process validated data
-    // ...
-  }
-};
-
-// ❌ Bad: No validation
 export const actions: Actions = {
   default: async ({ request }) => {
     const formData = await request.formData();
-    const date = formData.get('date'); // No validation
-    const code = formData.get('code'); // No validation
-    // ... vulnerable to injection
+    const date = formData.get('date') as string;
+    const code = formData.get('code') as string;
+
+    if (!date) return fail(400, { error: 'Tanggal harus diisi' });
+    const dateObj = new Date(date);
+    if (isNaN(dateObj.getTime())) return fail(400, { error: 'Tanggal tidak valid' });
+
+    if (!code || code.trim().length === 0) return fail(400, { error: 'Kode harus diisi' });
+    // ... process validated data
   }
 };
-```
-
-### Input Sanitization Standards
-
-Sanitize user inputs to prevent XSS and injection attacks:
-
-```typescript
-// ✅ Good: Input sanitization function
-function sanitizeName(name: string): string {
-  return name
-    .trim()
-    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-    .replace(/[^a-zA-Z\s]/g, '') // Remove special characters and numbers
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
-}
-
-// Usage
-const sanitizedName = sanitizeName(userInput);
-
-// ✅ Good: Type validation and coercion
-const weekNumber = formData.get('weekNumber') 
-  ? Number(formData.get('weekNumber')) 
-  : null;
-
-if (weekNumber !== null && (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 53)) {
-  return fail(400, { error: 'Week number must be between 1 and 53' });
-}
-
-// ❌ Bad: No sanitization
-const name = formData.get('name') as string; // Direct use without sanitization
 ```
 
 ### Type Validation and Coercion
 
-Always validate types and coerce safely:
-
 ```typescript
-// ✅ Good: Safe type coercion with validation
 const eventId = formData.get('eventId');
 if (!eventId || typeof eventId !== 'string') {
   return fail(400, { error: 'Invalid event ID' });
@@ -399,139 +132,39 @@ const weekNumberNum = weekNumber ? Number(weekNumber) : null;
 if (weekNumberNum !== null && isNaN(weekNumberNum)) {
   return fail(400, { error: 'Week number must be a valid number' });
 }
-
-// ❌ Bad: Unsafe type coercion
-const eventId = formData.get('eventId') as string; // Assumes string, no validation
-const weekNumber = Number(formData.get('weekNumber')); // Could be NaN, no check
 ```
 
-### SQL Injection Prevention
+### XSS Prevention
 
-Always use Drizzle ORM's parameterized queries. Never use raw SQL with string interpolation:
-
-```typescript
-// ✅ Good: Parameterized queries via Drizzle ORM
-import { eq, and } from 'drizzle-orm';
-
-const result = await db
-  .select()
-  .from(event)
-  .where(eq(event.id, eventId)) // Parameterized, safe
-  .limit(1);
-
-// ✅ Good: Complex queries with parameterized conditions
-const conditions = [
-  eq(event.church_id, churchId),
-  inArray(event.week_number, weekNumbers),
-  eq(event.active, 1)
-];
-const results = await db
-  .select()
-  .from(event)
-  .where(and(...conditions)); // All parameters are safely escaped
-
-// ❌ Bad: Raw SQL with string interpolation (NEVER DO THIS)
-const query = `SELECT * FROM event WHERE id = '${eventId}'`; // SQL injection vulnerability!
-await db.execute(query);
-```
-
-### XSS Prevention in Svelte Templates
-
-Svelte automatically escapes content in templates. Use `{@html}` directive only when necessary and with sanitized content:
+Svelte automatically escapes content. Use `{@html}` only with sanitized content:
 
 ```svelte
-<!-- ✅ Good: Automatic escaping (default) -->
-<p>{userInput}</p> <!-- Automatically escaped, safe -->
+<!-- ✅ Good: Automatic escaping -->
+<p>{userInput}</p>
 
-<!-- ✅ Good: Sanitized HTML if needed -->
-{@html sanitizeHtml(userInput)} <!-- Only if sanitization function is used -->
+<!-- ✅ Good: Sanitized HTML -->
+{@html sanitizeHtml(userInput)}
 
 <!-- ❌ Bad: Unsanitized HTML -->
-{@html userInput} <!-- XSS vulnerability if userInput contains malicious script -->
+{@html userInput}
 ```
 
 ## HTTP Security Headers
 
-### Content-Security-Policy (CSP)
-
-Implement CSP headers via SvelteKit hooks to prevent XSS attacks:
+Implement security headers in `src/hooks.server.ts`:
 
 ```typescript
-// ✅ Good: CSP implementation in hooks.server.ts
-import type { Handle } from '@sveltejs/kit';
-
 const securityHeaders: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
   
-  response.headers.set(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://statsig.com https://app.posthog.com; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "font-src 'self' data:; " +
-    "connect-src 'self' https://statsig.com https://app.posthog.com; " +
-    "frame-ancestors 'none';"
+  response.headers.set('Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://statsig.com https://app.posthog.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://statsig.com https://app.posthog.com; frame-ancestors 'none';"
   );
-  
-  return response;
-};
-
-export const handle = sequence(authHandle, securityHeaders);
-
-// ❌ Bad: No CSP headers
-// Missing security headers leaves application vulnerable to XSS
-```
-
-### Essential Security Headers
-
-Implement all essential security headers:
-
-```typescript
-// ✅ Good: Comprehensive security headers
-const securityHeaders: Handle = async ({ event, resolve }) => {
-  const response = await resolve(event);
-  
-  // Content Security Policy
-  response.headers.set(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://statsig.com; style-src 'self' 'unsafe-inline';"
-  );
-  
-  // Prevent clickjacking
   response.headers.set('X-Frame-Options', 'DENY');
-  
-  // Prevent MIME type sniffing
   response.headers.set('X-Content-Type-Options', 'nosniff');
-  
-  // Force HTTPS (adjust max-age as needed)
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  
-  // Control referrer information
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Permissions Policy (formerly Feature-Policy)
-  response.headers.set(
-    'Permissions-Policy',
-    'geolocation=(), microphone=(), camera=()'
-  );
-  
-  return response;
-};
-```
-
-### Implementation via SvelteKit Hooks
-
-Add security headers in `src/hooks.server.ts`:
-
-```typescript
-// ✅ Good: Security headers in hooks
-import { sequence } from '@sveltejs/kit/hooks';
-import { authHandle } from './auth';
-
-const securityHeaders: Handle = async ({ event, resolve }) => {
-  const response = await resolve(event);
-  // ... set headers as shown above
   return response;
 };
 
@@ -540,136 +173,36 @@ export const handle = sequence(authHandle, securityHeaders);
 
 ## CSRF Protection
 
-### SvelteKit Built-in CSRF Protection
-
-SvelteKit provides built-in CSRF protection for form actions. Ensure it's enabled:
+SvelteKit provides built-in CSRF protection for form actions. Always use SvelteKit form actions:
 
 ```typescript
-// ✅ Good: SvelteKit automatically protects form actions
-// No additional configuration needed - CSRF tokens are handled automatically
-
-// Form actions are automatically protected
-export const actions: Actions = {
-  default: async ({ request }) => {
-    // SvelteKit validates CSRF token automatically
-    const formData = await request.formData();
-    // ... process form
-  }
-};
-```
-
-### Form Action Security
-
-Always use SvelteKit's form actions for state-changing operations:
-
-```typescript
-// ✅ Good: Using SvelteKit form actions (CSRF protected)
-// In +page.server.ts
+// ✅ Good: SvelteKit form actions (CSRF protected)
 export const actions: Actions = {
   default: async ({ request, locals }) => {
     const session = await locals.auth();
-    if (!hasRole(session, 'admin')) {
-      return fail(403, { error: 'Unauthorized' });
-    }
     // ... action logic
   }
 };
 
-// In +page.svelte
-<form method="POST" use:enhance>
-  <!-- Form fields -->
-</form>
-
-// ❌ Bad: Direct fetch to API (bypasses CSRF protection)
-// In +page.svelte
+// ❌ Bad: Direct fetch (bypasses CSRF protection)
 async function submitForm() {
-  await fetch('/api/endpoint', {
-    method: 'POST',
-    body: JSON.stringify(formData)
-  }); // No CSRF protection!
-}
-```
-
-### API Endpoint Protection
-
-For API endpoints (if needed), implement CSRF token validation:
-
-```typescript
-// ✅ Good: CSRF token validation for API endpoints
-import { verifyCSRFToken } from '@sveltejs/kit';
-
-export async function POST({ request }) {
-  // Verify CSRF token
-  const token = request.headers.get('x-csrf-token');
-  if (!token || !verifyCSRFToken(token)) {
-    return new Response('Invalid CSRF token', { status: 403 });
-  }
-  // ... process request
+  await fetch('/api/endpoint', { method: 'POST', body: JSON.stringify(formData) });
 }
 ```
 
 ## Session & Cookie Security
 
-### Cookie Security Attributes
-
-Always set secure cookie attributes:
-
 ```typescript
-// ✅ Good: Secure cookie configuration
 cookies.set('cid', churchConfigured.id, {
   path: '/',
-  httpOnly: true, // Prevents JavaScript access
-  sameSite: 'strict', // CSRF protection
-  secure: true, // HTTPS only (in production)
-  maxAge: 60 * 60 * 24 * 30 // 30 days
-});
-
-// ❌ Bad: Insecure cookie
-cookies.set('session', sessionId, {
-  httpOnly: false, // JavaScript can access - XSS risk
-  sameSite: 'none', // Allows cross-site requests - CSRF risk
-  secure: false // Works over HTTP - man-in-the-middle risk
-});
-```
-
-### Session Expiration
-
-Implement appropriate session expiration:
-
-```typescript
-// ✅ Good: Session expiration via cookie maxAge
-cookies.set('session', sessionId, {
   httpOnly: true,
   sameSite: 'strict',
   secure: true,
-  maxAge: 60 * 60 * 24 * 7 // 7 days
+  maxAge: 60 * 60 * 24 * 30
 });
-
-// In auth configuration, set session maxAge
-export const { handle: authHandle } = SvelteKitAuth({
-  session: {
-    maxAge: 60 * 60 * 24 * 7, // 7 days
-    updateAge: 60 * 60 * 24 // Update session every 24 hours
-  }
-});
-```
-
-### Session Fixation Prevention
-
-SvelteKit Auth handles session fixation prevention automatically. Ensure you're using the latest version and proper configuration:
-
-```typescript
-// ✅ Good: Session regeneration on privilege change
-// SvelteKit Auth automatically regenerates session ID on login
-// No additional code needed
-
-// ❌ Bad: Reusing session IDs across privilege changes
-// Don't manually set session IDs - let the auth library handle it
 ```
 
 ## Error Handling Security
-
-### Error Message Sanitization
 
 Never expose sensitive information in error messages:
 
@@ -677,15 +210,11 @@ Never expose sensitive information in error messages:
 // ✅ Good: Sanitized error messages
 try {
   const result = await db.select().from(event).where(eq(event.id, eventId));
-  if (!result[0]) {
-    throw ServiceError.notFound('Event not found', { id: eventId });
-  }
+  if (!result[0]) throw ServiceError.notFound('Event not found', { id: eventId });
 } catch (error) {
   if (error instanceof ServiceError) {
-    // User-friendly message without sensitive details
     return fail(404, { error: 'Event tidak ditemukan' });
   }
-  // Generic error for unexpected errors
   logger.error('EventService.retrieveEventById: Unexpected error', { error, eventId });
   return fail(500, { error: 'Terjadi kesalahan saat mengambil data' });
 }
@@ -693,309 +222,104 @@ try {
 // ❌ Bad: Exposing sensitive information
 catch (error) {
   return fail(500, { 
-    error: `Database error: ${error.message}`, // Exposes DB structure
-    stack: error.stack // Exposes file paths
+    error: `Database error: ${error.message}`,
+    stack: error.stack
   });
 }
 ```
 
 ### Logging Sensitive Data
 
-Log errors with context but never log sensitive data:
-
 ```typescript
 // ✅ Good: Safe error logging
-logger.error('EventService.createEvent: Failed to insert event', {
+logger.error('EventService.createEvent: Failed', {
   eventId: newEvent.id, // OK - public identifier
-  error: error instanceof Error ? error.message : 'Unknown error', // OK - error message
-  // Don't log: passwords, tokens, full user objects, etc.
+  error: error instanceof Error ? error.message : 'Unknown error'
+  // Don't log: passwords, tokens, full user objects
 });
 
 // ❌ Bad: Logging sensitive data
 logger.error('Auth failed', {
   password: userPassword, // NEVER log passwords
-  token: authToken, // NEVER log tokens
-  fullUser: userObject // May contain sensitive data
+  token: authToken // NEVER log tokens
 });
 ```
 
-### User-Friendly Error Messages
-
-Provide user-friendly error messages without exposing system details:
+### Stack Trace Exposure
 
 ```typescript
-// ✅ Good: User-friendly error messages
-if (!hasRole(session, 'admin')) {
-  return fail(403, {
-    success: false,
-    error: 'Anda tidak memiliki izin untuk melakukan aksi ini'
-  });
-}
-
-if (!eventId) {
-  return fail(400, {
-    error: 'ID event tidak ditemukan'
-  });
-}
-
-// ❌ Bad: Technical error messages
-if (!hasRole(session, 'admin')) {
-  return fail(403, {
-    error: `Access denied: user role ${session.user.role} < required role admin`
-  });
-}
-```
-
-### Stack Trace Exposure Prevention
-
-Never expose stack traces to users in production:
-
-```typescript
-// ✅ Good: Hide stack traces in production
 import { dev } from '$app/environment';
 
 catch (error) {
   logger.error('Error details', { error, context });
-  
   if (dev) {
-    // Only show detailed errors in development
     return fail(500, { error: error.message, stack: error.stack });
   }
-  
-  // Generic error in production
   return fail(500, { error: 'Terjadi kesalahan. Silakan coba lagi.' });
-}
-
-// ❌ Bad: Always exposing stack traces
-catch (error) {
-  return fail(500, { 
-    error: error.message,
-    stack: error.stack // Exposes file paths and code structure
-  });
 }
 ```
 
 ## Database Security
 
-### Parameterized Queries
-
-Always use Drizzle ORM's parameterized queries (see `.cursor/rules/database.mdc` for details):
+Always use Drizzle ORM's parameterized queries (see `.cursor/rules/database.mdc`):
 
 ```typescript
-// ✅ Good: Parameterized queries via Drizzle
-const result = await db
-  .select()
-  .from(event)
-  .where(eq(event.id, eventId)) // Safe parameterization
-  .limit(1);
+// ✅ Good: Parameterized queries
+const result = await db.select().from(event).where(eq(event.id, eventId)).limit(1);
 
 // ❌ Bad: Raw SQL (NEVER use this)
 const query = `SELECT * FROM event WHERE id = '${eventId}'`;
 ```
 
-### Database Connection Security
-
-- Use connection pooling
-- Store database credentials in server-only environment variables
-- Use read-only database users when possible
-- Limit database user permissions to minimum required
-
-### Query Result Validation
-
-Validate query results before using them:
-
-```typescript
-// ✅ Good: Result validation
-const result = await db
-  .select()
-  .from(event)
-  .where(eq(event.id, eventId))
-  .limit(1);
-
-if (result.length === 0) {
-  throw ServiceError.notFound('Event not found', { id: eventId });
-}
-
-const event = result[0];
-// Validate event structure if needed
-if (!event.id || !event.church_id) {
-  throw ServiceError.database('Invalid event data returned', { eventId });
-}
-
-// ❌ Bad: No validation
-const result = await db.select().from(event).where(eq(event.id, eventId));
-const event = result[0]; // May be undefined!
-event.church_id; // Runtime error if undefined
-```
-
 ## API Security
 
-### Rate Limiting Considerations
+### Rate Limiting
 
 Consider implementing rate limiting for public endpoints:
 
 ```typescript
-// ✅ Good: Rate limiting pattern (implement as needed)
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
 
 function checkRateLimit(ip: string, limit: number = 100, windowMs: number = 60000): boolean {
   const now = Date.now();
   const record = rateLimiter.get(ip);
-  
   if (!record || now > record.resetAt) {
     rateLimiter.set(ip, { count: 1, resetAt: now + windowMs });
     return true;
   }
-  
-  if (record.count >= limit) {
-    return false;
-  }
-  
+  if (record.count >= limit) return false;
   record.count++;
   return true;
 }
-
-// Usage in actions
-export const actions: Actions = {
-  default: async ({ request, getClientAddress }) => {
-    const ip = getClientAddress();
-    if (!checkRateLimit(ip, 10, 60000)) { // 10 requests per minute
-      return fail(429, { error: 'Terlalu banyak permintaan. Silakan coba lagi nanti.' });
-    }
-    // ... process request
-  }
-};
-```
-
-### API Authentication
-
-Always authenticate API requests:
-
-```typescript
-// ✅ Good: API authentication
-export const actions: Actions = {
-  default: async ({ request, locals }) => {
-    const session = await locals.auth();
-    
-    if (!session) {
-      return fail(401, { error: 'Unauthorized' });
-    }
-    
-    // ... process authenticated request
-  }
-};
 ```
 
 ### Request Validation
 
-Validate all API request inputs:
+Always validate API request inputs:
 
 ```typescript
-// ✅ Good: Request validation
-export const actions: Actions = {
-  default: async ({ request }) => {
-    const formData = await request.formData();
-    const eventId = formData.get('eventId') as string;
-    
-    // Validate input
-    if (!eventId || typeof eventId !== 'string' || eventId.length === 0) {
-      return fail(400, { error: 'Invalid event ID' });
-    }
-    
-    // Validate format (UUID, etc.)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(eventId)) {
-      return fail(400, { error: 'Invalid event ID format' });
-    }
-    
-    // ... process validated request
-  }
-};
-```
-
-### Response Sanitization
-
-Sanitize API responses to prevent data leakage:
-
-```typescript
-// ✅ Good: Response sanitization
-export const load: PageServerLoad = async (event) => {
-  const session = await event.locals.auth();
-  const events = await eventService.retrieveEvents();
-  
-  // Don't expose internal IDs or sensitive data
-  return {
-    events: events.map(event => ({
-      id: event.id, // OK - public identifier
-      date: event.date, // OK - public data
-      description: event.description, // OK - public data
-      // Don't include: internal flags, user emails, etc.
-    }))
-  };
-};
+const eventId = formData.get('eventId') as string;
+if (!eventId || typeof eventId !== 'string' || eventId.length === 0) {
+  return fail(400, { error: 'Invalid event ID' });
+}
 ```
 
 ## Dependency Security
 
-### Dependency Vulnerability Scanning
-
-Regularly scan dependencies for vulnerabilities:
-
-```bash
-# ✅ Good: Regular dependency scanning
-npm audit
-npm audit fix
-
-# For more comprehensive scanning
-npm install -g snyk
-snyk test
-```
-
-### Regular Updates
-
-Keep dependencies up to date:
-
-```bash
-# ✅ Good: Check for outdated packages
-npm outdated
-
-# Update dependencies carefully
-npm update
-
-# For major version updates, review changelogs
-```
-
-### Lock File Security
-
+- Regularly scan: `npm audit`
+- Keep dependencies up to date: `npm outdated`
 - Commit `package-lock.json` to version control
 - Never modify `package-lock.json` manually
-- Regenerate lock file after dependency updates
-- Review lock file changes in pull requests
 
 ## Security Checklist
 
-Before deploying, verify:
-
-- [ ] All authentication checks are in place
-- [ ] Authorization is enforced on all protected routes
-- [ ] Input validation is implemented for all user inputs
-- [ ] No secrets are in `VITE_` prefixed environment variables
-- [ ] HTTP security headers are configured
-- [ ] Cookies have secure attributes (httpOnly, sameSite, secure)
+- [ ] All authentication checks in place
+- [ ] Authorization enforced on protected routes
+- [ ] Input validation for all user inputs
+- [ ] No secrets in `VITE_` prefixed variables
+- [ ] HTTP security headers configured
+- [ ] Cookies have secure attributes
 - [ ] Error messages don't expose sensitive information
-- [ ] Database queries use parameterized queries (Drizzle ORM)
-- [ ] Dependencies are up to date and vulnerability-free
-- [ ] Rate limiting is considered for public endpoints
-- [ ] Session expiration is configured appropriately
-- [ ] Stack traces are not exposed in production
-
-## Best Practices Summary
-
-1. **Defense in Depth**: Implement multiple layers of security
-2. **Principle of Least Privilege**: Grant minimum necessary permissions
-3. **Fail Securely**: Default to denying access when in doubt
-4. **Never Trust User Input**: Always validate and sanitize
-5. **Keep Secrets Secret**: Never expose secrets to client-side code
-6. **Stay Updated**: Keep dependencies and security patches current
-7. **Log Security Events**: Monitor and log security-relevant events
-8. **Regular Audits**: Periodically review security practices and code
+- [ ] Database queries use parameterized queries
+- [ ] Dependencies up to date
+- [ ] Stack traces not exposed in production

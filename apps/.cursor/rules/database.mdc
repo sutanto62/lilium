@@ -1,34 +1,22 @@
 ---
 description: Database and ORM rules for Drizzle ORM and SQLite3
 globs: **/*.ts
-alwaysApply: true
+alwaysApply: false 
 ---
 
 # Database & ORM Rules
-
-For general project rules, see `.cursor/rules/project-rules.mdc`.
-For Clean Architecture patterns, see `.cursor/rules/clean-code.mdc`.
-For error handling patterns, see `.cursor/rules/project-rules.mdc` (Error Handling section).
 
 ## Drizzle ORM Patterns
 
 ### Schema Definition
 
-Define schemas in `src/lib/server/db/schema.ts` using Drizzle's SQLite schema builder:
-
 ```typescript
-// ✅ Good: Proper schema definition
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 export const event = sqliteTable('event', {
   id: text('id').primaryKey().unique().notNull(),
-  church_id: text('church_id')
-    .references(() => church.id, { onDelete: 'cascade' })
-    .notNull(),
-  mass_id: text('mass_id')
-    .references(() => mass.id, { onDelete: 'cascade' })
-    .notNull(),
+  church_id: text('church_id').references(() => church.id, { onDelete: 'cascade' }).notNull(),
   date: text('date').notNull(),
   week_number: integer('week_number'),
   created_at: integer('created_at').default(sql`(unixepoch())`),
@@ -41,304 +29,96 @@ export const event = sqliteTable('event', {
 Always use Drizzle's type-safe query builder:
 
 ```typescript
-// ✅ Good: Type-safe query with proper error handling
 import { eq, and, inArray } from 'drizzle-orm';
-import type { drizzle } from 'drizzle-orm/libsql';
 
-export async function findEventById(
-  db: ReturnType<typeof drizzle>,
-  id: string
-): Promise<ChurchEvent | null> {
-  try {
-    const result = await db
-      .select()
-      .from(event)
-      .where(eq(event.id, id))
-      .limit(1);
-    
-    if (result.length === 0) {
-      return null;
-    }
-    
-    // Map database schema to domain entity
-    return {
-      id: result[0].id,
-      church: result[0].church_id,
-      mass: result[0].mass_id,
-      date: result[0].date,
-      weekNumber: result[0].week_number,
-      createdAt: result[0].created_at,
-      active: result[0].active
-    };
-  } catch (error) {
-    throw new DatabaseError(`Failed to find event: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+export async function findEventById(db: ReturnType<typeof drizzle>, id: string): Promise<ChurchEvent | null> {
+  const result = await db.select().from(event).where(eq(event.id, id)).limit(1);
+  return result[0] ? mapToChurchEvent(result[0]) : null;
 }
 
-// ❌ Bad: Raw SQL, no type safety
-export async function getEvent(db: any, id: string) {
-  return db.query(`SELECT * FROM event WHERE id = ${id}`);
-}
+// ❌ Bad: Raw SQL
+const query = `SELECT * FROM event WHERE id = ${id}`;
 ```
 
 ### Query Patterns
 
-Use appropriate query operators and patterns:
-
 ```typescript
-// ✅ Good: Complex query with multiple conditions
-export async function listEventsByWeekNumber(
-  db: ReturnType<typeof drizzle>,
-  churchId: string,
-  weekNumbers: number[],
-  isToday: boolean,
-  limit?: number
-): Promise<ChurchEvent[]> {
-  const conditions = [
-    eq(event.church_id, churchId),
-    inArray(event.week_number, weekNumbers),
-    eq(event.active, 1)
-  ];
-  
-  if (isToday) {
-    const today = new Date().toISOString().split('T')[0];
-    conditions.push(gte(event.date, today));
-  }
-  
-  let query = db
-    .select()
-    .from(event)
-    .where(and(...conditions))
-    .orderBy(desc(event.date));
-  
-  if (limit) {
-    query = query.limit(limit);
-  }
-  
-  const results = await query;
-  return results.map(mapToChurchEvent);
-}
+const conditions = [
+  eq(event.church_id, churchId),
+  inArray(event.week_number, weekNumbers),
+  eq(event.active, 1)
+];
+
+const results = await db
+  .select()
+  .from(event)
+  .where(and(...conditions))
+  .orderBy(desc(event.date))
+  .limit(limit);
 ```
 
-### Insert Operations
-
-Use `.returning()` to get inserted data:
+### Insert/Update/Delete
 
 ```typescript
-// ✅ Good: Insert with returning
-export async function createEvent(
-  db: ReturnType<typeof drizzle>,
-  newEvent: ChurchEvent
-): Promise<ChurchEvent> {
-  try {
-    const result = await db
-      .insert(event)
-      .values({
-        id: newEvent.id,
-        church_id: newEvent.church,
-        mass_id: newEvent.mass,
-        date: newEvent.date,
-        week_number: newEvent.weekNumber ?? null,
-        created_at: newEvent.createdAt ?? new Date().getTime(),
-        active: newEvent.active ?? 1
-      })
-      .returning();
-    
-    return mapToChurchEvent(result[0]);
-  } catch (error) {
-    throw new DatabaseError(`Failed to create event: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
+// Insert with returning
+const result = await db.insert(event).values({ ...data }).returning();
+
+// Update with where clause
+const result = await db.update(event).set({ ...data }).where(eq(event.id, id)).returning();
+
+// Soft delete
+await db.update(event).set({ active: 0 }).where(eq(event.id, id));
 ```
 
-### Update Operations
-
-Always include `.where()` clause for updates:
+### Transactions
 
 ```typescript
-// ✅ Good: Update with where clause
-export async function updateEventById(
-  db: ReturnType<typeof drizzle>,
-  eventId: string,
-  updatedEvent: Partial<ChurchEvent>
-): Promise<ChurchEvent> {
-  try {
-    const result = await db
-      .update(event)
-      .set({
-        date: updatedEvent.date,
-        code: updatedEvent.code,
-        description: updatedEvent.description,
-        week_number: updatedEvent.weekNumber ?? null
-      })
-      .where(eq(event.id, eventId))
-      .returning();
-    
-    if (result.length === 0) {
-      throw new DatabaseError('Event not found for update');
-    }
-    
-    return mapToChurchEvent(result[0]);
-  } catch (error) {
-    throw new DatabaseError(`Failed to update event: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-```
-
-### Soft Deletes
-
-Use soft deletes by updating `active` field instead of deleting:
-
-```typescript
-// ✅ Good: Soft delete pattern
-export async function softDeleteEvent(
-  db: ReturnType<typeof drizzle>,
-  eventId: string
-): Promise<boolean> {
-  try {
-    const result = await db
-      .update(event)
-      .set({ active: 0 })
-      .where(eq(event.id, eventId))
-      .returning();
-    
-    return result.length > 0;
-  } catch (error) {
-    throw new DatabaseError(`Failed to deactivate event: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
+await db.transaction(async (tx) => {
+  const createdEvent = await createEvent(tx, event);
+  await persistEventUshers(tx, createdEvent.id, ushers);
+});
 ```
 
 ## Repository Pattern
 
-### Repository Interface
-
-Define repository interfaces in `core/repositories/`:
+### Interface (core/repositories/)
 
 ```typescript
-// ✅ Good: Repository interface (port)
 export interface ScheduleRepository {
   getEventById(id: string): Promise<ChurchEvent>;
   insertEvent(event: ChurchEvent): Promise<ChurchEvent>;
-  updateEventById(eventId: string, event: ChurchEvent): Promise<ChurchEvent>;
-  listEventsByWeekNumber(
-    churchId: string,
-    weekNumbers: number[],
-    isToday: boolean,
-    limit?: number
-  ): Promise<ChurchEvent[]>;
+  listEventsByWeekNumber(churchId: string, weekNumbers: number[], isToday: boolean, limit?: number): Promise<ChurchEvent[]>;
 }
 ```
 
-### Adapter Implementation
-
-Implement repository interfaces in `lib/server/adapters/`:
+### Adapter (lib/server/adapters/)
 
 ```typescript
-// ✅ Good: Adapter implementation
-import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
-import { drizzle } from 'drizzle-orm/libsql';
-import { findEventById, createEvent, updateEventById, listEventsByWeekNumber } from './SQLiteDbEvent';
-
 export class SQLiteAdapter implements ScheduleRepository {
   private db: ReturnType<typeof drizzle>;
-
-  constructor(db: ReturnType<typeof drizzle>) {
-    this.db = db;
-  }
-
   getEventById = (id: string) => findEventById(this.db, id);
   insertEvent = (event: ChurchEvent) => createEvent(this.db, event);
-  updateEventById = (id: string, event: ChurchEvent) => updateEventById(this.db, id, event);
-  listEventsByWeekNumber = (churchId: string, weekNumbers: number[], isToday: boolean, limit?: number) =>
-    listEventsByWeekNumber(this.db, churchId, weekNumbers, isToday, limit);
 }
 ```
 
-## Migration Best Practices
-
-### Generate Migrations
-
-Use Drizzle Kit to generate migrations:
-
-```bash
-npm run db:generate
-```
-
-### Migration Files
-
-- Migration files are generated in `drizzle/` directory
-- Never edit migration files manually
-- Use `npm run db:migrate:custom` for programmatic migrations when needed
-
-### Schema Changes
+## Migrations
 
 1. Update schema in `src/lib/server/db/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Review generated migration
-4. Apply migration: `npm run db:migrate`
+2. Generate: `npm run db:generate`
+3. Apply: `npm run db:migrate`
 
-## SQLite3 Specific Considerations
+Never edit migration files manually.
 
-### Connection Management
-
-- Use connection pooling when available
-- Close connections properly
-- Handle connection errors gracefully
-
-### Performance
+## Performance
 
 - Add indexes for frequently queried columns
 - Use `limit()` to restrict result sets
-- Avoid `SELECT *` - select only needed columns
 - Use transactions for multiple related operations
-
-### Transactions
-
-Use transactions for atomic operations:
-
-```typescript
-// ✅ Good: Transaction pattern
-export async function createEventWithUshers(
-  db: ReturnType<typeof drizzle>,
-  event: ChurchEvent,
-  ushers: EventUsher[]
-): Promise<void> {
-  await db.transaction(async (tx) => {
-    const createdEvent = await createEvent(tx, event);
-    await persistEventUshers(tx, createdEvent.id, ushers);
-  });
-}
-```
-
-## Error Handling
-
-Transform database errors to domain errors:
-
-```typescript
-// ✅ Good: Error transformation
-import { DatabaseError } from '$src/types/errors';
-import { ServiceError } from '$core/errors/ServiceError';
-
-try {
-  const result = await db.select().from(event).where(eq(event.id, id));
-  return result[0] ?? null;
-} catch (error) {
-  if (error instanceof DatabaseError) {
-    throw ServiceError.database('Failed to retrieve event', { id, originalError: error });
-  }
-  throw error;
-}
-```
 
 ## Type Inference
 
-Use Drizzle's type inference for schema types:
-
 ```typescript
-// ✅ Good: Using type inference
 import { event } from '$lib/server/db/schema';
-
 type EventRow = typeof event.$inferSelect;
 type EventInsert = typeof event.$inferInsert;
 ```

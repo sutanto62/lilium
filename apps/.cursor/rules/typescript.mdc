@@ -6,25 +6,20 @@ alwaysApply: true
 
 # TypeScript Rules
 
-For general project rules, see `.cursor/rules/project-rules.mdc`.
-For naming conventions, see `.cursor/rules/conventions.mdc`.
-
 ## Type Safety Requirements
 
 ### No `any` Type
 
-Never use `any` type. Use `unknown` if the type is truly unknown, then narrow it:
+Never use `any`. Use `unknown` and narrow it:
 
 ```typescript
-// ✅ Good: Proper type narrowing
+// ✅ Good
 function handleError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
+  if (error instanceof Error) return error.message;
   return 'Unknown error occurred';
 }
 
-// ❌ Bad: Using any
+// ❌ Bad
 function handleError(error: any): string {
   return error.message;
 }
@@ -35,16 +30,14 @@ function handleError(error: any): string {
 Always specify return types for functions, especially public APIs:
 
 ```typescript
-// ✅ Good: Explicit return type
+// ✅ Good
 async function retrieveEventById(id: string): Promise<ChurchEvent> {
   const event = await repo.findEventById(id);
-  if (!event) {
-    throw ServiceError.notFound('Event not found', { id });
-  }
+  if (!event) throw ServiceError.notFound('Event not found', { id });
   return event;
 }
 
-// ❌ Bad: Inferred return type (acceptable for private helpers)
+// ❌ Bad
 async function getEvent(id: string) {
   return await repo.findEventById(id);
 }
@@ -55,21 +48,14 @@ async function getEvent(id: string) {
 Prefer type inference for local variables when types are obvious:
 
 ```typescript
-// ✅ Good: Type inference for obvious types
 const eventId = 'event-123';
 const events = await repo.listEvents(churchId);
-const count = events.length;
-
-// ✅ Good: Explicit type when needed
 let event: ChurchEvent | null = null;
-const eventIds: string[] = [];
 ```
 
 ## Interface vs Type
 
 ### Use Interfaces for Objects
-
-Use `interface` for object shapes that may be extended:
 
 ```typescript
 // ✅ Good: Interface for entity
@@ -81,7 +67,6 @@ export interface ChurchEvent {
   weekNumber?: number | null;
 }
 
-// ✅ Good: Interface extension
 export interface ChurchEventResponse extends ChurchEvent {
   churchCode?: string | null;
 }
@@ -89,27 +74,16 @@ export interface ChurchEventResponse extends ChurchEvent {
 
 ### Use Type for Unions, Intersections, and Utilities
 
-Use `type` for unions, intersections, and utility type transformations:
-
 ```typescript
-// ✅ Good: Type for union
+// ✅ Good
 export type EventType = 'mass' | 'feast';
-
-// ✅ Good: Type for utility transformation
 export type CreateEventRequest = Omit<ChurchEvent, 'id' | 'createdAt'>;
-
-// ✅ Good: Type for intersection
-export type EventWithDetails = ChurchEvent & {
-  ushers: EventUsher[];
-};
+export type EventWithDetails = ChurchEvent & { ushers: EventUsher[] };
 ```
 
 ## Utility Types
 
-Leverage TypeScript utility types for common transformations:
-
 ```typescript
-// ✅ Good: Using utility types
 export type CreateEventInput = Omit<ChurchEvent, 'id' | 'createdAt'>;
 export type UpdateEventInput = Partial<Pick<ChurchEvent, 'code' | 'description' | 'date'>>;
 export type EventSummary = Pick<ChurchEvent, 'id' | 'date' | 'description'>;
@@ -117,15 +91,13 @@ export type EventSummary = Pick<ChurchEvent, 'id' | 'date' | 'description'>;
 
 ## Generic Constraints
 
-Use generic constraints to ensure type safety:
-
 ```typescript
-// ✅ Good: Generic with constraint
+// ✅ Good
 function findById<T extends { id: string }>(items: T[], id: string): T | undefined {
   return items.find(item => item.id === id);
 }
 
-// ❌ Bad: Generic without constraint
+// ❌ Bad
 function findById<T>(items: T[], id: string): T | undefined {
   return items.find(item => (item as any).id === id);
 }
@@ -136,17 +108,11 @@ function findById<T>(items: T[], id: string): T | undefined {
 Always handle null/undefined explicitly:
 
 ```typescript
-// ✅ Good: Explicit null handling
 async function findEvent(id: string): Promise<ChurchEvent | null> {
-  const result = await db
-    .select()
-    .from(events)
-    .where(eq(events.id, id))
-    .limit(1);
+  const result = await db.select().from(events).where(eq(events.id, id)).limit(1);
   return result[0] ?? null;
 }
 
-// ✅ Good: Null check before use
 const event = await findEvent(id);
 if (!event) {
   throw ServiceError.notFound('Event not found', { id });
@@ -155,23 +121,17 @@ if (!event) {
 
 ## Type-Only Imports
 
-Use `import type` for type-only imports to improve bundle size:
+Use `import type` for type-only imports:
 
 ```typescript
-// ✅ Good: Type-only import
+// ✅ Good
 import type { ChurchEvent, EventUsher } from '$core/entities/Event';
-import { EventType } from '$core/entities/Event'; // Value import
-
-// ❌ Bad: Mixed import (acceptable but less clear)
-import { ChurchEvent, EventUsher, EventType } from '$core/entities/Event';
+import { EventType } from '$core/entities/Event';
 ```
 
 ## Function Overloads
 
-Use function overloads for multiple signatures:
-
 ```typescript
-// ✅ Good: Function overloads
 function retrieveEvents(weekNumber: number): Promise<ChurchEvent[]>;
 function retrieveEvents(weekNumbers: number[]): Promise<ChurchEvent[]>;
 function retrieveEvents(input: number | number[]): Promise<ChurchEvent[]> {
@@ -182,10 +142,7 @@ function retrieveEvents(input: number | number[]): Promise<ChurchEvent[]> {
 
 ## Type Guards
 
-Use type guards for runtime type checking:
-
 ```typescript
-// ✅ Good: Type guard
 function isChurchEvent(obj: unknown): obj is ChurchEvent {
   return (
     typeof obj === 'object' &&
@@ -200,16 +157,12 @@ function isChurchEvent(obj: unknown): obj is ChurchEvent {
 
 ## Enums
 
-Use enums for fixed sets of values:
-
 ```typescript
-// ✅ Good: Enum for event types
 export enum EventType {
   MASS = 'mass',
   FEAST = 'feast'
 }
 
-// ✅ Good: Using enum
 const event: ChurchEvent = {
   id: '1',
   church: 'church-1',

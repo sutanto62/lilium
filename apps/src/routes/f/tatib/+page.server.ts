@@ -20,7 +20,7 @@ const queueManager = QueueManager.getInstance();
  * Determines if the usher confirmation form should be shown based on:
  * 1. Feature flag 'no_saturday_sunday' - if enabled, only show on weekdays
  * 2. Current day of week - weekdays (Mon-Fri) are always allowed
- * 
+ *
  * @returns {Promise<boolean>} True if form should be shown, false otherwise
  */
 async function shouldShowUsherForm(): Promise<boolean> {
@@ -39,6 +39,31 @@ async function shouldShowUsherForm(): Promise<boolean> {
 	logger.info(`Form visibility check: day=${currentDay}, isWeekday=${isWeekday}, featureFlag=${isNoSaturdaySundayEnabled}`);
 
 	return isWeekday;
+}
+
+/**
+ * Determines if PPG (Panitia Pembangunan Gereja) is required for this church.
+ * Priority logic:
+ * 1. If database church.requirePpg = 1, always return true (database takes priority)
+ * 2. Otherwise, check Statsig gate 'ppg' for override capability
+ *
+ * @param church - Church entity with requirePpg configuration
+ * @returns {Promise<boolean>} True if PPG is required, false otherwise
+ */
+async function shouldRequirePpg(church: Church): Promise<boolean> {
+	// Check database configuration first
+	const dbRequiresPpg = church.requirePpg === 1;
+
+	// If database requires PPG, that takes priority
+	if (dbRequiresPpg) {
+		logger.debug(`PPG requirement check: Database config=true (takes priority) for church ${church.code}`);
+		return true;
+	}
+
+	// Otherwise check Statsig gate for override
+	const statsigRequiresPpg = await statsigService.checkGate('ppg');
+	logger.debug(`PPG requirement check: Database config=false, Statsig gate=${statsigRequiresPpg} for church ${church.code}`);
+	return statsigRequiresPpg;
 }
 
 /**
@@ -78,6 +103,9 @@ export const load: PageServerLoad = async (event) => {
 		throw error(404, 'Gereja belum terdaftar');
 	}
 
+	// Check if PPG is required for this church
+	const requirePpg = await shouldRequirePpg(church);
+
 	const churchService = new ChurchService(churchId);
 	const eventService = new EventService(churchId);
 
@@ -103,6 +131,7 @@ export const load: PageServerLoad = async (event) => {
 			wilayahs_count: wilayahs.length,
 			lingkungans_count: lingkungans.length,
 			show_form: showForm,
+			require_ppg: requirePpg,
 			current_day: getCurrentDayName(),
 			has_events: events.length > 0
 		};
@@ -125,6 +154,7 @@ export const load: PageServerLoad = async (event) => {
 			assignedUshers: [],
 			formData: null,
 			showForm,
+			requirePpg,
 			currentDay: getCurrentDayName(),
 			formAvailabilityReason: showForm ? 'Form tersedia' : 'Form hanya tersedia pada hari kerja (Senin-Kamis)'
 		};
@@ -267,6 +297,13 @@ export const actions = {
 			// Get the mass ID from the event
 			const confirmedEvent = await eventService.retrieveEventById(scheduledEventId)
 
+			// Get church and check PPG requirement for validation
+			const church = await repo.findChurchById(churchId);
+			if (!church) {
+				throw error(404, 'Gereja belum terdaftar');
+			}
+			const requirePpg = await shouldRequirePpg(church);
+
 			// TODO: change to service
 			const [selectedMass, selectedLingkungan, massZonePositions] = await Promise.all([
 				repo.getMassById(confirmedEvent.mass),
@@ -353,13 +390,14 @@ export const actions = {
 				return fail(422, { error: 'Gagal parsing data petugas' });
 			}
 
-			const validation = validateUsherNames(ushersArray);
+			const validation = validateUsherNames(ushersArray, requirePpg);
 			if (!validation.isValid) {
-				logger.warn(`invalid ushers list: ${validation.error}`);
+				logger.warn(`invalid ushers list: ${validation.error} (requirePpg=${requirePpg})`);
 				const errorMetadata = {
 					error_type: 'validation_error',
 					error_message: validation.error,
-					ushers_count: ushersArray.length
+					ushers_count: ushersArray.length,
+					require_ppg: requirePpg
 				};
 
 				await Promise.all([

@@ -1,14 +1,22 @@
 import type { EventUsher } from '$core/entities/Event';
 
-export function validateUsherNames(ushers: EventUsher[]): { isValid: boolean; error?: string } {
+export function validateUsherNames(ushers: EventUsher[], requirePpg: boolean = true): { isValid: boolean; error?: string } {
     // Validate role requirements first
     const numberOfPpg = ushers.filter(u => u.isPpg).length;
     const numberOfKolekte = ushers.filter(u => u.isKolekte).length;
     const totalUshers = ushers.length;
 
-    // Check role requirements
-    if (numberOfPpg !== 2) {
-        return { isValid: false, error: `Jumlah PPG harus tepat 2 orang, saat ini: ${numberOfPpg} orang` };
+    // Check PPG requirements based on configuration
+    if (requirePpg) {
+        // When PPG is required, exactly 2 PPG must be present
+        if (numberOfPpg !== 2) {
+            return { isValid: false, error: `Jumlah PPG harus tepat 2 orang, saat ini: ${numberOfPpg} orang` };
+        }
+    } else {
+        // When PPG is not required, 0-2 PPG is allowed
+        if (numberOfPpg > 2) {
+            return { isValid: false, error: `Jumlah PPG maksimal 2 orang, saat ini: ${numberOfPpg} orang` };
+        }
     }
 
     if (numberOfKolekte !== 3) {

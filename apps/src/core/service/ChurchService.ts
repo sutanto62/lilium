@@ -32,6 +32,7 @@ export class ChurchService {
 			name: '',
 			code: '',
 			parish: '',
+			requirePpg: 0,
 			active: 1
 		};
 		this.churches = []; // Initialize churches array

@@ -23,6 +23,7 @@ export const church = sqliteTable('church', {
 	code: text('code').unique().notNull(),
 	name: text('name').notNull(),
 	parish: text('parish'),
+	requirePpg: integer('require_ppg').notNull().default(0),
 	active: integer('active').notNull().default(1),
 	createdAt: integer('created_at').default(sql`(unixepoch())`)
 });

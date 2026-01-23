@@ -28,6 +28,7 @@ export interface Church {
 	name: string;
 	code: string;
 	parish: string | null;
+	requirePpg: number;
 	active: number;
 }
 

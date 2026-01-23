@@ -22,12 +22,14 @@
 	import type { Usher } from '$core/entities/Schedule';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { tracker } from '$src/lib/utils/analytics';
+	import { logger } from '$src/lib/utils/logger';
 	import { UserAddSolid } from 'flowbite-svelte-icons';
 	import UsherListShortcut from './UsherListShortcut.svelte';
 
 	// Props
 	let {
 		isSubmitable = $bindable(false),
+		requirePpg = false,
 		ushers = $bindable<Usher[]>([
 			{
 				name: '',
@@ -38,6 +40,7 @@
 		])
 	} = $props<{
 		isSubmitable?: boolean;
+		requirePpg?: boolean;
 		ushers?: Usher[];
 	}>();
 
@@ -106,6 +109,12 @@
 	}
 
 	async function handleRoleChange(index: number, role: 'PPG' | 'Kolekte') {
+		// Prevent PPG role changes when feature is disabled
+		if (role === 'PPG' && !requirePpg) {
+			logger.warn(`Attempted to change PPG role when feature is disabled`);
+			return;
+		}
+
 		const previousState = {
 			isPpg: ushers[index]?.isPpg || false,
 			isKolekte: ushers[index]?.isKolekte || false
@@ -223,8 +232,14 @@
 	let previousIsSubmitable = $state(false);
 
 	$effect(() => {
-		// Updated validation: exactly 2 PPG, exactly 3 Kolekte, minimum 6 ushers
-		isSubmitable = numberOfPpg === 2 && numberOfKolekte === 3 && numberOfUsher >= 6;
+		// Validation logic depends on requirePpg configuration
+		// If PPG required: exactly 2 PPG, exactly 3 Kolekte, minimum 6 ushers
+		// If PPG not required: 0-2 PPG allowed, exactly 3 Kolekte, minimum 6 ushers
+		const ppgValid = requirePpg ? numberOfPpg === 2 : numberOfPpg >= 0 && numberOfPpg <= 2;
+		const kolekteValid = numberOfKolekte === 3;
+		const usherCountValid = numberOfUsher >= 6;
+
+		isSubmitable = ppgValid && kolekteValid && usherCountValid;
 
 		// Track progress milestones (25%, 50%, 75%, 100%)
 		const progressMilestones = [25, 50, 75, 100];
@@ -323,7 +338,11 @@
 		<div class="text-left text-lg font-semibold">
 			Petugas
 			<p class="mt-1 text-sm font-normal">
-				Mohon isi petugas sesuai dengan persyaratan (8 orang, 2 PPG dan 3 Kolekte)
+				{#if requirePpg}
+					Mohon isi petugas sesuai dengan persyaratan (8 orang, 2 PPG dan 3 Kolekte)
+				{:else}
+					Mohon isi petugas sesuai dengan persyaratan (minimal 6 orang, 3 Kolekte)
+				{/if}
 			</p>
 		</div>
 
@@ -354,7 +373,9 @@
 			{#if screenWidth > screenMinWidth}
 				<TableHeadCell class="w-10 px-4">#</TableHeadCell>
 				<TableHeadCell class="w-max min-w-48 px-4">Nama</TableHeadCell>
-				<TableHeadCell class="w-20 px-4">PPG</TableHeadCell>
+				{#if requirePpg}
+					<TableHeadCell class="w-20 px-4">PPG</TableHeadCell>
+				{/if}
 				<TableHeadCell class="w-20 px-4">Kolekte</TableHeadCell>
 			{:else}
 				<!-- <TableHeadCell class="w-10 px-0">#</TableHeadCell> -->
@@ -387,17 +408,19 @@
 								</div>
 							</div>
 						</TableBodyCell>
-						<TableBodyCell class="w-20">
-							<div class="flex h-full items-center justify-center">
-								<input
-									id="ppg-{index}"
-									type="checkbox"
-									bind:checked={usher.isPpg}
-									class="h-4 w-4 rounded border-gray-300"
-									onclick={() => handleRoleChange(index, 'PPG')}
-								/>
-							</div>
-						</TableBodyCell>
+						{#if requirePpg}
+							<TableBodyCell class="w-20">
+								<div class="flex h-full items-center justify-center">
+									<input
+										id="ppg-{index}"
+										type="checkbox"
+										bind:checked={usher.isPpg}
+										class="h-4 w-4 rounded border-gray-300"
+										onclick={() => handleRoleChange(index, 'PPG')}
+									/>
+								</div>
+							</TableBodyCell>
+						{/if}
 						<TableBodyCell class="w-20">
 							<div class="flex h-full items-center justify-center">
 								<input
@@ -426,11 +449,13 @@
 									maxlength={50}
 								/>
 								<div class="flex flex-row gap-4">
-									<Toggle
-										id="isPpg-{index}"
-										bind:checked={usher.isPpg}
-										onclick={() => handleRoleChange(index, 'PPG')}>PPG</Toggle
-									>
+									{#if requirePpg}
+										<Toggle
+											id="isPpg-{index}"
+											bind:checked={usher.isPpg}
+											onclick={() => handleRoleChange(index, 'PPG')}>PPG</Toggle
+										>
+									{/if}
 									<Toggle
 										id="isKolekte-{index}"
 										bind:checked={usher.isKolekte}

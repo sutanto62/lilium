@@ -15,6 +15,7 @@ export async function findChurchById(db: ReturnType<typeof drizzle>, id: string)
 		name: result[0]?.name ?? '',
 		code: result[0]?.code ?? '',
 		parish: result[0]?.parish ?? '',
+		requirePpg: result[0]?.requirePpg ?? 0,
 		active: result[0]?.active ?? 1
 	};
 }

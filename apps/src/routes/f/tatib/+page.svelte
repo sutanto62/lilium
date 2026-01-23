@@ -120,14 +120,16 @@
 	async function validateUshers(usherList: Usher[]): Promise<boolean> {
 		const numberOfPpg = usherList.filter((usher) => usher.isPpg).length;
 		const numberOfKolekte = usherList.filter((usher) => usher.isKolekte).length;
-		const hasExactPpg = numberOfPpg === 2;
+		const requirePpg = data.requirePpg;
+		const hasValidPpg = requirePpg ? numberOfPpg === 2 : (numberOfPpg >= 0 && numberOfPpg <= 2);
 		const hasExactKolekte = numberOfKolekte === 3;
 		const hasMinimumUshers = usherList.length >= 6;
-		const isValid = hasExactPpg && hasExactKolekte && hasMinimumUshers;
+		const isValid = hasValidPpg && hasExactKolekte && hasMinimumUshers;
 
 		if (isSubmitted) {
 			const validationMetadata = {
-				has_exact_ppg: hasExactPpg,
+				require_ppg: requirePpg,
+				has_valid_ppg: hasValidPpg,
 				has_exact_kolekte: hasExactKolekte,
 				has_minimum_ushers: hasMinimumUshers,
 				number_of_ppg: numberOfPpg,
@@ -350,7 +352,7 @@
 				/>
 			</section>
 			<section class="rounded-lg border bg-white p-6 md:col-span-3">
-				<UshersList bind:ushers bind:isSubmitable={isUshersValid} />
+				<UshersList bind:ushers bind:isSubmitable={isUshersValid} requirePpg={data.requirePpg} />
 			</section>
 		</div>
 		<div class="flex justify-end gap-4 px-0 py-4">

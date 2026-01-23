@@ -55,8 +55,13 @@ export function validateUsherNames(ushers: EventUsher[], requirePpg: boolean = t
 
         // Check for single character words (abbreviations)
         const words = name.trim().split(/\s+/);
-        if (words.some(word => word.length === 1)) {
-            return { isValid: false, error: `Nama petugas tidak boleh mengandung singkatan 1 huruf: ${name}` };
+        // Allow single-character words if name has more than 1 word and at least one word has more than 1 character
+        // Reject if all words are single characters (e.g., "I A I")
+        if (words.length === 1 && words[0].length === 1) {
+            return { isValid: false, error: `Nama petugas tidak boleh hanya 1 huruf: ${name}` };
+        }
+        if (words.length > 1 && words.every(word => word.length === 1)) {
+            return { isValid: false, error: `Nama petugas tidak boleh semua kata hanya 1 huruf: ${name}` };
         }
     }
 

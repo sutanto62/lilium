@@ -66,6 +66,20 @@ export interface ChurchPosition {
 	active: number;
 }
 
+export interface MassPositionView {
+	massId: string;
+	zoneId: string;
+	zoneName: string;
+	zoneGroupId: string | null;
+	zoneGroupName: string | null;
+	positionId: string;
+	positionName: string;
+	positionType: 'usher' | 'prodiakon' | 'peta';
+	isPpg: boolean;
+	positionSequence: number | null;
+	positionActive: number;
+}
+
 export interface Wilayah {
 	id: string;
 	name: string;

@@ -79,6 +79,13 @@ export interface ScheduleRepository {
 	findZoneGroupsByEvent(churchId: string, eventId: string): Promise<ChurchZoneGroup[]>;
 	findPositionByChurch(id: string): Promise<ChurchPosition[]>;
 	listPositionByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;
+	createPosition(position: Omit<ChurchPosition, 'id' | 'church' | 'active'> & { zone: string }): Promise<ChurchPosition>;
+	updatePosition(
+		positionId: string,
+		patch: Partial<Pick<ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg'>>
+	): Promise<ChurchPosition>;
+	softDeletePosition(positionId: string): Promise<void>;
+	reorderZonePositions(zoneId: string, items: { id: string; sequence: number }[]): Promise<void>;
 	// findPositionByMass(churchId: string, massId: string)
 
 	// Authentication

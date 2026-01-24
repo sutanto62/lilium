@@ -24,13 +24,17 @@ import {
 	updateEventById
 } from './SQLiteDbEvent';
 import {
+	createPosition,
 	findChurchById,
 	findChurches,
 	findPositionByChurch,
 	findZoneGroupsByEvent,
 	findZonesByChurch,
 	findZonesByEvent,
-	listPositionByMass
+	listPositionByMass,
+	reorderZonePositions,
+	softDeletePosition,
+	updatePosition
 } from './SQLiteDbFacility';
 import { findMassById, findMasses } from './SQLiteDbMass';
 import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
@@ -118,6 +122,13 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
 	findZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
 	findPositionByChurch = (id: string) => findPositionByChurch(this.db, id);
+	createPosition = (position: Omit<import('$core/entities/Schedule').ChurchPosition, 'id' | 'church' | 'active'> & { zone: string }) =>
+		createPosition(this.db, position);
+	updatePosition = (positionId: string, patch: Partial<Pick<import('$core/entities/Schedule').ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg'>>) =>
+		updatePosition(this.db, positionId, patch);
+	softDeletePosition = (positionId: string) => softDeletePosition(this.db, positionId);
+	reorderZonePositions = (zoneId: string, items: { id: string; sequence: number }[]) =>
+		reorderZonePositions(this.db, zoneId, items);
 
 	// Authentication
 	getUserByEmail = (email: string) => findUserByEmail(this.db, email);

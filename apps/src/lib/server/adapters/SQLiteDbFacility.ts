@@ -2,6 +2,7 @@ import type { Church, ChurchPosition, ChurchZone, ChurchZoneGroup } from '$core/
 import { church, church_position, church_zone, church_zone_group, event, mass, mass_zone } from '$src/lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Church[]> {
 	return await db.select().from(church).orderBy(church.code);
@@ -211,17 +212,179 @@ export async function listPositionByMass(
 		)
 		.orderBy(church_position.sequence);
 
-	return result.map((position) => ({
-		id: position.church_position.id,
-		church: position.church_zone?.church ?? '',
-		zone: position.church_zone?.name ?? '',
-		name: position.church_position.name,
-		code: position.church_position.code,
-		description: position.church_position.description,
-		isPpg: position.church_position.isPpg ? true : false,
-		sequence: position.church_position.sequence,
-		type: position.church_position.type,
-		active: position.church_position.active
+	return result.map((row) => ({
+		id: row.church_position.id,
+		church: row.church_zone?.church ?? '',
+		zone: row.church_zone?.name ?? '',
+		name: row.church_position.name,
+		code: row.church_position.code,
+		description: row.church_position.description,
+		isPpg: row.church_position.isPpg ? true : false,
+		sequence: row.church_position.sequence,
+		type: row.church_position.type,
+		active: row.church_position.active,
+		// Include additional data for MassPositionView mapping (accessed via type assertion in service)
+		_zoneId: row.church_zone?.id ?? '',
+		_zoneName: row.church_zone?.name ?? '',
+		_zoneGroupId: row.church_zone_group?.id ?? null,
+		_zoneGroupName: row.church_zone_group?.name ?? null
+	} as ChurchPosition & {
+		_zoneId: string;
+		_zoneName: string;
+		_zoneGroupId: string | null;
+		_zoneGroupName: string | null;
 	}));
+}
+
+/**
+ * Creates a new church position
+ * 
+ * @param db - The SQLite database connection
+ * @param position - Position data (zone should be zone ID, not name)
+ * @returns Promise resolving to created ChurchPosition
+ */
+export async function createPosition(
+	db: ReturnType<typeof drizzle>,
+	position: Omit<ChurchPosition, 'id' | 'church' | 'active'> & { zone: string }
+): Promise<ChurchPosition> {
+	// Get zone to get church ID and zone name
+	const zoneResult = await db
+		.select()
+		.from(church_zone)
+		.where(eq(church_zone.id, position.zone))
+		.limit(1);
+
+	if (!zoneResult[0]) {
+		throw new Error(`Zone not found: ${position.zone}`);
+	}
+
+	const zone = zoneResult[0];
+	const positionId = uuidv4();
+
+	const result = await db
+		.insert(church_position)
+		.values({
+			id: positionId,
+			zone: position.zone,
+			name: position.name,
+			code: position.code ?? null,
+			description: position.description ?? null,
+			isPpg: position.isPpg ? 1 : 0,
+			sequence: position.sequence ?? null,
+			type: position.type as 'usher' | 'prodiakon' | 'peta',
+			active: 1,
+			createdAt: undefined // Let database default handle this
+		})
+		.returning();
+
+	return {
+		id: result[0].id,
+		church: zone.church ?? '',
+		zone: zone.name, // Return zone name for consistency with other methods
+		name: result[0].name,
+		code: result[0].code,
+		description: result[0].description,
+		isPpg: result[0].isPpg ? true : false,
+		sequence: result[0].sequence,
+		type: result[0].type,
+		active: result[0].active
+	};
+}
+
+/**
+ * Updates an existing church position
+ * 
+ * @param db - The SQLite database connection
+ * @param positionId - ID of the position to update
+ * @param patch - Partial position data to update
+ * @returns Promise resolving to updated ChurchPosition
+ */
+export async function updatePosition(
+	db: ReturnType<typeof drizzle>,
+	positionId: string,
+	patch: Partial<Pick<ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg'>>
+): Promise<ChurchPosition> {
+	// Build update object, only including defined fields
+	const updateData: Record<string, unknown> = {};
+	if (patch.name !== undefined) updateData.name = patch.name;
+	if (patch.code !== undefined) updateData.code = patch.code ?? null;
+	if (patch.description !== undefined) updateData.description = patch.description ?? null;
+	if (patch.type !== undefined) updateData.type = patch.type as 'usher' | 'prodiakon' | 'peta';
+	if (patch.isPpg !== undefined) updateData.isPpg = patch.isPpg ? 1 : 0;
+
+	const result = await db
+		.update(church_position)
+		.set(updateData)
+		.where(eq(church_position.id, positionId))
+		.returning();
+
+	if (!result[0]) {
+		throw new Error(`Position not found: ${positionId}`);
+	}
+
+	const updatedPosition = result[0];
+
+	// Get zone to return zone name
+	if (!updatedPosition.zone) {
+		throw new Error(`Position ${positionId} has no zone assigned`);
+	}
+
+	const zoneId = updatedPosition.zone; // TypeScript now knows this is not null
+	const zoneResult = await db
+		.select()
+		.from(church_zone)
+		.where(eq(church_zone.id, zoneId))
+		.limit(1);
+
+	return {
+		id: result[0].id,
+		church: zoneResult[0]?.church ?? '',
+		zone: zoneResult[0]?.name ?? '',
+		name: result[0].name,
+		code: result[0].code,
+		description: result[0].description,
+		isPpg: result[0].isPpg ? true : false,
+		sequence: result[0].sequence,
+		type: result[0].type,
+		active: result[0].active
+	};
+}
+
+/**
+ * Soft deletes a church position by setting active = 0
+ * 
+ * @param db - The SQLite database connection
+ * @param positionId - ID of the position to deactivate
+ */
+export async function softDeletePosition(
+	db: ReturnType<typeof drizzle>,
+	positionId: string
+): Promise<void> {
+	await db
+		.update(church_position)
+		.set({ active: 0 })
+		.where(eq(church_position.id, positionId));
+}
+
+/**
+ * Reorders positions within a zone by updating their sequence values
+ * 
+ * @param db - The SQLite database connection
+ * @param zoneId - ID of the zone containing the positions
+ * @param items - Array of position IDs and their new sequence values
+ */
+export async function reorderZonePositions(
+	db: ReturnType<typeof drizzle>,
+	zoneId: string,
+	items: { id: string; sequence: number }[]
+): Promise<void> {
+	await db.transaction(async (tx) => {
+		for (const item of items) {
+			await tx
+				.update(church_position)
+				.set({ sequence: item.sequence })
+				.where(and(eq(church_position.id, item.id), eq(church_position.zone, zoneId)));
+		}
+	});
 }
 

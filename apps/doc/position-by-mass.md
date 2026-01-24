@@ -31,10 +31,24 @@
     - Happy path tests for all methods
     - Proper mocking and assertions
 
-- ⏳ **Phase 2 – Route API (`+page.server.ts`)** - **PENDING**
-  - Route implementation needed
-  - Server-side load function
-  - Form actions (create, edit, delete, reorder)
+- ✅ **Phase 2 – Route API (`+page.server.ts`)** - **COMPLETED**
+  - ✅ Route implementation at `/admin/misa/[id]/positions`
+  - ✅ Server-side `load` function:
+    - Authentication and admin role checks
+    - Church ID and mass ID validation
+    - Mass existence and ownership validation
+    - Fetches mass details and positions concurrently
+    - Analytics tracking (Statsig + PostHog)
+  - ✅ Form actions implemented:
+    - `create_position` - creates new position with validation
+    - `edit_position` - updates position fields (partial updates)
+    - `delete_position` - soft deletes position
+    - `reorder_positions` - reorders positions within a zone
+  - ✅ Comprehensive TDD test coverage (23 tests, all passing):
+    - Load function tests (auth, validation, happy path)
+    - Action tests for all 4 actions (error cases + success cases)
+    - Proper mocking of `PositionService`, `hasRole`, and repository
+    - All tests passing with proper type safety
 
 - ⏳ **Phase 3 – UI (`+page.svelte`)** - **PENDING**
   - Svelte 5 component implementation
@@ -193,7 +207,7 @@ A dedicated service to encapsulate “position by mass” behavior:
 
 - ✅ `createPositionForMass(massId: string, zoneId: string, input: CreatePositionInput): Promise<ChurchPosition>`  
   Validates `massId`, `zoneId`, `input.name`, `input.type`. Calls `repository.createPosition()`.  
-  **Note**: Mass/zone validation TODO (to be added in Phase 2).
+  **Note**: Mass existence validation implemented in route layer (Phase 2). Zone assignment validation (zone must be assigned to mass) is a future enhancement.
 
 - ✅ `editPosition(positionId: string, patch: UpdatePositionInput): Promise<ChurchPosition>`  
   Validates `positionId` and non-empty `patch`. Calls `repository.updatePosition()`.
@@ -206,26 +220,39 @@ A dedicated service to encapsulate “position by mass” behavior:
 
 **Validation status**:
 - ✅ Input validation (required fields, non-empty arrays).
-- ⏳ Mass/zone existence and assignment validation (TODO for Phase 2).
+- ✅ Mass existence and ownership validation (implemented in Phase 2 route).
+- ⏳ Zone assignment validation (zone must be assigned to mass via `mass_zone`) - TODO for future enhancement.
 - ✅ Position type and required fields validation.
 
 ## 7. Route Design: `/admin/misa/[id]/positions`
 
-### 7.1 Server (`+page.server.ts`)
+### 7.1 Server (`+page.server.ts`) ✅ **IMPLEMENTED**
 
-- **load**:
-  - Authenticate and require `admin` role.
-  - Resolve `churchId` from session and `massId` from route params.
-  - Fetch:
-    - Mass details (via existing service).
-    - Zones for this mass (via `mass_zone` join).
+- ✅ **load**:
+  - Authenticates and requires `admin` role (redirects if not authenticated/authorized).
+  - Resolves `churchId` from session and `massId` from route params.
+  - Validates mass exists and belongs to church.
+  - Fetches concurrently:
+    - Mass details via `repo.getMassById(massId)`.
     - `positionsByMass` via `PositionService.retrievePositionsByMass(massId)`.
+  - Tracks analytics events (Statsig + PostHog).
 
-- **actions**:
-  - `create_position`: create new `church_position` under a zone assigned to this mass.
-  - `edit_position`: update existing position fields.
-  - `delete_position`: soft delete position.
-  - `reorder_positions`: update sequences per zone.
+- ✅ **actions**:
+  - ✅ `create_position`: Creates new `church_position` under a zone assigned to this mass.
+    - Validates authentication, admin role, churchId, massId, zoneId, name, type.
+    - Calls `PositionService.createPositionForMass()`.
+    - Returns success/error with appropriate error messages.
+  - ✅ `edit_position`: Updates existing position fields (name, code, description, type, isPpg).
+    - Validates authentication, admin role, positionId, non-empty patch.
+    - Calls `PositionService.editPosition()`.
+    - Supports partial updates.
+  - ✅ `delete_position`: Soft deletes position by setting `active = 0`.
+    - Validates authentication, admin role, positionId.
+    - Calls `PositionService.deactivatePosition()`.
+  - ✅ `reorder_positions`: Updates position sequences within a zone.
+    - Validates authentication, admin role, zoneId, items array.
+    - Parses and validates JSON items array.
+    - Calls `PositionService.reorderZonePositions()`.
 
 ### 7.2 UI (`+page.svelte`)
 
@@ -263,14 +290,27 @@ A dedicated service to encapsulate “position by mass” behavior:
   - ✅ All repository methods wired in SQLite adapter (`SQLiteDbFacility.ts`).
   - ✅ All tests passing (13/13).
 
-### Phase 2 – Route API (`+page.server.ts`)
+### Phase 2 – Route API (`+page.server.ts`) ✅ **COMPLETED**
 
-- Implement `load` + `actions` using `PositionService`.
-- **TDD**:
-  - Test `load` and actions as pure functions using Vitest:
-    - Auth checks.
-    - Validation errors (missing fields, invalid mass).
-    - Happy paths calling `PositionService` correctly.
+- ✅ Implemented `load` + `actions` using `PositionService`.
+- ✅ **TDD Completed**:
+  - ✅ Created `page.server.test.ts` with 23 comprehensive tests.
+  - ✅ All tests passing:
+    - ✅ Load function tests:
+      - Authentication and authorization checks
+      - Validation errors (missing churchId, missing massId, mass not found, mass doesn't belong to church)
+      - Happy path (loads mass and positions successfully)
+    - ✅ Action tests for all 4 actions:
+      - `create_position`: auth checks, validation errors, success case, ServiceError handling
+      - `edit_position`: auth checks, validation errors, success case
+      - `delete_position`: auth checks, validation errors, success case
+      - `reorder_positions`: auth checks, validation errors, success case
+  - ✅ Proper mocking:
+    - `PositionService` mocked with all methods
+    - `hasRole` mocked for authorization checks
+    - `repo.getMassById` mocked for mass lookup
+    - Proper type safety with `ServerLoadEvent` and `RequestEvent` mocks
+  - ✅ All tests passing (23/23).
 
 ### Phase 3 – UI (`+page.svelte`)
 

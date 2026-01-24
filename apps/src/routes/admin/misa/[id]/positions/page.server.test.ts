@@ -64,6 +64,7 @@ const mockPositions: MassPositionView[] = [
 		zoneName: 'Zone A',
 		zoneGroupId: 'group-1',
 		zoneGroupName: 'Group 1',
+		zoneGroupSequence: 1,
 		positionId,
 		positionName: 'Usher Pintu Utama',
 		positionType: 'usher',

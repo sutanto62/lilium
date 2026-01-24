@@ -18,6 +18,8 @@ export interface UpdatePositionInput {
 	description?: string | null;
 	type?: 'usher' | 'prodiakon' | 'peta';
 	isPpg?: boolean;
+	sequence?: number | null;
+	zone?: string;
 }
 
 export class PositionService {
@@ -42,6 +44,7 @@ export class PositionService {
 			_zoneName?: string;
 			_zoneGroupId?: string | null;
 			_zoneGroupName?: string | null;
+			_zoneGroupSequence?: number | null;
 		};
 
 		return positions.map((position) => {
@@ -52,6 +55,7 @@ export class PositionService {
 				zoneName: pos._zoneName ?? pos.zone, // Fallback to zone (name) if _zoneName not available
 				zoneGroupId: pos._zoneGroupId ?? null,
 				zoneGroupName: pos._zoneGroupName ?? null,
+				zoneGroupSequence: pos._zoneGroupSequence ?? null,
 				positionId: pos.id,
 				positionName: pos.name,
 				positionType: pos.type as 'usher' | 'prodiakon' | 'peta',

@@ -82,7 +82,7 @@ export interface ScheduleRepository {
 	createPosition(position: Omit<ChurchPosition, 'id' | 'church' | 'active'> & { zone: string }): Promise<ChurchPosition>;
 	updatePosition(
 		positionId: string,
-		patch: Partial<Pick<ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg'>>
+		patch: Partial<Pick<ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg' | 'sequence' | 'zone'>>
 	): Promise<ChurchPosition>;
 	softDeletePosition(positionId: string): Promise<void>;
 	reorderZonePositions(zoneId: string, items: { id: string; sequence: number }[]): Promise<void>;

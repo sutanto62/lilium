@@ -220,6 +220,8 @@ export const actions = {
 		const description = formData.get('description') as string | null;
 		const type = formData.get('type') as 'usher' | 'prodiakon' | 'peta' | null;
 		const isPpgStr = formData.get('isPpg') as string | null;
+		const sequenceStr = formData.get('sequence') as string | null;
+		const zoneId = formData.get('zoneId') as string | null;
 
 		const patch: {
 			name?: string;
@@ -227,6 +229,8 @@ export const actions = {
 			description?: string | null;
 			type?: 'usher' | 'prodiakon' | 'peta';
 			isPpg?: boolean;
+			sequence?: number | null;
+			zone?: string;
 		} = {};
 
 		if (name !== null) {
@@ -243,6 +247,19 @@ export const actions = {
 		}
 		if (isPpgStr !== null) {
 			patch.isPpg = isPpgStr === 'true';
+		}
+		if (sequenceStr !== null) {
+			if (sequenceStr.trim() === '') {
+				patch.sequence = null;
+			} else {
+				const sequence = parseInt(sequenceStr, 10);
+				if (!isNaN(sequence) && sequence > 0) {
+					patch.sequence = sequence;
+				}
+			}
+		}
+		if (zoneId !== null && zoneId.trim() !== '') {
+			patch.zone = zoneId.trim();
 		}
 
 		if (Object.keys(patch).length === 0) {

@@ -227,12 +227,14 @@ export async function listPositionByMass(
 		_zoneId: row.church_zone?.id ?? '',
 		_zoneName: row.church_zone?.name ?? '',
 		_zoneGroupId: row.church_zone_group?.id ?? null,
-		_zoneGroupName: row.church_zone_group?.name ?? null
+		_zoneGroupName: row.church_zone_group?.name ?? null,
+		_zoneGroupSequence: row.church_zone_group?.sequence ?? null
 	} as ChurchPosition & {
 		_zoneId: string;
 		_zoneName: string;
 		_zoneGroupId: string | null;
 		_zoneGroupName: string | null;
+		_zoneGroupSequence: number | null;
 	}));
 }
 
@@ -302,7 +304,7 @@ export async function createPosition(
 export async function updatePosition(
 	db: ReturnType<typeof drizzle>,
 	positionId: string,
-	patch: Partial<Pick<ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg'>>
+	patch: Partial<Pick<ChurchPosition, 'name' | 'code' | 'description' | 'type' | 'isPpg' | 'sequence' | 'zone'>>
 ): Promise<ChurchPosition> {
 	// Build update object, only including defined fields
 	const updateData: Record<string, unknown> = {};
@@ -311,6 +313,8 @@ export async function updatePosition(
 	if (patch.description !== undefined) updateData.description = patch.description ?? null;
 	if (patch.type !== undefined) updateData.type = patch.type as 'usher' | 'prodiakon' | 'peta';
 	if (patch.isPpg !== undefined) updateData.isPpg = patch.isPpg ? 1 : 0;
+	if (patch.sequence !== undefined) updateData.sequence = patch.sequence ?? null;
+	if (patch.zone !== undefined) updateData.zone = patch.zone;
 
 	const result = await db
 		.update(church_position)
@@ -324,22 +328,26 @@ export async function updatePosition(
 
 	const updatedPosition = result[0];
 
-	// Get zone to return zone name
-	if (!updatedPosition.zone) {
+	// Get zone to return zone name (use updated zone if zone was changed, otherwise use existing)
+	const zoneId = updatedPosition.zone;
+	if (!zoneId) {
 		throw new Error(`Position ${positionId} has no zone assigned`);
 	}
 
-	const zoneId = updatedPosition.zone; // TypeScript now knows this is not null
 	const zoneResult = await db
 		.select()
 		.from(church_zone)
 		.where(eq(church_zone.id, zoneId))
 		.limit(1);
 
+	if (!zoneResult[0]) {
+		throw new Error(`Zone ${zoneId} not found`);
+	}
+
 	return {
 		id: result[0].id,
-		church: zoneResult[0]?.church ?? '',
-		zone: zoneResult[0]?.name ?? '',
+		church: zoneResult[0].church ?? '',
+		zone: zoneResult[0].name ?? '',
 		name: result[0].name,
 		code: result[0].code,
 		description: result[0].description,

@@ -72,6 +72,7 @@ export interface MassPositionView {
 	zoneName: string;
 	zoneGroupId: string | null;
 	zoneGroupName: string | null;
+	zoneGroupSequence: number | null;
 	positionId: string;
 	positionName: string;
 	positionType: 'usher' | 'prodiakon' | 'peta';

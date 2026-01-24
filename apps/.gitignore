@@ -33,3 +33,8 @@ node_modules
 
 # IDE
 .vscode/
+
+# Serena
+.serena/cache/
+.serena/memories/
+.serena/.DS_Store

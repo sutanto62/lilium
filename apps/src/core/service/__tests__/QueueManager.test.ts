@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueueManager } from '../QueueManager';
 
 describe('QueueManager', () => {
-    const repoGetEventUshers = vi.spyOn(repo, 'getEventUshers');
-    const repoMassPositions = vi.spyOn(repo, 'getPositionsByMass');
+    const repoGetEventUshers = vi.spyOn(repo, 'findEventUshers');
+    const repoMassPositions = vi.spyOn(repo, 'listPositionByMass');
     const repoEditEventUshers = vi.spyOn(repo, 'editEventUshers');
     const manager = QueueManager.getInstance();
 
@@ -408,9 +408,9 @@ function createUshersLingkunganC(): EventUsher[] {
 
 function createTestLingkungan(): Lingkungan[] {
     return [
-        { id: '1A', name: '1A', wilayah: '1', sequence: 1, church: '1', active: 1 },
-        { id: '1B', name: '1B', wilayah: '1', sequence: 1, church: '1', active: 1 },
-        { id: '1C', name: '1C', wilayah: '1', sequence: 1, church: '1', active: 1 },
+        { id: '1A', name: '1A', wilayah: '1', wilayahName: 'Wilayah 1', sequence: 1, church: '1', active: 1 },
+        { id: '1B', name: '1B', wilayah: '1', wilayahName: 'Wilayah 1', sequence: 1, church: '1', active: 1 },
+        { id: '1C', name: '1C', wilayah: '1', wilayahName: 'Wilayah 1', sequence: 1, church: '1', active: 1 },
     ];
 }
 

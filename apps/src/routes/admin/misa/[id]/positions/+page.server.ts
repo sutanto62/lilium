@@ -1,13 +1,14 @@
 import { hasRole } from '$src/auth';
-import { statsigService } from '$src/lib/application/StatsigService';
-import { posthogService } from '$src/lib/application/PostHogService';
 import { PositionService, type CreatePositionInput } from '$core/service/PositionService';
 import { ServiceError } from '$core/errors/ServiceError';
+import { statsigService } from '$src/lib/application/StatsigService';
+import { posthogService } from '$src/lib/application/PostHogService';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
 import { fail, redirect, error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import type { MassPositionView } from '$core/entities/Schedule';
+import type { Church, MassPositionView } from '$core/entities/Schedule';
+import { shouldRequirePpg } from '$lib/utils/ppgUtils';
 
 export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
@@ -30,6 +31,14 @@ export const load: PageServerLoad = async (event) => {
 		logger.error('admin_misa_positions.load: Church ID not found in session');
 		throw error(500, 'Invalid session data');
 	}
+	let church: Church | null = null;
+	church = await repo.findChurchById(churchId);
+	if (!church) {
+		throw error(404, 'Gereja belum terdaftar');
+	}
+
+	// Check if PPG is required for this church
+	const requirePpg = await shouldRequirePpg(church);
 
 	const massId = event.params.id;
 	if (!massId) {
@@ -61,16 +70,21 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		await Promise.all([
-			statsigService.logEvent('admin_misa_positions_view', 'load', session, metadata),
+			statsigService.logEvent('admin_misa_positions_view', 'load', session, {
+				...metadata,
+				ppg_enabled: requirePpg
+			}),
 			posthogService.trackEvent('admin_misa_positions_view', {
 				event_type: 'page_load',
-				...metadata
+				...metadata,
+				ppg_enabled: requirePpg
 			}, session)
 		]);
 
 		return {
 			mass,
-			positionsByMass
+			positionsByMass,
+			requirePpg
 		};
 	} catch (err) {
 		logger.error('admin_misa_positions.load: Error loading positions', { error: err, massId });
@@ -104,6 +118,12 @@ export const actions = {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
 		}
 
+		let church: Church | null = null;
+		church = await repo.findChurchById(churchId);
+		if (!church) {
+			throw error(404, 'Gereja belum terdaftar');
+		}
+
 		const massId = params.id;
 		if (!massId) {
 			logger.error('admin_misa_positions.create_position: Mass ID not found in params');
@@ -116,7 +136,7 @@ export const actions = {
 		const type = formData.get('type') as 'usher' | 'prodiakon' | 'peta' | null;
 		const code = formData.get('code') as string | null;
 		const description = formData.get('description') as string | null;
-		const isPpg = formData.get('isPpg') === 'true';
+		const isPpgRequested = formData.get('isPpg') === 'true';
 		const sequenceStr = formData.get('sequence') as string | null;
 
 		if (!name || name.trim().length === 0) {
@@ -137,12 +157,14 @@ export const actions = {
 
 		try {
 			const positionService = new PositionService(churchId);
+			const ppgEnabled = church.requirePpg === 1;
 			const input: CreatePositionInput = {
 				name: name.trim(),
 				type,
 				code: code?.trim() || null,
 				description: description?.trim() || null,
-				isPpg,
+				// Only allow PPG positions when the feature is enabled for this church (DB config)
+				isPpg: ppgEnabled ? isPpgRequested : false,
 				sequence: sequenceStr ? parseInt(sequenceStr, 10) : null
 			};
 
@@ -208,6 +230,12 @@ export const actions = {
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
 		}
 
+		let church: Church | null = null;
+		church = await repo.findChurchById(churchId);
+		if (!church) {
+			throw error(404, 'Gereja belum terdaftar');
+		}
+
 		const formData = await request.formData();
 		const positionId = formData.get('positionId') as string;
 
@@ -219,7 +247,7 @@ export const actions = {
 		const code = formData.get('code') as string | null;
 		const description = formData.get('description') as string | null;
 		const type = formData.get('type') as 'usher' | 'prodiakon' | 'peta' | null;
-		const isPpgStr = formData.get('isPpg') as string | null;
+		const isPpgRequested = formData.get('isPpg') === 'true';
 		const sequenceStr = formData.get('sequence') as string | null;
 		const zoneId = formData.get('zoneId') as string | null;
 
@@ -245,9 +273,6 @@ export const actions = {
 		if (type !== null && (type === 'usher' || type === 'prodiakon' || type === 'peta')) {
 			patch.type = type;
 		}
-		if (isPpgStr !== null) {
-			patch.isPpg = isPpgStr === 'true';
-		}
 		if (sequenceStr !== null) {
 			if (sequenceStr.trim() === '') {
 				patch.sequence = null;
@@ -267,6 +292,12 @@ export const actions = {
 		}
 
 		try {
+			const ppgEnabled = church.requirePpg === 1;
+			// Only allow PPG updates when feature is enabled for this church (DB config)
+			if (ppgEnabled) {
+				patch.isPpg = isPpgRequested;
+			}
+
 			const positionService = new PositionService(churchId);
 			await positionService.editPosition(positionId, patch);
 

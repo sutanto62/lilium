@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidate } from '$app/navigation';
+	import { tick } from 'svelte';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { tracker } from '$src/lib/utils/analytics';
 	import { page } from '$app/state';
@@ -37,6 +38,7 @@
 	// Derived data
 	const mass = $derived(data.mass);
 	const serverPositions = $derived(data.positionsByMass);
+	const requirePpg = $derived(data.requirePpg ?? false);
 	
 	// Local reactive state for positions (allows optimistic updates)
 	let localPositions = $state<MassPositionView[]>([]);
@@ -66,6 +68,16 @@
 	let showDeleteModal = $state(false);
 	let selectedPosition = $state<MassPositionView | null>(null);
 	let deletingPositionId = $state<string | null>(null);
+	let openMobileActionsId = $state<string | null>(null);
+
+	// Reorder form state (used to avoid direct fetch calls)
+	let reorderForm: HTMLFormElement | null = null;
+	let reorderZoneId = $state<string>('');
+	let reorderItemsJson = $state<string>('');
+	let lastReorderPreviousPositions: MassPositionView[] | null = null;
+	let lastReorderZoneId: string | null = null;
+	let lastReorderDirection: 'up' | 'down' | null = null;
+	let lastReorderItemCount = 0;
 
 	// Create form state
 	let createZoneId = $state<string>('');
@@ -74,6 +86,7 @@
 	let createCode = $state('');
 	let createDescription = $state('');
 	let createIsPpg = $state(false);
+	let createSequence = $state<string>('');
 
 	// Edit form state
 	let editZoneId = $state<string>('');
@@ -199,6 +212,7 @@
 		createCode = '';
 		createDescription = '';
 		createIsPpg = false;
+		createSequence = '';
 		showCreateModal = true;
 	}
 
@@ -228,23 +242,35 @@
 		deletingPositionId = null;
 	}
 
+	function toggleMobileActions(positionId: string) {
+		openMobileActionsId = openMobileActionsId === positionId ? null : positionId;
+	}
+
+	function closeMobileActionsMenu() {
+		openMobileActionsId = null;
+	}
+
 	async function handleReorder(zoneId: string, positionId: string, direction: 'up' | 'down') {
 		if (isSubmitting) return;
 
-		// Get all positions in the same zone, maintaining their current order
+		// Snapshot current state for potential rollback
+		lastReorderPreviousPositions = localPositions;
+
+		// Collect all positions in this zone and sort by current sequence (falling back to stable index)
 		const zonePositions = localPositions
 			.filter((p) => p.zoneId === zoneId)
-			.map((p) => ({ ...p })) // Create copies to avoid mutation
 			.sort((a, b) => {
-				// Sort by current sequence, maintaining order for positions with same/null sequence
 				const seqA = a.positionSequence ?? 9999;
 				const seqB = b.positionSequence ?? 9999;
 				if (seqA !== seqB) return seqA - seqB;
-				// If sequences are equal, maintain original order by finding index
 				const idxA = localPositions.findIndex((p) => p.positionId === a.positionId);
 				const idxB = localPositions.findIndex((p) => p.positionId === b.positionId);
 				return idxA - idxB;
 			});
+
+		if (zonePositions.length < 2) {
+			return;
+		}
 
 		const currentIndex = zonePositions.findIndex((p) => p.positionId === positionId);
 		if (currentIndex === -1) return;
@@ -252,114 +278,55 @@
 		const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
 		if (newIndex < 0 || newIndex >= zonePositions.length) return;
 
-		// Swap positions in the zone array
-		[zonePositions[currentIndex], zonePositions[newIndex]] = [
-			zonePositions[newIndex],
-			zonePositions[currentIndex]
+		// Compute new ordered list for this zone
+		const orderedZonePositions = [...zonePositions];
+		[orderedZonePositions[currentIndex], orderedZonePositions[newIndex]] = [
+			orderedZonePositions[newIndex],
+			orderedZonePositions[currentIndex]
 		];
 
-		// Update sequences for all positions in the zone (1-based) - create new objects
-		const updatedZonePositions = zonePositions.map((pos, idx) => ({
-			...pos,
-			positionSequence: idx + 1
-		}));
-
-		// Create updated full positions array
-		// Replace zone positions in the full array while maintaining other positions
-		const updatedPositions = localPositions.map((pos) => {
-			if (pos.zoneId === zoneId) {
-				// Find the updated version in updatedZonePositions
-				const updated = updatedZonePositions.find((zp) => zp.positionId === pos.positionId);
-				return updated || pos;
-			}
-			return pos;
+		// Assign new 1-based sequences for this zone
+		const sequenceById = new Map<string, number>();
+		orderedZonePositions.forEach((pos, idx) => {
+			sequenceById.set(pos.positionId, idx + 1);
 		});
+
+		// Build updated local positions array with new sequences for this zone
+		const updatedPositions = localPositions.map((pos) =>
+			pos.zoneId === zoneId && sequenceById.has(pos.positionId)
+				? { ...pos, positionSequence: sequenceById.get(pos.positionId)! }
+				: pos
+		);
 
 		// Optimistically update the UI immediately
 		isOptimisticUpdate = true;
 		localPositions = updatedPositions;
 
-		// Build items array with new sequences for server (use the updated zone positions)
-		const items = updatedZonePositions.map((p, idx) => ({
+		// Build items payload for the server using the new order
+		const items = orderedZonePositions.map((p, idx) => ({
 			id: p.positionId,
 			sequence: idx + 1
 		}));
 
-		// Submit to server in the background
-		const formData = new FormData();
-		formData.append('zoneId', zoneId);
-		formData.append('items', JSON.stringify(items));
+		// Store context for the enhanced form handler
+		lastReorderZoneId = zoneId;
+		lastReorderDirection = direction;
+		lastReorderItemCount = items.length;
 
-		isSubmitting = true;
-		try {
-			const response = await fetch('?/reorder_positions', {
-				method: 'POST',
-				body: formData,
-				headers: {
-					accept: 'application/json'
-				}
-			});
+		// Prepare hidden form fields for SvelteKit action
+		reorderZoneId = zoneId;
+		reorderItemsJson = JSON.stringify(items);
 
-			if (response.ok) {
-				const result = await response.json();
-				
-				// Check if action returned success
-				if (result?.success || result?.type === 'success') {
-					// Sync with server data
-					await invalidate('all');
-					// Wait for data to reload
-					await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-					// Manually sync with server data (don't rely on effect)
-					isOptimisticUpdate = false;
-					localPositions = serverPositions;
-					
-					// Track analytics
-					const session = page.data.session;
-					if (session) {
-						await Promise.all([
-							statsigService.logEvent('admin_misa_positions_reorder', 'reorder', session, {
-								zone_id: zoneId,
-								direction,
-								item_count: items.length
-							}),
-							tracker.track(
-								'admin_misa_positions_reorder',
-								{
-									event_type: 'positions_reordered',
-									zone_id: zoneId,
-									direction,
-									item_count: items.length
-								},
-								session,
-								page
-							)
-						]);
-					}
-				} else {
-					// Revert optimistic update on error
-					isOptimisticUpdate = false;
-					localPositions = serverPositions;
-					const errorMessage = result?.error || 'Gagal mengubah urutan posisi';
-					console.error('Failed to reorder positions:', errorMessage);
-					alert(errorMessage);
-				}
-			} else {
-				// Revert optimistic update on error
-				isOptimisticUpdate = false;
-				localPositions = serverPositions;
-				const errorData = await response.json().catch(() => ({}));
-				const errorMessage = errorData?.error || `Gagal mengubah urutan posisi (${response.status})`;
-				console.error('Failed to reorder positions:', errorMessage);
-				alert(errorMessage);
-			}
-		} catch (error) {
-			// Revert optimistic update on error
+		// Submit to server via enhanced form (CSRF-protected, no direct fetch)
+		if (reorderForm) {
+			isSubmitting = true;
+			reorderForm.requestSubmit();
+		} else {
+			console.error('Reorder form is not initialized');
 			isOptimisticUpdate = false;
-			localPositions = serverPositions;
-			console.error('Failed to reorder positions:', error);
-			alert('Terjadi kesalahan saat mengubah urutan posisi. Silakan coba lagi.');
-		} finally {
-			isSubmitting = false;
+			if (lastReorderPreviousPositions) {
+				localPositions = lastReorderPreviousPositions;
+			}
 		}
 	}
 
@@ -403,7 +370,7 @@
 {/if}
 
 <!-- Header -->
-<div class="mb-4 flex items-center justify-between">
+<div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 	<div>
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
 			Posisi Misa: {mass.name}
@@ -414,7 +381,12 @@
 			</p>
 		{/if}
 	</div>
-	<Button color="primary" onclick={openCreateModal} disabled={isSubmitting || availableZones.length === 0}>
+	<Button
+		class="w-full sm:w-auto"
+		color="primary"
+		onclick={openCreateModal}
+		disabled={isSubmitting || availableZones.length === 0}
+	>
 		<CirclePlusSolid class="mr-2 h-4 w-4" />
 		Tambah Posisi
 	</Button>
@@ -435,7 +407,7 @@
 					<div class="space-y-2">
 						{#each group.positions as position, idx (position.positionId)}
 							<div
-								class="flex items-center justify-between rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+								class="flex items-center justify-between rounded bg-white p-3 dark:bg-gray-800"
 							>
 								<div class="flex-1">
 									<div class="flex items-center gap-2">
@@ -454,11 +426,6 @@
 										>
 											{position.zoneName}
 										</span>
-										<span
-											class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-										>
-											{getPositionTypeLabel(position.positionType)}
-										</span>
 										{#if position.isPpg}
 											<span
 												class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200"
@@ -468,49 +435,96 @@
 										{/if}
 									</div>
 								</div>
-
+					
 								<div class="flex items-center gap-2">
-									<!-- Reorder buttons -->
-									<Button
-										size="xs"
-										color="light"
-										onclick={() => handleReorder(position.zoneId, position.positionId, 'up')}
-										disabled={isSubmitting || idx === 0}
-										title="Pindah ke atas"
-									>
-										<ArrowUpOutline class="h-4 w-4" />
-									</Button>
-									<Button
-										size="xs"
-										color="light"
-										onclick={() => handleReorder(position.zoneId, position.positionId, 'down')}
-										disabled={isSubmitting || idx === group.positions.length - 1}
-										title="Pindah ke bawah"
-									>
-										<ArrowDownOutline class="h-4 w-4" />
-									</Button>
+									<!-- Desktop actions -->
+									<div class="hidden items-center gap-2 sm:flex">
+										<!-- Edit button -->
+										<Button
+											size="xs"
+											color="light"
+											onclick={() => openEditModal(position)}
+											disabled={isSubmitting}
+											title="Edit posisi"
+										>
+											<PenOutline class="h-4 w-4" />
+										</Button>
 
-									<!-- Edit button -->
-									<Button
-										size="xs"
-										color="light"
-										onclick={() => openEditModal(position)}
-										disabled={isSubmitting}
-										title="Edit posisi"
-									>
-										<PenOutline class="h-4 w-4" />
-									</Button>
+										<!-- Delete button -->
+										<Button
+											size="xs"
+											color="red"
+											onclick={() => openDeleteModal(position)}
+											disabled={isSubmitting}
+											title="Hapus posisi"
+										>
+											<TrashBinOutline class="h-4 w-4" />
+										</Button>
+									</div>
 
-									<!-- Delete button -->
-									<Button
-										size="xs"
-										color="red"
-										onclick={() => openDeleteModal(position)}
-										disabled={isSubmitting}
-										title="Hapus posisi"
-									>
-										<TrashBinOutline class="h-4 w-4" />
-									</Button>
+									<!-- Mobile actions -->
+									<div class="relative sm:hidden">
+										<Button
+											size="xs"
+											color="light"
+											onclick={() => toggleMobileActions(position.positionId)}
+											disabled={isSubmitting}
+											title="Opsi posisi"
+										>
+											<span class="text-lg leading-none">⋮</span>
+										</Button>
+
+										{#if openMobileActionsId === position.positionId}
+											<div
+												class="absolute right-0 z-20 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900"
+											>
+												<button
+													type="button"
+													class="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-700"
+													disabled={isSubmitting || idx === 0}
+													onclick={() => {
+														handleReorder(position.zoneId, position.positionId, 'up');
+														closeMobileActionsMenu();
+													}}
+												>
+													<span>Pindah ke atas</span>
+												</button>
+												<button
+													type="button"
+													class="mt-1.5 flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-700"
+													disabled={isSubmitting || idx === group.positions.length - 1}
+													onclick={() => {
+														handleReorder(position.zoneId, position.positionId, 'down');
+														closeMobileActionsMenu();
+													}}
+												>
+													<span>Pindah ke bawah</span>
+												</button>
+												<button
+													type="button"
+													class="mt-1.5 flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-200 dark:hover:bg-gray-700"
+													disabled={isSubmitting}
+													onclick={() => {
+														openEditModal(position);
+														closeMobileActionsMenu();
+													}}
+												>
+													<span>Edit posisi</span>
+												</button>
+												<button
+													type="button"
+													class="mt-1.5 flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/40"
+													disabled={isSubmitting}
+													onclick={() => {
+														openDeleteModal(position);
+														closeMobileActionsMenu();
+													}}
+												>
+													<span>Hapus posisi</span>
+												</button>
+											</div>
+										{/if}
+									</div>
 								</div>
 							</div>
 						{/each}
@@ -531,6 +545,87 @@
 		{/if}
 	</div>
 {/if}
+
+<!-- Hidden form used for position reordering (avoids direct fetch calls) -->
+<form
+	method="POST"
+	action="?/reorder_positions"
+	class="hidden"
+	bind:this={reorderForm}
+	use:enhance={() => {
+		return async ({ update, result }) => {
+			try {
+				if (result.type === 'success') {
+					// Apply SvelteKit action result
+					await update();
+					// Wait for Svelte to process updates
+					await tick();
+					// Now safe to clear optimistic flag - server data should be synced
+					isOptimisticUpdate = false;
+
+					// Track analytics
+					const session = page.data.session;
+					if (
+						session &&
+						lastReorderZoneId &&
+						lastReorderDirection &&
+						lastReorderItemCount
+					) {
+						await Promise.all([
+							statsigService.logEvent('admin_misa_positions_reorder', 'reorder', session, {
+								zone_id: lastReorderZoneId,
+								direction: lastReorderDirection,
+								item_count: lastReorderItemCount
+							}),
+							tracker.track(
+								'admin_misa_positions_reorder',
+								{
+									event_type: 'positions_reordered',
+									zone_id: lastReorderZoneId,
+									direction: lastReorderDirection,
+									item_count: lastReorderItemCount
+								},
+								session,
+								page
+							)
+						]);
+					}
+				} else if (result.type === 'failure') {
+					// Revert optimistic update on failure
+					isOptimisticUpdate = false;
+					if (lastReorderPreviousPositions) {
+						localPositions = lastReorderPreviousPositions;
+					}
+					const errorMessage =
+						(result.data as { error?: string })?.error || 'Gagal mengubah urutan posisi';
+					console.error('Failed to reorder positions:', errorMessage);
+					alert(errorMessage);
+				} else if (result.type === 'error') {
+					// Revert optimistic update on error
+					isOptimisticUpdate = false;
+					if (lastReorderPreviousPositions) {
+						localPositions = lastReorderPreviousPositions;
+					}
+					console.error('Failed to reorder positions:', result.error);
+					alert('Terjadi kesalahan saat mengubah urutan posisi. Silakan coba lagi.');
+				}
+			} catch (error) {
+				// Revert optimistic update on unexpected errors
+				isOptimisticUpdate = false;
+				if (lastReorderPreviousPositions) {
+					localPositions = lastReorderPreviousPositions;
+				}
+				console.error('Failed to reorder positions:', error);
+				alert('Terjadi kesalahan saat mengubah urutan posisi. Silakan coba lagi.');
+			} finally {
+				isSubmitting = false;
+			}
+		};
+	}}
+>
+	<input type="hidden" name="zoneId" value={reorderZoneId} />
+	<input type="hidden" name="items" value={reorderItemsJson} />
+</form>
 
 <!-- Create Position Modal -->
 <Modal title="Tambah Posisi" bind:open={showCreateModal}>
@@ -558,6 +653,24 @@
 					required
 					items={availableZones.map((z: { id: string; name: string }) => ({ value: z.id, name: z.name }))}
 				/>
+			</div>
+
+			<div>
+				<Label for="create-sequence">Urutan</Label>
+				<Input
+					id="create-sequence"
+					name="sequence"
+					type="number"
+					min="1"
+					value={createSequence}
+					oninput={(e) => {
+						createSequence = (e.target as HTMLInputElement).value;
+					}}
+					placeholder="Kosongkan untuk mengatur urutan otomatis"
+				/>
+				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+					Nomor urutan posisi dalam zona (1, 2, 3, ...). Kosongkan untuk mengatur urutan otomatis.
+				</p>
 			</div>
 
 			<div>
@@ -601,11 +714,13 @@
 				/>
 			</div>
 
-			<div>
-				<Checkbox id="create-isPpg" name="isPpg" bind:checked={createIsPpg} value="true">
-					PPG (Panitia Pembangunan Gereja)
-				</Checkbox>
-			</div>
+			{#if requirePpg}
+				<div>
+					<Checkbox id="create-isPpg" name="isPpg" bind:checked={createIsPpg} value="true">
+						PPG (Panitia Pembangunan Gereja)
+					</Checkbox>
+				</div>
+			{/if}
 		</div>
 
 		<div class="mt-6 flex justify-end gap-2">
@@ -641,7 +756,7 @@
 		>
 			<input type="hidden" name="positionId" value={selectedPosition.positionId} />
 
-			<div class="space-y-4">
+			<div class="space-y-4 mx-auto w-[95%] sm:w-full sm:px-3">
 				<div>
 					<Label for="edit-zoneId">Sub Zona *</Label>
 					<Select
@@ -691,11 +806,13 @@
 					/>
 				</div>
 
-				<div>
-					<Checkbox id="edit-isPpg" name="isPpg" bind:checked={editIsPpg} value="true">
-						PPG (Panitia Pembangunan Gereja)
-					</Checkbox>
-				</div>
+				{#if requirePpg}
+					<div>
+						<Checkbox id="edit-isPpg" name="isPpg" bind:checked={editIsPpg} value="true">
+							PPG (Panitia Pembangunan Gereja)
+						</Checkbox>
+					</div>
+				{/if}
 
 				
 			</div>

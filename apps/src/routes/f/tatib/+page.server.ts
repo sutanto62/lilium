@@ -8,6 +8,7 @@ import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
 import { formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
+import { shouldRequirePpg } from '$lib/utils/ppgUtils';
 import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
@@ -39,31 +40,6 @@ async function shouldShowUsherForm(): Promise<boolean> {
 	logger.info(`Form visibility check: day=${currentDay}, isWeekday=${isWeekday}, featureFlag=${isNoSaturdaySundayEnabled}`);
 
 	return isWeekday;
-}
-
-/**
- * Determines if PPG (Panitia Pembangunan Gereja) is required for this church.
- * Priority logic:
- * 1. If database church.requirePpg = 1, always return true (database takes priority)
- * 2. Otherwise, check Statsig gate 'ppg' for override capability
- *
- * @param church - Church entity with requirePpg configuration
- * @returns {Promise<boolean>} True if PPG is required, false otherwise
- */
-async function shouldRequirePpg(church: Church): Promise<boolean> {
-	// Check database configuration first
-	const dbRequiresPpg = church.requirePpg === 1;
-
-	// If database requires PPG, that takes priority
-	if (dbRequiresPpg) {
-		logger.debug(`PPG requirement check: Database config=true (takes priority) for church ${church.code}`);
-		return true;
-	}
-
-	// Otherwise check Statsig gate for override
-	const statsigRequiresPpg = await statsigService.checkGate('ppg');
-	logger.debug(`PPG requirement check: Database config=false, Statsig gate=${statsigRequiresPpg} for church ${church.code}`);
-	return statsigRequiresPpg;
 }
 
 /**

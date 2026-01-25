@@ -38,6 +38,14 @@ import { repo } from '$src/lib/server/db';
 - File names match exported class/interface name (PascalCase for classes, camelCase for utilities)
 - Group related files in directories
 
+## Reusability & DRY
+
+- Prefer extracting shared logic into reusable functions, services, or utilities instead of copy-pasting code across routes or components.
+- Keep domain logic inside `core/entities` and `core/service` so it can be reused from multiple adapters and routes.
+- Reuse repository interfaces and adapters instead of creating feature-specific database access for the same entity.
+- Favor composition over duplication when adding new features (extend existing services/utilities where reasonable before introducing new ones).
+- When you see similar code in 2+ places, consider introducing a shared abstraction in the appropriate layer (domain, service, repository, adapter, or utility).
+
 ## Error Handling
 
 ### ServiceError Pattern

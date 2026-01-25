@@ -15,13 +15,22 @@ vi.mock('$core/service/PositionService');
 vi.mock('$src/auth');
 vi.mock('$src/lib/server/db', () => ({
 	repo: {
-		getMassById: vi.fn()
+		getMassById: vi.fn(),
+		findChurchById: vi.fn().mockResolvedValue({
+			id: churchId,
+			name: 'Test Church',
+			code: 'TC',
+			parish: null,
+			requirePpg: 0,
+			active: 1
+		})
 	}
 }));
 vi.mock('$src/lib/application/StatsigService', () => ({
 	statsigService: {
 		use: vi.fn(),
-		logEvent: vi.fn()
+		logEvent: vi.fn(),
+		checkGate: vi.fn().mockResolvedValue(false)
 	}
 }));
 vi.mock('$src/lib/application/PostHogService', () => ({

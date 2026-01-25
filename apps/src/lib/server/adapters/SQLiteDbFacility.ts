@@ -145,6 +145,45 @@ export async function findZonesByEvent(
 	}));
 }
 
+export async function findZonesByMass(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	massId: string
+): Promise<ChurchZone[]> {
+	const zones = await db
+		.select({
+			id: church_zone.id,
+			church: church_zone.church,
+			group: church_zone_group.name,
+			name: church_zone.name,
+			code: church_zone.code,
+			description: church_zone.description,
+			sequence: church_zone.sequence,
+			active: church_zone.active
+		})
+		.from(mass_zone)
+		.innerJoin(church_zone, eq(church_zone.id, mass_zone.zone))
+		.leftJoin(church_zone_group, eq(church_zone_group.id, church_zone.church_zone_group))
+		.where(and(
+			eq(mass_zone.mass, massId),
+			eq(church_zone.church, churchId),
+			eq(mass_zone.active, 1),
+			eq(church_zone.active, 1)
+		))
+		.orderBy(church_zone.sequence);
+
+	return zones.map((zone) => ({
+		id: zone.id ?? '',
+		church: zone.church ?? '',
+		group: zone.group,
+		name: zone.name ?? '',
+		code: zone.code ?? '',
+		description: zone.description ?? '',
+		sequence: zone.sequence ?? 0,
+		active: zone.active ?? 0
+	}));
+}
+
 export async function findPositionByChurch(
 	db: ReturnType<typeof drizzle>,
 	id: string

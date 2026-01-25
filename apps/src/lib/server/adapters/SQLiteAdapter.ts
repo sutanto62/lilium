@@ -31,6 +31,7 @@ import {
 	findZoneGroupsByEvent,
 	findZonesByChurch,
 	findZonesByEvent,
+	findZonesByMass,
 	listPositionByMass,
 	reorderZonePositions,
 	softDeletePosition,
@@ -121,6 +122,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	getZones = (id: string): Promise<ChurchZone[]> => findZonesByChurch(this.db, id);
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
+	getZonesByMass = (churchId: string, massId: string) => findZonesByMass(this.db, churchId, massId);
 	findZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
 	findPositionByChurch = (id: string) => findPositionByChurch(this.db, id);
 	createPosition = (position: Omit<import('$core/entities/Schedule').ChurchPosition, 'id' | 'church' | 'active'> & { zone: string }) =>

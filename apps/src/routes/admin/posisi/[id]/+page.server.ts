@@ -31,6 +31,7 @@ export const load: PageServerLoad = async (event) => {
 		logger.error('admin_posisi_detail.load: Church ID not found in session');
 		throw error(500, 'Invalid session data');
 	}
+
 	let church: Church | null = null;
 	church = await repo.findChurchById(churchId);
 	if (!church) {
@@ -47,10 +48,11 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	try {
-		// Fetch mass details and positions concurrently
-		const [mass, positionsByMass] = await Promise.all([
+		// Fetch mass details, positions, and zones concurrently
+		const [mass, positionsByMass, zonesByMass] = await Promise.all([
 			repo.getMassById(massId),
-			new PositionService(churchId).retrievePositionsByMass(massId)
+			new PositionService(churchId).retrievePositionsByMass(massId),
+			repo.getZonesByMass(churchId, massId)
 		]);
 
 		if (!mass) {
@@ -84,6 +86,7 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			mass,
 			positionsByMass,
+			zonesByMass,
 			requirePpg
 		};
 	} catch (err) {

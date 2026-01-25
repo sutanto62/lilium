@@ -77,6 +77,7 @@ export interface ScheduleRepository {
 	findChurchById(id: string): Promise<Church>;
 	getZones(id: string): Promise<ChurchZone[]>;
 	getZonesByEvent(churchId: string, eventId: string): Promise<ChurchZone[]>;
+	getZonesByMass(churchId: string, massId: string): Promise<ChurchZone[]>;
 	findZoneGroupsByEvent(churchId: string, eventId: string): Promise<ChurchZoneGroup[]>;
 	findPositionByChurch(id: string): Promise<ChurchPosition[]>;
 	listPositionByMass(churchId: string, massId: string): Promise<ChurchPosition[]>;

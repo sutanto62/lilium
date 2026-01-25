@@ -81,6 +81,7 @@ export const mass = sqliteTable('mass', {
 	createdAt: integer('created_at')
 });
 
+// TODO: add church_id
 export const mass_zone = sqliteTable('mass_zone', {
 	id: text('id').primaryKey().unique().notNull(),
 	mass: text('mass_id')

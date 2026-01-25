@@ -5,7 +5,7 @@
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { tracker } from '$src/lib/utils/analytics';
 	import { page } from '$app/state';
-	import type { MassPositionView } from '$core/entities/Schedule';
+	import type { ChurchZone, MassPositionView } from '$core/entities/Schedule';
 	import {
 		Alert,
 		Breadcrumb,
@@ -38,6 +38,7 @@
 	// Derived data
 	const mass = $derived(data.mass);
 	const serverPositions = $derived(data.positionsByMass);
+	const zonesByMass = $derived(data.zonesByMass ?? []);
 	const requirePpg = $derived(data.requirePpg ?? false);
 	
 	// Local reactive state for positions (allows optimistic updates)
@@ -180,18 +181,12 @@
 		});
 	});
 
-	// Get unique zones for create form dropdown
+	// Get zones for create form dropdown from mass_zone table
 	const availableZones = $derived.by(() => {
-		const zoneMap = new Map<string, { id: string; name: string }>();
-		for (const position of positionsByMass) {
-			if (!zoneMap.has(position.zoneId)) {
-				zoneMap.set(position.zoneId, {
-					id: position.zoneId,
-					name: position.zoneName
-				});
-			}
-		}
-		return Array.from(zoneMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+		return zonesByMass.map((zone: ChurchZone) => ({
+			id: zone.id,
+			name: zone.name
+		}));
 	});
 
 	// Auto-hide alerts after 10 seconds

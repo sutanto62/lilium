@@ -30,4 +30,11 @@
 		buttonText="Misa"
 		buttonColor="alternative"
 	/>
+	<FeatureCard
+		title="Posisi"
+		description="Konfigurasi posisi titik tugas. Sesuaikan dengan kebutuhan posisi per setiap jenis misa."
+		buttonHref="/admin/posisi"
+		buttonText="Posisi"
+		buttonColor="alternative"
+	/>
 </FeatureDefault>

@@ -9,6 +9,7 @@
 	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import UshersList from './UshersList.svelte';
+	import { shouldRequirePpg } from '../../../lib/utils/ppgUtils';
 
 	// Props
 	// const { data = $bindable(), form = $bindable() } = $props<{
@@ -124,6 +125,7 @@
 		const hasValidPpg = requirePpg ? numberOfPpg === 2 : (numberOfPpg >= 0 && numberOfPpg <= 2);
 		const hasExactKolekte = numberOfKolekte === 3;
 		const hasMinimumUshers = usherList.length >= 6;
+
 		const isValid = hasValidPpg && hasExactKolekte && hasMinimumUshers;
 
 		if (isSubmitted) {

@@ -4,6 +4,7 @@ import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { logger } from '../../../../../lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
     await statsigService.use();

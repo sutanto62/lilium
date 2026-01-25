@@ -13,8 +13,9 @@ import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { logger } from '$src/lib/utils/logger';
-import { error, redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { ServiceError } from '$core/errors/ServiceError';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
 /**
  * Server-side load function that fetches mass schedules for the admin posisi page
@@ -102,3 +103,95 @@ export const load: PageServerLoad = async (event) => {
 		masses
 	};
 };
+
+/**
+ * Server actions for form submissions
+ * 
+ * Handles deletion (deactivation) of mass schedules
+ */
+export const actions = {
+	/**
+	 * Delete (deactivate) a mass schedule
+	 * 
+	 * Process:
+	 * 1. Validates authentication and admin role
+	 * 2. Validates church ID from session
+	 * 3. Validates mass ID from form data
+	 * 4. Deactivates the mass (soft delete)
+	 * 5. Returns success/error response
+	 * 
+	 * @param request - SvelteKit request object containing form data
+	 * @param locals - SvelteKit locals containing auth session
+	 * @returns Action result with success/error status
+	 */
+	delete: async ({ request, locals }) => {
+		logger.info('admin_posisi.delete: Starting mass deactivation');
+
+		// Authenticate user and check admin role
+		const session = await locals.auth();
+		if (!session) {
+			logger.warn('admin_posisi.delete: No session found');
+			return fail(401, { error: 'Anda harus login untuk menghapus jadwal misa' });
+		}
+
+		if (!hasRole(session, 'admin')) {
+			logger.warn('admin_posisi.delete: User does not have admin role');
+			return fail(403, { error: 'Anda tidak memiliki izin untuk menghapus jadwal misa' });
+		}
+
+		// Get church ID from session
+		const churchId = session.user?.cid;
+		if (!churchId) {
+			logger.error('admin_posisi.delete: Church ID not found in session');
+			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
+		}
+
+		// Get mass ID from form data
+		const formData = await request.formData();
+		const massId = formData.get('massId') as string;
+
+		if (!massId) {
+			logger.warn('admin_posisi.delete: Mass ID not found in form data');
+			return fail(400, { error: 'ID jadwal misa tidak ditemukan' });
+		}
+
+		try {
+			// Initialize church service and deactivate mass
+			const churchService = new ChurchService(churchId);
+			const success = await churchService.deactivateMass(massId);
+
+			if (!success) {
+				logger.warn('admin_posisi.delete: Mass not found or already deactivated', { massId });
+				return fail(404, { error: 'Jadwal misa tidak ditemukan' });
+			}
+
+			logger.info('admin_posisi.delete: Successfully deactivated mass', { massId });
+
+			// Track deletion with analytics
+			await Promise.all([
+				statsigService.logEvent('admin_posisi_delete', 'delete', session, {
+					mass_id: massId
+				}),
+				posthogService.trackEvent('admin_posisi_delete', {
+					event_type: 'mass_deleted',
+					mass_id: massId
+				}, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_posisi.delete: Error deactivating mass', {
+				error: err,
+				massId
+			});
+
+			if (err instanceof ServiceError) {
+				return fail(400, { error: err.message });
+			}
+
+			return fail(500, {
+				error: 'Gagal menghapus jadwal misa. Silakan coba lagi atau hubungi administrator.'
+			});
+		}
+	}
+} satisfies Actions;

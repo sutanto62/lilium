@@ -36,7 +36,7 @@ import {
 	softDeletePosition,
 	updatePosition
 } from './SQLiteDbFacility';
-import { findMassById, findMasses } from './SQLiteDbMass';
+import { deactivateMass as deactivateMassDb, findMassById, findMasses } from './SQLiteDbMass';
 import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
 
 import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
@@ -66,6 +66,7 @@ export class SQLiteAdapter implements ScheduleRepository {
 	// SQLiteDbMass
 	getMasses = (churchId: string) => findMasses(this.db, churchId);
 	getMassById = (id: string) => findMassById(this.db, id);
+	deactivateMass = (massId: string) => deactivateMassDb(this.db, massId);
 
 	// SQLiteDbEvents
 	getEventByChurch = (churchId: string, massId: string, date: string) =>

@@ -171,3 +171,63 @@ const event: ChurchEvent = {
   type: EventType.MASS
 };
 ```
+
+## Async/Await Requirements
+
+### Functions Using `await` Must Be `async`
+
+Any function that uses `await` must be declared as `async`:
+
+```typescript
+// ✅ Good
+async function handleSubmit() {
+  isSubmitting = true;
+  await update();
+  isSubmitting = false;
+}
+
+async function fetchData(): Promise<Data> {
+  const result = await api.get('/data');
+  return result;
+}
+
+// ❌ Bad: Missing async keyword
+function handleSubmit() {
+  isSubmitting = true;
+  await update(); // Error: 'await' expressions are only allowed within async functions
+  isSubmitting = false;
+}
+
+function fetchData(): Promise<Data> {
+  const result = await api.get('/data'); // Error: 'await' expressions are only allowed within async functions
+  return result;
+}
+```
+
+### Arrow Functions with `await`
+
+Arrow functions using `await` must also be `async`:
+
+```typescript
+// ✅ Good
+const handleClick = async () => {
+  await tracker.track('event', {}, session, page);
+};
+
+use:enhance={() => {
+  return async ({ update }) => {
+    await update();
+  };
+}}
+
+// ❌ Bad: Missing async keyword
+const handleClick = () => {
+  await tracker.track('event', {}, session, page); // Error
+};
+
+use:enhance={() => {
+  return ({ update }) => {
+    await update(); // Error
+  };
+}}
+```

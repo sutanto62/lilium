@@ -147,11 +147,45 @@ Keep client-side logic in `.svelte` files:
 >
 ```
 
+**Important**: The callback function returned from `use:enhance` must be `async` if it uses `await`:
+
+```svelte
+// ✅ Good
+use:enhance={() => {
+  return async ({ update }) => {
+    await update();
+  };
+}}
+
+// ❌ Bad: Missing async keyword
+use:enhance={() => {
+  return ({ update }) => {
+    await update(); // Error: 'await' expressions are only allowed within async functions
+  };
+}}
+```
+
 ### Inline Event Handlers
 
 ```svelte
 <Button onclick={handleCancelBulkCreate}>Batal</Button>
 <Button onclick={(e) => handleClick(e)}>Click</Button>
+```
+
+**Important**: Event handler functions that use `await` must be declared as `async`:
+
+```svelte
+<script lang="ts">
+  // ✅ Good
+  async function handleEdit(mass: Mass) {
+    await tracker.track('event', {}, session, page);
+  }
+
+  // ❌ Bad: Missing async keyword
+  function handleEdit(mass: Mass) {
+    await tracker.track('event', {}, session, page); // Error
+  }
+</script>
 ```
 
 ## Type Safety

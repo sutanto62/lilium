@@ -137,4 +137,12 @@ export class ChurchService {
 	async retrievePositionsByMass(massId: string): Promise<ChurchPosition[]> {
 		return await repo.listPositionByMass(this.churchId, massId);
 	}
+
+	/**
+	 * Deactivates a mass schedule (soft delete)
+	 * Sets active = 0 to preserve historical data
+	 */
+	async deactivateMass(massId: string): Promise<boolean> {
+		return await repo.deactivateMass(massId);
+	}
 }

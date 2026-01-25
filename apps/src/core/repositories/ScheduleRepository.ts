@@ -30,6 +30,7 @@ export interface ScheduleRepository {
 	// Mass
 	getMasses: (churchId: string) => Promise<Mass[]>;
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
+	deactivateMass: (massId: string) => Promise<boolean>;
 
 	// Region
 	listWilayahByChurch: (churchId: string) => Promise<Wilayah[]>;

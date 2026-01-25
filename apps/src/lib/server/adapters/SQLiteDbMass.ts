@@ -22,3 +22,19 @@ export async function findMassById(db: ReturnType<typeof drizzle>, id: string) {
 	const result = await db.select().from(mass).where(eq(mass.id, id)).limit(1);
 	return Array.isArray(result) ? result[0] : result;
 }
+
+/**
+ * Deactivates a mass schedule (soft delete)
+ * Sets active = 0 to preserve historical data
+ */
+export async function deactivateMass(
+	db: ReturnType<typeof drizzle>,
+	massId: string
+): Promise<boolean> {
+	const result = await db
+		.update(mass)
+		.set({ active: 0 })
+		.where(eq(mass.id, massId))
+		.returning();
+	return result.length > 0;
+}

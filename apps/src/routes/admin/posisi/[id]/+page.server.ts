@@ -17,18 +17,18 @@ export const load: PageServerLoad = async (event) => {
 
 	const session = await event.locals.auth();
 	if (!session) {
-		logger.warn('admin_misa_positions.load: No session found');
+		logger.warn('admin_posisi_detail.load: No session found');
 		throw redirect(302, '/signin');
 	}
 
 	if (!hasRole(session, 'admin')) {
-		logger.warn('admin_misa_positions.load: User does not have admin role');
+		logger.warn('admin_posisi_detail.load: User does not have admin role');
 		throw redirect(302, '/');
 	}
 
 	const churchId = session.user?.cid;
 	if (!churchId) {
-		logger.error('admin_misa_positions.load: Church ID not found in session');
+		logger.error('admin_posisi_detail.load: Church ID not found in session');
 		throw error(500, 'Invalid session data');
 	}
 	let church: Church | null = null;
@@ -42,7 +42,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const massId = event.params.id;
 	if (!massId) {
-		logger.error('admin_misa_positions.load: Mass ID not found in params');
+		logger.error('admin_posisi_detail.load: Mass ID not found in params');
 		throw error(400, 'ID misa tidak ditemukan');
 	}
 
@@ -54,12 +54,12 @@ export const load: PageServerLoad = async (event) => {
 		]);
 
 		if (!mass) {
-			logger.warn('admin_misa_positions.load: Mass not found', { massId });
+			logger.warn('admin_posisi_detail.load: Mass not found', { massId });
 			throw error(404, 'Misa tidak ditemukan');
 		}
 
 		if (mass.church !== churchId) {
-			logger.warn('admin_misa_positions.load: Mass does not belong to church', { massId, churchId });
+			logger.warn('admin_posisi_detail.load: Mass does not belong to church', { massId, churchId });
 			throw error(403, 'Anda tidak memiliki akses untuk melihat posisi misa ini');
 		}
 
@@ -70,11 +70,11 @@ export const load: PageServerLoad = async (event) => {
 		};
 
 		await Promise.all([
-			statsigService.logEvent('admin_misa_positions_view', 'load', session, {
+			statsigService.logEvent('admin_posisi_detail_view', 'load', session, {
 				...metadata,
 				ppg_enabled: requirePpg
 			}),
-			posthogService.trackEvent('admin_misa_positions_view', {
+			posthogService.trackEvent('admin_posisi_detail_view', {
 				event_type: 'page_load',
 				...metadata,
 				ppg_enabled: requirePpg
@@ -87,7 +87,7 @@ export const load: PageServerLoad = async (event) => {
 			requirePpg
 		};
 	} catch (err) {
-		logger.error('admin_misa_positions.load: Error loading positions', { error: err, massId });
+		logger.error('admin_posisi_detail.load: Error loading positions', { error: err, massId });
 		if (err instanceof Error && (err as any).status) {
 			throw err;
 		}
@@ -97,24 +97,24 @@ export const load: PageServerLoad = async (event) => {
 
 export const actions = {
 	create_position: async ({ request, params, locals }) => {
-		logger.info('admin_misa_positions.create_position: Starting position creation', {
+		logger.info('admin_posisi_detail.create_position: Starting position creation', {
 			massId: params.id
 		});
 
 		const session = await locals.auth();
 		if (!session) {
-			logger.warn('admin_misa_positions.create_position: No session found');
+			logger.warn('admin_posisi_detail.create_position: No session found');
 			return fail(401, { error: 'Anda harus login untuk mengelola posisi' });
 		}
 
 		if (!hasRole(session, 'admin')) {
-			logger.warn('admin_misa_positions.create_position: User does not have admin role');
+			logger.warn('admin_posisi_detail.create_position: User does not have admin role');
 			return fail(403, { error: 'Anda tidak memiliki izin untuk mengelola posisi' });
 		}
 
 		const churchId = session.user?.cid;
 		if (!churchId) {
-			logger.error('admin_misa_positions.create_position: Church ID not found in session');
+			logger.error('admin_posisi_detail.create_position: Church ID not found in session');
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
 		}
 
@@ -126,7 +126,7 @@ export const actions = {
 
 		const massId = params.id;
 		if (!massId) {
-			logger.error('admin_misa_positions.create_position: Mass ID not found in params');
+			logger.error('admin_posisi_detail.create_position: Mass ID not found in params');
 			return fail(400, { error: 'ID misa tidak ditemukan' });
 		}
 
@@ -170,20 +170,20 @@ export const actions = {
 
 			await positionService.createPositionForMass(massId, zoneId, input);
 
-			logger.info('admin_misa_positions.create_position: Successfully created position', {
+			logger.info('admin_posisi_detail.create_position: Successfully created position', {
 				massId,
 				zoneId,
 				name
 			});
 
 			await Promise.all([
-				statsigService.logEvent('admin_misa_positions_create', 'create', session, {
+				statsigService.logEvent('admin_posisi_detail_create', 'create', session, {
 					mass_id: massId,
 					zone_id: zoneId,
 					position_name: name,
 					position_type: type
 				}),
-				posthogService.trackEvent('admin_misa_positions_create', {
+				posthogService.trackEvent('admin_posisi_detail_create', {
 					event_type: 'position_created',
 					mass_id: massId,
 					zone_id: zoneId,
@@ -194,7 +194,7 @@ export const actions = {
 
 			return { success: true };
 		} catch (err) {
-			logger.error('admin_misa_positions.create_position: Error creating position', {
+			logger.error('admin_posisi_detail.create_position: Error creating position', {
 				error: err,
 				massId,
 				zoneId
@@ -211,22 +211,22 @@ export const actions = {
 	},
 
 	edit_position: async ({ request, params, locals }) => {
-		logger.info('admin_misa_positions.edit_position: Starting position update');
+		logger.info('admin_posisi_detail.edit_position: Starting position update');
 
 		const session = await locals.auth();
 		if (!session) {
-			logger.warn('admin_misa_positions.edit_position: No session found');
+			logger.warn('admin_posisi_detail.edit_position: No session found');
 			return fail(401, { error: 'Anda harus login untuk mengelola posisi' });
 		}
 
 		if (!hasRole(session, 'admin')) {
-			logger.warn('admin_misa_positions.edit_position: User does not have admin role');
+			logger.warn('admin_posisi_detail.edit_position: User does not have admin role');
 			return fail(403, { error: 'Anda tidak memiliki izin untuk mengelola posisi' });
 		}
 
 		const churchId = session.user?.cid;
 		if (!churchId) {
-			logger.error('admin_misa_positions.edit_position: Church ID not found in session');
+			logger.error('admin_posisi_detail.edit_position: Church ID not found in session');
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
 		}
 
@@ -301,15 +301,15 @@ export const actions = {
 			const positionService = new PositionService(churchId);
 			await positionService.editPosition(positionId, patch);
 
-			logger.info('admin_misa_positions.edit_position: Successfully updated position', {
+			logger.info('admin_posisi_detail.edit_position: Successfully updated position', {
 				positionId
 			});
 
 			await Promise.all([
-				statsigService.logEvent('admin_misa_positions_edit', 'update', session, {
+				statsigService.logEvent('admin_posisi_detail_edit', 'update', session, {
 					position_id: positionId
 				}),
-				posthogService.trackEvent('admin_misa_positions_edit', {
+				posthogService.trackEvent('admin_posisi_detail_edit', {
 					event_type: 'position_updated',
 					position_id: positionId
 				}, session)
@@ -317,7 +317,7 @@ export const actions = {
 
 			return { success: true };
 		} catch (err) {
-			logger.error('admin_misa_positions.edit_position: Error updating position', {
+			logger.error('admin_posisi_detail.edit_position: Error updating position', {
 				error: err,
 				positionId
 			});
@@ -333,22 +333,22 @@ export const actions = {
 	},
 
 	delete_position: async ({ request, params, locals }) => {
-		logger.info('admin_misa_positions.delete_position: Starting position deactivation');
+		logger.info('admin_posisi_detail.delete_position: Starting position deactivation');
 
 		const session = await locals.auth();
 		if (!session) {
-			logger.warn('admin_misa_positions.delete_position: No session found');
+			logger.warn('admin_posisi_detail.delete_position: No session found');
 			return fail(401, { error: 'Anda harus login untuk mengelola posisi' });
 		}
 
 		if (!hasRole(session, 'admin')) {
-			logger.warn('admin_misa_positions.delete_position: User does not have admin role');
+			logger.warn('admin_posisi_detail.delete_position: User does not have admin role');
 			return fail(403, { error: 'Anda tidak memiliki izin untuk mengelola posisi' });
 		}
 
 		const churchId = session.user?.cid;
 		if (!churchId) {
-			logger.error('admin_misa_positions.delete_position: Church ID not found in session');
+			logger.error('admin_posisi_detail.delete_position: Church ID not found in session');
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
 		}
 
@@ -363,15 +363,15 @@ export const actions = {
 			const positionService = new PositionService(churchId);
 			await positionService.deactivatePosition(positionId);
 
-			logger.info('admin_misa_positions.delete_position: Successfully deactivated position', {
+			logger.info('admin_posisi_detail.delete_position: Successfully deactivated position', {
 				positionId
 			});
 
 			await Promise.all([
-				statsigService.logEvent('admin_misa_positions_delete', 'delete', session, {
+				statsigService.logEvent('admin_posisi_detail_delete', 'delete', session, {
 					position_id: positionId
 				}),
-				posthogService.trackEvent('admin_misa_positions_delete', {
+				posthogService.trackEvent('admin_posisi_detail_delete', {
 					event_type: 'position_deleted',
 					position_id: positionId
 				}, session)
@@ -379,7 +379,7 @@ export const actions = {
 
 			return { success: true };
 		} catch (err) {
-			logger.error('admin_misa_positions.delete_position: Error deactivating position', {
+			logger.error('admin_posisi_detail.delete_position: Error deactivating position', {
 				error: err,
 				positionId
 			});
@@ -395,22 +395,22 @@ export const actions = {
 	},
 
 	reorder_positions: async ({ request, params, locals }) => {
-		logger.info('admin_misa_positions.reorder_positions: Starting position reorder');
+		logger.info('admin_posisi_detail.reorder_positions: Starting position reorder');
 
 		const session = await locals.auth();
 		if (!session) {
-			logger.warn('admin_misa_positions.reorder_positions: No session found');
+			logger.warn('admin_posisi_detail.reorder_positions: No session found');
 			return fail(401, { error: 'Anda harus login untuk mengelola posisi' });
 		}
 
 		if (!hasRole(session, 'admin')) {
-			logger.warn('admin_misa_positions.reorder_positions: User does not have admin role');
+			logger.warn('admin_posisi_detail.reorder_positions: User does not have admin role');
 			return fail(403, { error: 'Anda tidak memiliki izin untuk mengelola posisi' });
 		}
 
 		const churchId = session.user?.cid;
 		if (!churchId) {
-			logger.error('admin_misa_positions.reorder_positions: Church ID not found in session');
+			logger.error('admin_posisi_detail.reorder_positions: Church ID not found in session');
 			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
 		}
 
@@ -448,17 +448,17 @@ export const actions = {
 			const positionService = new PositionService(churchId);
 			await positionService.reorderZonePositions(zoneId, items);
 
-			logger.info('admin_misa_positions.reorder_positions: Successfully reordered positions', {
+			logger.info('admin_posisi_detail.reorder_positions: Successfully reordered positions', {
 				zoneId,
 				itemCount: items.length
 			});
 
 			await Promise.all([
-				statsigService.logEvent('admin_misa_positions_reorder', 'reorder', session, {
+				statsigService.logEvent('admin_posisi_detail_reorder', 'reorder', session, {
 					zone_id: zoneId,
 					item_count: items.length
 				}),
-				posthogService.trackEvent('admin_misa_positions_reorder', {
+				posthogService.trackEvent('admin_posisi_detail_reorder', {
 					event_type: 'positions_reordered',
 					zone_id: zoneId,
 					item_count: items.length
@@ -467,7 +467,7 @@ export const actions = {
 
 			return { success: true };
 		} catch (err) {
-			logger.error('admin_misa_positions.reorder_positions: Error reordering positions', {
+			logger.error('admin_posisi_detail.reorder_positions: Error reordering positions', {
 				error: err,
 				zoneId
 			});

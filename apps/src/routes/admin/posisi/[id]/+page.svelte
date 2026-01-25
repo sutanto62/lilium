@@ -345,15 +345,15 @@
 </script>
 
 <svelte:head>
-	<title>Posisi Misa - {mass.name}</title>
-	<meta name="description" content="Kelola posisi untuk misa {mass.name}" />
+	<title>Posisi - {mass.name}</title>
+	<meta name="description" content="Kelola posisi untuk jadwal misa {mass.name}" />
 </svelte:head>
 
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/misa">Misa</BreadcrumbItem>
-	<BreadcrumbItem>Posisi</BreadcrumbItem>
+	<BreadcrumbItem href="/admin/posisi">Posisi</BreadcrumbItem>
+	<BreadcrumbItem>{mass.name}</BreadcrumbItem>
 </Breadcrumb>
 
 <!-- Success/Error Alerts -->
@@ -373,7 +373,7 @@
 <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 	<div>
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-			Posisi Misa: {mass.name}
+			Posisi: {mass.name}
 		</Heading>
 		{#if mass.day && mass.time}
 			<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -572,13 +572,13 @@
 						lastReorderItemCount
 					) {
 						await Promise.all([
-							statsigService.logEvent('admin_misa_positions_reorder', 'reorder', session, {
+							statsigService.logEvent('admin_posisi_detail_reorder', 'reorder', session, {
 								zone_id: lastReorderZoneId,
 								direction: lastReorderDirection,
 								item_count: lastReorderItemCount
 							}),
 							tracker.track(
-								'admin_misa_positions_reorder',
+								'admin_posisi_detail_reorder',
 								{
 									event_type: 'positions_reordered',
 									zone_id: lastReorderZoneId,

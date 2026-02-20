@@ -8,10 +8,13 @@ vi.mock('$src/lib/server/db', () => ({
     repo: {
         getEventsByWeekNumber: vi.fn(),
         getEventsByDateRange: vi.fn(),
+        listEventsByWeekNumber: vi.fn(),
+        listEventsByDateRange: vi.fn(),
         getEventById: vi.fn(),
         updateEventById: vi.fn(),
         findEventById: vi.fn(),
         listUshers: vi.fn(),
+        listUsherByEvent: vi.fn(),
         getEventUshers: vi.fn(),
         getEventUshersPosition: vi.fn(),
         findJadwalDetail: vi.fn(),
@@ -20,7 +23,9 @@ vi.mock('$src/lib/server/db', () => ({
         getEventByChurch: vi.fn(),
         insertEvent: vi.fn(),
         insertEventUshers: vi.fn(),
+        persistEventUshers: vi.fn(),
         createEventPic: vi.fn(),
+        updateEventPic: vi.fn(),
         findCetakJadwal: vi.fn()
     }
 }));
@@ -48,9 +53,9 @@ describe('EventService', () => {
 
             vi.mocked(repo.listEventsByWeekNumber).mockResolvedValue(mockEvents);
 
-            const result = await eventService.retrieveEventsByWeekRange(12);
+            const result = await eventService.retrieveEventsByWeekRange({ weekNumber: 12 });
 
-            expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
+            expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], false, undefined);
             expect(result).toEqual(mockEvents);
         });
 
@@ -67,9 +72,9 @@ describe('EventService', () => {
 
             vi.mocked(repo.listEventsByWeekNumber).mockResolvedValue(mockEvents);
 
-            const result = await eventService.retrieveEventsByWeekRange(undefined, [12, 13]);
+            const result = await eventService.retrieveEventsByWeekRange({ weekNumbers: [12, 13] });
 
-            expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], undefined);
+            expect(repo.listEventsByWeekNumber).toHaveBeenCalledWith(mockChurchId, [12, 13], false, undefined);
             expect(result).toEqual(mockEvents);
         });
     });
@@ -170,6 +175,7 @@ describe('EventService', () => {
                     isPpg: true,
                     isKolekte: false,
                     position: 'position-1',
+                    sequence: 1,
                     createdAt: 1710892800000
                 }
             ];
@@ -237,7 +243,8 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.persistEventUshers).mockResolvedValue(true);
+            const createdDate = 1710892800000;
+            vi.mocked(repo.persistEventUshers).mockResolvedValue(createdDate);
 
             const result = await eventService.assignEventUshers(
                 'event-1',
@@ -252,7 +259,7 @@ describe('EventService', () => {
                 'wilayah-1',
                 'lingkungan-1'
             );
-            expect(result).toBe(true);
+            expect(result).toBe(createdDate);
         });
 
         it('should throw error when insert fails', async () => {
@@ -270,7 +277,7 @@ describe('EventService', () => {
                 }
             ];
 
-            vi.mocked(repo.persistEventUshers).mockResolvedValue(false);
+            vi.mocked(repo.persistEventUshers).mockRejectedValue(new Error('db error'));
 
             await expect(eventService.assignEventUshers(
                 'event-1',
@@ -300,6 +307,16 @@ describe('EventService', () => {
 
             expect(repo.removeEventUsher).toHaveBeenCalledWith('event-1', 'lingkungan-1');
             expect(result).toBe(true);
+        });
+    });
+
+    describe('updateEventPic', () => {
+        it('should call repo.updateEventPic with eventId, zoneGroupId, and name', async () => {
+            vi.mocked(repo.updateEventPic).mockResolvedValue(true);
+
+            await eventService.updateEventPic('event-1', 'zone-1', 'New Name');
+
+            expect(repo.updateEventPic).toHaveBeenCalledWith('event-1', 'zone-1', 'New Name');
         });
     });
 }); 

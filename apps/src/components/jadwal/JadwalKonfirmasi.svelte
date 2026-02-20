@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+	Button,
 		Table,
 		TableBody,
 		TableBodyCell,
@@ -10,33 +11,29 @@
 	} from 'flowbite-svelte';
 
 	import JadwalKonfirmasiDetail from '$components/jadwal/JadwalKonfirmasiDetail.svelte';
+	import type { EventScheduleRows } from '$core/entities/Event';
 	import type { ChurchZoneGroup } from '$core/entities/Schedule';
-	import { ArchiveOutline, CashOutline, UsersOutline } from 'flowbite-svelte-icons';
+	import { ArchiveOutline, CashOutline, PenOutline, UsersOutline } from 'flowbite-svelte-icons';
 
-	// Svelte 5: Use $props() for component props
-	const { description, rows, openRow, toggleRow, zones } = $props<{
+	const { description, rows, openRow, toggleRow, zones, onEditPic } = $props<{
 		description: string;
-		rows: any[];
+		rows: EventScheduleRows[];
 		openRow: number | null;
 		toggleRow: (index: number) => void;
 		zones: ChurchZoneGroup[];
+		onEditPic?: (row: EventScheduleRows) => void;
 	}>();
 
-	// Svelte 5: Use $state() for reactive state
-	let defaultModalPicZone = $state(false);
-
-	// Svelte 5: Event handlers with proper typing
 	function handleToggleRow(index: number, event: Event) {
-		// Prevent event bubbling when clicking on buttons
 		if ((event.target as HTMLElement).closest('button')) {
 			return;
 		}
 		toggleRow(index);
 	}
 
-	function handleAddPic(event: Event) {
+	function handleEditPic(row: EventScheduleRows, event: Event) {
 		event.stopPropagation();
-		defaultModalPicZone = true;
+		onEditPic?.(row);
 	}
 </script>
 
@@ -60,20 +57,32 @@
 		</TableBodyRow>
 		{#each rows as jadwalDetaillZone, i}
 			<TableBodyRow class="hover:bg-gray-100" onclick={(event) => handleToggleRow(i, event)}>
-				<TableBodyCell class="px-2 align-top"
-					>{jadwalDetaillZone.name}
-					<ol class="block lg:hidden">
+				<TableBodyCell class="px-2 align-top">
+					{jadwalDetaillZone.name}
+					<ol class="mt-1 block lg:hidden">
 						{#each jadwalDetaillZone.lingkungan as lingkungan}
 							<li>{lingkungan}</li>
 						{/each}
 					</ol>
-					<ol class="mt-2 block lg:hidden">
-						{#if jadwalDetaillZone.pic && jadwalDetaillZone.pic.length > 0}
-							{#each jadwalDetaillZone.pic as pic}
-								<li>PIC: {pic}</li>
-							{/each}
+					<div class="mt-2 flex items-center gap-2 block lg:hidden">
+						<ol class="mt-0">
+							{#if jadwalDetaillZone.pic && jadwalDetaillZone.pic.length > 0}
+								{#each jadwalDetaillZone.pic as pic}
+									<li>PIC: {pic}</li>
+								{/each}
+							{/if}
+						</ol>
+						{#if onEditPic}
+							<Button
+								type="button"
+								class="flex shrink-0 items-center justify-center rounded-full bg-red-200 p-2 text-gray-600 hover:bg-green-300"
+								title="Edit PIC zona"
+								onclick={(e: Event) => handleEditPic(jadwalDetaillZone, e)}
+							>
+								<PenOutline class="size-4 btn-secondary" />
+							</Button>
 						{/if}
-					</ol>
+					</div>
 				</TableBodyCell>
 				<TableBodyCell class="hidden px-2 align-top lg:table-cell">
 					<div class="grid grid-cols-2 gap-2">
@@ -84,14 +93,24 @@
 								{/each}
 							</ol>
 						</div>
-						<div>
-							<ol>
+						<div class="flex items-center gap-2">
+							<ol class="mt-0">
 								{#if jadwalDetaillZone.pic && jadwalDetaillZone.pic.length > 0}
 									{#each jadwalDetaillZone.pic as pic}
 										<li>PIC: {pic}</li>
 									{/each}
 								{/if}
 							</ol>
+							{#if onEditPic}
+								<Button
+									type="button"
+									class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300"
+									title="Edit PIC zona"
+									onclick={(e: Event) => handleEditPic(jadwalDetaillZone, e)}
+								>
+									<PenOutline class="size-4 btn-secondary" />
+								</Button>
+							{/if}
 						</div>
 					</div>
 				</TableBodyCell>

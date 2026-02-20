@@ -386,5 +386,14 @@ export class EventService {
 		return await repo.createEventPic(request);
 	}
 
-
+	/**
+	 * Updates the PIC name for an event zone.
+	 * @param eventId - Event ID
+	 * @param zoneGroupId - Zone group ID
+	 * @param name - New PIC name
+	 * @returns true if at least one row was updated
+	 */
+	async updateEventPic(eventId: string, zoneGroupId: string, name: string): Promise<boolean> {
+		return await repo.updateEventPic(eventId, zoneGroupId, name);
+	}
 }

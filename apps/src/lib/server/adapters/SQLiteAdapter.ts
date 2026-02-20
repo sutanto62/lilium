@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/libsql';
 import {
 	createEvent,
 	createEventPic,
+	updateEventPic as updateEventPicDb,
 	deleteEventUsher,
 	editEventUshers,
 	findCetakJadwal,
@@ -92,6 +93,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	insertEvent = (event: ChurchEvent) =>
 		createEvent(this.db, event);
 	createEventPic = (request: EventPicRequest) => createEventPic(this.db, request);
+	updateEventPic = (eventId: string, zoneGroupId: string, name: string) =>
+		updateEventPicDb(this.db, eventId, zoneGroupId, name);
 
 	editEventUshers = (eventUshers: EventUsher[]) => editEventUshers(this.db, eventUshers);
 	findEvent = (churchId: string, massId?: string, date?: string) =>

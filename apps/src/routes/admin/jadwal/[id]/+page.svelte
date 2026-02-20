@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
+	import type { EventScheduleRows } from '$core/entities/Event';
 	import type { ChurchZoneGroup } from '$core/entities/Schedule.js';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import {
@@ -36,6 +37,7 @@
 	let selectedZoneId = $state<string | null>(null);
 	let eventZonePic = $state('');
 	let deleting = $state(false);
+	let editingZoneRow = $state<EventScheduleRows | null>(null);
 
 	const toggleRow = (i: number) => {
 		openRow = openRow === i ? null : i;
@@ -45,16 +47,26 @@
 		zones.map((e: ChurchZoneGroup) => ({ value: e.id ?? '', name: e.name ?? '' }))
 	);
 
-	// let defaultModal = false;
-
 	function handleAddPic(event: Event) {
 		event.stopPropagation();
+		editingZoneRow = null;
+		selectedZoneId = null;
+		eventZonePic = '';
 		defaultModalPicZone = true;
 	}
 
-	function handleSubmitPicZone(event: SubmitEvent) {
-		// Form submission logic can be handled here if needed
-		// The form will still submit to the server action
+	function handleEditPic(row: EventScheduleRows) {
+		editingZoneRow = row;
+		selectedZoneId = row.id;
+		eventZonePic = row.pic.join(', ');
+		defaultModalPicZone = true;
+	}
+
+	function resetPicModal() {
+		defaultModalPicZone = false;
+		editingZoneRow = null;
+		selectedZoneId = null;
+		eventZonePic = '';
 	}
 </script>
 
@@ -109,6 +121,7 @@
 			{openRow}
 			{toggleRow}
 			{zones}
+			onEditPic={handleEditPic}
 		/>
 	{:else}
 		<p>Data tidak ditemukan</p>
@@ -168,21 +181,38 @@
 	</div>
 {/if}
 
-<!-- PIC modal for adding pic to zone -->
-<Modal title="PIC Zona" bind:open={defaultModalPicZone}>
-	<form method="POST" action="?/updatePic" onsubmit={handleSubmitPicZone}>
+<!-- PIC modal for add or edit -->
+<Modal title={editingZoneRow ? 'Edit PIC Zona' : 'PIC Zona'} bind:open={defaultModalPicZone}>
+	<form
+		method="POST"
+		action="?/updatePic"
+		use:enhance={() => {
+			return async ({ result, update }) => {
+				await update();
+				if (result.type === 'success' && result.data?.success) {
+					resetPicModal();
+				}
+			};
+		}}
+	>
+		<input type="hidden" name="mode" value={editingZoneRow ? 'edit' : 'add'} />
 		<div class="mb-4 grid gap-4 sm:grid-cols-1">
 			<div>
 				<Label for="zone" class="mb-2">Zona</Label>
-				<Select
-					id="zone"
-					name="zone"
-					class="mt-2"
-					items={zoneOptions}
-					bind:value={selectedZoneId}
-					placeholder="Pilih Zona"
-					required
-				/>
+				{#if editingZoneRow}
+					<input type="hidden" name="zone" value={selectedZoneId ?? ''} />
+					<P class="mt-2 text-gray-700 dark:text-gray-300">{editingZoneRow.name}</P>
+				{:else}
+					<Select
+						id="zone"
+						name="zone"
+						class="mt-2"
+						items={zoneOptions}
+						bind:value={selectedZoneId}
+						placeholder="Pilih Zona"
+						required
+					/>
+				{/if}
 			</div>
 			<div>
 				<Label for="pic" class="mb-2">Tulis nama</Label>

@@ -7,4 +7,9 @@
     color: var(--color-primary-600);
     text-decoration: underline;
   }
+
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-gray-500;
+  }
 }

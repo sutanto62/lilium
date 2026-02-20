@@ -93,14 +93,16 @@ export const actions: Actions = {
 		}
 
 		const formData = await event.request.formData();
-		const submittedPic = {
-			event: eventId,
-			zone: formData.get('zone') as string,
-			name: formData.get('pic') as string
-		}
+		const mode = formData.get('mode') as string | null;
+		const zone = formData.get('zone') as string;
+		const name = formData.get('pic') as string;
 
 		const eventService = new EventService(churchId);
-		await eventService.assignEventPic(submittedPic);
+		if (mode === 'edit') {
+			await eventService.updateEventPic(eventId, zone, name);
+		} else {
+			await eventService.assignEventPic({ event: eventId, zone, name });
+		}
 
 		return { success: true };
 	},

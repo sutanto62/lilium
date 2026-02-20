@@ -42,6 +42,7 @@ export interface ScheduleRepository {
 	insertEvent: (event: ChurchEvent) => Promise<ChurchEvent>;
 
 	createEventPic: (pic: EventPicRequest) => Promise<boolean>;
+	updateEventPic: (eventId: string, zoneGroupId: string, name: string) => Promise<boolean>;
 	getEventByChurch: (churchId: string, massId: string, date: string) => Promise<ChurchEvent>;
 
 	// Ushers

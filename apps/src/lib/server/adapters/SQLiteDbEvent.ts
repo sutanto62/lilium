@@ -131,6 +131,35 @@ export async function createEventPic(
 	return true;
 }
 
+/**
+ * Updates the PIC name for an event zone.
+ *
+ * @param db - The database instance
+ * @param eventId - Event ID
+ * @param zoneGroupId - Zone group ID
+ * @param name - New PIC name
+ * @returns true if at least one row was updated
+ */
+export async function updateEventPic(
+	db: ReturnType<typeof drizzle>,
+	eventId: string,
+	zoneGroupId: string,
+	name: string
+): Promise<boolean> {
+	const result = await db
+		.update(event_zone_pic)
+		.set({ name })
+		.where(
+			and(
+				eq(event_zone_pic.event, eventId),
+				eq(event_zone_pic.zone_group, zoneGroupId)
+			)
+		)
+		.returning();
+
+	return result.length > 0;
+}
+
 // export async function updateEventUshers(db: ReturnType<typeof drizzle>, ushers: EventUsher[]): Promise<void> {
 //     const updates = ushers.map(usher => {
 //         return db.update(event_usher).set({

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import JadwalKonfirmasi from '$components/jadwal/JadwalKonfirmasi.svelte';
 	import type { EventScheduleRows } from '$core/entities/Event';
 	import type { ChurchZoneGroup } from '$core/entities/Schedule.js';
@@ -19,7 +19,7 @@
 	import {
 		ArchiveOutline,
 		CashOutline,
-		CirclePlusSolid,
+		UserAddSolid,
 		ExclamationCircleSolid,
 		PrinterOutline,
 		TrashBinOutline,
@@ -38,6 +38,7 @@
 	let eventZonePic = $state('');
 	let deleting = $state(false);
 	let editingZoneRow = $state<EventScheduleRows | null>(null);
+	let isMisaPicEdit = $state(false);
 
 	const toggleRow = (i: number) => {
 		openRow = openRow === i ? null : i;
@@ -45,6 +46,10 @@
 
 	const zoneOptions = $derived(
 		zones.map((e: ChurchZoneGroup) => ({ value: e.id ?? '', name: e.name ?? '' }))
+	);
+
+	const globalZoneId = $derived(
+		zones.find((z: ChurchZoneGroup) => z.name === 'Global')?.id ?? ''
 	);
 
 	function handleAddPic(event: Event) {
@@ -65,10 +70,20 @@
 	function resetPicModal() {
 		defaultModalPicZone = false;
 		editingZoneRow = null;
+		isMisaPicEdit = false;
 		selectedZoneId = null;
 		eventZonePic = '';
 	}
+
+	function handleEditDescription() {
+		editingZoneRow = null;
+		isMisaPicEdit = true;
+		selectedZoneId = globalZoneId;
+		eventZonePic = eventDetail.description ?? '';
+		defaultModalPicZone = true;
+	}
 </script>
+
 
 <Breadcrumb class="mb-4	">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
@@ -90,9 +105,11 @@
 		<li class="flex items-center gap-2"><CashOutline class="size-4" /> <span>Kolekte</span></li>
 	</ul>
 	<div class="flex justify-end gap-2">
+		<!--
 		<Button color="alternative" size="xs" onclick={(event: Event) => handleAddPic(event)}
-			><CirclePlusSolid class="me-2 h-4 w-4" /> PIC Zona</Button
+			><UserAddSolid class="me-2 h-4 w-4" /> PIC Zona</Button
 		>
+		-->
 		<Button
 			onclick={() => (isDeleteConfirmation = true)}
 			type="submit"
@@ -122,6 +139,7 @@
 			{toggleRow}
 			{zones}
 			onEditPic={handleEditPic}
+			onEditDescription={handleEditDescription}
 		/>
 	{:else}
 		<p>Data tidak ditemukan</p>
@@ -182,24 +200,37 @@
 {/if}
 
 <!-- PIC modal for add or edit -->
-<Modal title={editingZoneRow ? 'Edit PIC Zona' : 'PIC Zona'} bind:open={defaultModalPicZone}>
+<Modal
+	title={isMisaPicEdit ? (eventDetail.description ? 'Edit PIC Misa' : 'Tambah PIC Misa') : editingZoneRow ? 'Edit PIC Zona' : 'Tambah PIC Zona'}
+	bind:open={defaultModalPicZone}
+>
 	<form
 		method="POST"
 		action="?/updatePic"
 		use:enhance={() => {
-			return async ({ result, update }) => {
-				await update();
+			return async ({ result }) => {
 				if (result.type === 'success' && result.data?.success) {
+					await invalidateAll();
 					resetPicModal();
 				}
 			};
 		}}
 	>
-		<input type="hidden" name="mode" value={editingZoneRow ? 'edit' : 'add'} />
+		<input
+			type="hidden"
+			name="mode"
+			value={isMisaPicEdit
+				? (eventDetail.description ? 'edit' : 'add')
+				: (editingZoneRow && editingZoneRow.pic.length > 0 ? 'edit' : 'add')}
+		/>
+		<input type="hidden" name="is_misa_pic" value={isMisaPicEdit} />
 		<div class="mb-4 grid gap-4 sm:grid-cols-1">
 			<div>
 				<Label for="zone" class="mb-2">Zona</Label>
-				{#if editingZoneRow}
+				{#if isMisaPicEdit}
+					<input type="hidden" name="zone" value={globalZoneId} />
+					<P class="mt-2 text-gray-700 dark:text-gray-300">PIC Misa</P>
+				{:else if editingZoneRow}
 					<input type="hidden" name="zone" value={selectedZoneId ?? ''} />
 					<P class="mt-2 text-gray-700 dark:text-gray-300">{editingZoneRow.name}</P>
 				{:else}

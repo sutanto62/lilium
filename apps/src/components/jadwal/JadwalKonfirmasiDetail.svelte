@@ -4,6 +4,9 @@
 
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { statsigService } from '$src/lib/application/StatsigService.js';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { formatDate } from '$src/lib/utils/dateUtils';
 	import { Button, Card, P, Toast } from 'flowbite-svelte';
 	import {
@@ -13,8 +16,6 @@
 		ExclamationCircleSolid,
 		TrashBinOutline
 	} from 'flowbite-svelte-icons';
-	import html2canvas from 'html2canvas';
-
 	const { lingkungan } = $props();
 
 	let isDeleteConfirmation = $state(false);
@@ -22,20 +23,33 @@
 
 	const cardId = $derived(`card-${lingkungan.lingkungan}-${lingkungan.zone}`);
 
-	const createdAt = $derived(lingkungan.ushers[0].createdAt);
-	const submitted = $derived(formatDate(createdAt, 'datetime', 'id-ID', 'Asia/Jakarta'));
+	const createdAt = $derived(lingkungan.ushers[0]?.createdAt ?? null);
+	const submitted = $derived(
+		createdAt ? formatDate(createdAt, 'datetime', 'id-ID', 'Asia/Jakarta') : '—'
+	);
 
-	function captureSnapshot(): void {
+	async function captureSnapshot(): Promise<void> {
 		if (typeof window !== 'undefined') {
 			const cardToCapture = window.document.getElementById(cardId);
 			if (cardToCapture) {
-				html2canvas(cardToCapture).then((canvas) => {
-					const image = canvas.toDataURL('image/png');
-					const link = window.document.createElement('a');
-					link.href = image;
-					link.download = `tatib_${lingkungan.lingkungan}_${lingkungan.zone}.png`;
-					link.click();
-				});
+				const { default: html2canvas } = await import('html2canvas');
+				const canvas = await html2canvas(cardToCapture);
+				const image = canvas.toDataURL('image/png');
+				const link = window.document.createElement('a');
+				link.href = image;
+				link.download = `tatib_${lingkungan.lingkungan}_${lingkungan.zone}.png`;
+				link.click();
+
+				const metadata = {
+					lingkungan_id: lingkungan.id,
+					lingkungan_name: lingkungan.name,
+					zone: lingkungan.zone,
+					usher_count: lingkungan.ushers.length
+				};
+				await Promise.all([
+					statsigService.logEvent('admin_jadwal_detail_snapshot_download', 'click', page.data.session || undefined, metadata),
+					tracker.track('admin_jadwal_detail_snapshot_download', { event_type: 'snapshot_download', ...metadata }, page.data.session, page)
+				]).catch(() => {});
 			}
 		}
 	}

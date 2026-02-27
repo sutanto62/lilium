@@ -11,6 +11,16 @@ import { hasRole } from '$src/auth';
 import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 
+async function getAuthContext(event: RequestEvent): Promise<{ churchId: string; session: Awaited<ReturnType<typeof event.locals.auth>> }> {
+	const session = await event.locals.auth();
+	const churchId = session?.user?.cid ?? '';
+	if (!churchId) {
+		logger.error('Church not found');
+		throw error(404, 'Gereja belum terdaftar');
+	}
+	return { churchId, session };
+}
+
 export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
 
@@ -33,6 +43,8 @@ export const load: PageServerLoad = async (event) => {
 	const metadata = {
 		event_id: eventId,
 		zone_count: zoneGroups.length,
+		row_count: eventDetail.rows?.length ?? 0,
+		has_pic_misa: !!eventDetail.description,
 		load_time_ms: Date.now() - startTime
 	};
 
@@ -62,15 +74,8 @@ export const actions: Actions = {
 	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
 	 */
 	deactivate: async (event: RequestEvent) => {
-		// Get church id from cookie
-		const session = await event.locals.auth();
-		const churchId = session?.user?.cid ?? '';
+		const { churchId, session } = await getAuthContext(event);
 		const eventId = event.params.id;
-
-		if (!churchId) {
-			logger.error('Church not found');
-			throw error(404, 'Gereja belum terdaftar');
-		}
 
 		const eventService = new EventService(churchId);
 
@@ -99,19 +104,14 @@ export const actions: Actions = {
 	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
 	 */
 	updatePic: async (event: RequestEvent) => {
-		const session = await event.locals.auth(); // why?
-		const churchId = session?.user?.cid ?? ''; // why?
+		const { churchId, session } = await getAuthContext(event);
 		const eventId = event.params.id;
-
-		if (!churchId) {
-			logger.error('Church not found');
-			throw error(404, 'Gereja belum terdaftar');
-		}
 
 		const formData = await event.request.formData();
 		const mode = formData.get('mode') as string | null;
 		const zone = formData.get('zone') as string;
 		const name = formData.get('pic') as string;
+		const isMisaPic = formData.get('is_misa_pic') === 'true';
 
 		const eventService = new EventService(churchId);
 		if (mode === 'edit') {
@@ -120,7 +120,7 @@ export const actions: Actions = {
 			await eventService.assignEventPic({ event: eventId, zone, name });
 		}
 
-		const picMetadata = { event_id: eventId, zone_id: zone, mode: mode ?? 'add' };
+		const picMetadata = { event_id: eventId, zone_id: zone, mode: mode ?? 'add', is_misa_pic: isMisaPic };
 		await Promise.all([
 			statsigService.logEvent('admin_jadwal_detail_pic_update', 'submit', session || undefined, picMetadata),
 			posthogService.trackEvent('admin_jadwal_detail_pic_update', { event_type: 'pic_update', ...picMetadata }, session || undefined)
@@ -135,14 +135,8 @@ export const actions: Actions = {
 	 * @returns {success: true} on successful deletion
 	 */
 	deleteEventUsher: async (event: RequestEvent) => {
-		const session = await event.locals.auth();
-		const churchId = session?.user?.cid ?? '';
+		const { churchId, session } = await getAuthContext(event);
 		const eventId = event.params.id;
-
-		if (!churchId) {
-			logger.error('Church not found');
-			throw error(404, 'Gereja belum terdaftar');
-		}
 
 		const formData = await event.request.formData();
 		const lingkungan = formData.get('lingkungan') as string;

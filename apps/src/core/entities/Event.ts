@@ -100,6 +100,7 @@ export interface EventScheduleLingkunganUsher {
 	position: string;
 	isPpg: boolean;
 	isKolekte: boolean;
+	createdAt: number;
 }
 
 // For printing

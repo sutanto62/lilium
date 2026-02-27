@@ -32,16 +32,46 @@
 		toggleRow(index);
 	}
 
-	function handleEditPic(row: EventScheduleRows, event: Event) {
+function handleEditPic(row: EventScheduleRows, event: Event) {
 		event.stopPropagation();
 		onEditPic?.(row);
 	}
 
-	function handleEditDescription(event: Event) {
+function handleEditDescription(event: Event) {
 		event.stopPropagation();
 		onEditDescription?.();
 	}
 </script>
+
+{#snippet lingkunganList(row: EventScheduleRows)}
+	<ol>
+		{#each row.lingkungan as lingkungan}
+			<li>{lingkungan}</li>
+		{/each}
+	</ol>
+{/snippet}
+
+{#snippet picCell(row: EventScheduleRows)}
+	<ol class="mt-0">
+		{#each row.pic as pic}
+			<li>PIC: {pic}</li>
+		{/each}
+	</ol>
+	{#if onEditPic}
+		<Button
+			type="button"
+			class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300"
+			title={row.pic.length > 0 ? 'Edit PIC zona' : 'Tambah PIC zona'}
+			onclick={(e: Event) => handleEditPic(row, e)}
+		>
+			{#if row.pic.length > 0}
+				<PenOutline class="size-4 btn-secondary" />
+			{:else}
+				<UserAddSolid class="size-4 btn-secondary" />
+			{/if}
+		</Button>
+	{/if}
+{/snippet}
 
 <Table>
 	<TableHead>
@@ -79,38 +109,9 @@
 				</div>
 			</TableBodyCell>
 		</TableBodyRow>
-		{#snippet lingkunganList(row: EventScheduleRows)}
-			<ol>
-				{#each row.lingkungan as lingkungan}
-					<li>{lingkungan}</li>
-				{/each}
-			</ol>
-		{/snippet}
-
-		{#snippet picCell(row: EventScheduleRows)}
-			<ol class="mt-0">
-				{#each row.pic as pic}
-					<li>PIC: {pic}</li>
-				{/each}
-			</ol>
-			{#if onEditPic}
-				<Button
-					type="button"
-					class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300"
-					title={row.pic.length > 0 ? 'Edit PIC zona' : 'Tambah PIC zona'}
-					onclick={(e: Event) => handleEditPic(row, e)}
-				>
-					{#if row.pic.length > 0}
-						<PenOutline class="size-4 btn-secondary" />
-					{:else}
-						<UserAddSolid class="size-4 btn-secondary" />
-					{/if}
-				</Button>
-			{/if}
-		{/snippet}
 
 		{#each rows as jadwalDetaillZone, i}
-			<TableBodyRow class="hover:bg-gray-100" onclick={(event) => handleToggleRow(i, event)}>
+			<TableBodyRow class="hover:bg-gray-100" onclick={(event: MouseEvent) => handleToggleRow(i, event)}>
 				<TableBodyCell class="px-2 align-top">
 					{jadwalDetaillZone.name}
 					<ol class="mt-1 block lg:hidden">

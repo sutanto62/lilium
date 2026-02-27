@@ -8,18 +8,17 @@ import { ServiceError } from '$core/errors/ServiceError';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { hasRole } from '$src/auth';
+import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 
 export const load: PageServerLoad = async (event) => {
+	const startTime = Date.now();
+
 	const { session } = await handlePageLoad(event, 'jadwal_detail');
 
 	if (!session) {
 		throw redirect(302, '/signin');
 	}
-
-	await statsigService.logEvent('jadwal_detail', 'event', session || undefined, {
-		eventId: event.params.id
-	});
 
 	const churchId = session.user?.cid ?? '';
 	const eventId = event.params.id;
@@ -30,6 +29,17 @@ export const load: PageServerLoad = async (event) => {
 	// Get zones
 	const churchService = new ChurchService(churchId);
 	const zoneGroups = await churchService.retrieveZoneGroupsByEvent(eventId);
+
+	const metadata = {
+		event_id: eventId,
+		zone_count: zoneGroups.length,
+		load_time_ms: Date.now() - startTime
+	};
+
+	await Promise.all([
+		statsigService.logEvent('admin_jadwal_detail_view', 'load', session || undefined, metadata),
+		posthogService.trackEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
+	]);
 
 	return {
 		eventDetail,
@@ -70,10 +80,16 @@ export const actions: Actions = {
 			if (!result) {
 				throw ServiceError.database('Gagal menonaktifkan jadwal');
 			}
+
+			await Promise.all([
+				statsigService.logEvent('admin_jadwal_detail_deactivate', 'submit', session || undefined, { event_id: eventId }),
+				posthogService.trackEvent('admin_jadwal_detail_deactivate', { event_type: 'deactivate', event_id: eventId }, session || undefined)
+			]);
 		} catch (error) {
 			logger.error('Error deactivating event:', error);
 			throw ServiceError.database('Gagal menonaktifkan jadwal');
 		}
+
 		return redirect(303, '/admin/jadwal');
 	},
 	/**
@@ -104,6 +120,12 @@ export const actions: Actions = {
 			await eventService.assignEventPic({ event: eventId, zone, name });
 		}
 
+		const picMetadata = { event_id: eventId, zone_id: zone, mode: mode ?? 'add' };
+		await Promise.all([
+			statsigService.logEvent('admin_jadwal_detail_pic_update', 'submit', session || undefined, picMetadata),
+			posthogService.trackEvent('admin_jadwal_detail_pic_update', { event_type: 'pic_update', ...picMetadata }, session || undefined)
+		]);
+
 		return { success: true };
 	},
 	/**
@@ -127,10 +149,18 @@ export const actions: Actions = {
 
 		const eventService = new EventService(churchId);
 
-		if (hasRole(session, 'admin')) {
-			await eventService.removeUsherAssignment(eventId, lingkungan);
-			logger.info(`Event usher deleted: ${lingkungan} by ${session?.user?.name}`);
+		if (!hasRole(session, 'admin')) {
+			throw error(403, 'Tidak memiliki akses');
 		}
+
+		await eventService.removeUsherAssignment(eventId, lingkungan);
+		logger.info(`Event usher deleted: ${lingkungan} by ${session?.user?.name}`);
+
+		const usherMetadata = { event_id: eventId, lingkungan_id: lingkungan };
+		await Promise.all([
+			statsigService.logEvent('admin_jadwal_detail_usher_delete', 'submit', session || undefined, usherMetadata),
+			posthogService.trackEvent('admin_jadwal_detail_usher_delete', { event_type: 'usher_delete', ...usherMetadata }, session || undefined)
+		]);
 
 		return { success: true };
 	},

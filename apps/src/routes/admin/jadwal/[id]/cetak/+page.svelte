@@ -1,14 +1,16 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { Button } from 'flowbite-svelte';
 	import html2canvas from 'html2canvas';
 
-	export let data;
+	let { data } = $props();
 
-	$: event = data.jadwalDetail;
-	$: zones = event.listUshers;
-	$: kolekte = event.listKolekte;
-	$: ppg = event.listPpg;
-	$: church = data.church;
+	let event = $derived(data.jadwalDetail);
+	let zones = $derived(event.listUshers);
+	let kolekte = $derived(event.listKolekte);
+	let ppg = $derived(event.listPpg);
+	let church = $derived(data.church);
 
 	async function downloadImage() {
 		const element = document.getElementById('print-content');
@@ -34,6 +36,13 @@
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
+
+			await tracker.track(
+				'admin_jadwal_cetak_download',
+				{ event_id: page.params.id, mass: event.mass, date: event.date },
+				page.data.session,
+				page
+			);
 		} catch (error) {
 			console.error('Error generating image:', error);
 		}

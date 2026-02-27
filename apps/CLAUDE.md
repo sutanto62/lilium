@@ -150,6 +150,57 @@ Always use Svelte 5 runes syntax:
 
 **Never use Svelte 4 patterns**: `export let`, `onMount` (use `$effect`), stores (use runes instead).
 
+### TypeScript Conventions
+
+**No `any` — use `unknown` and narrow:**
+```typescript
+// ✅ Good
+function handleError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return 'Unknown error occurred';
+}
+```
+
+**Explicit return types on public APIs:**
+```typescript
+async function retrieveEventById(id: string): Promise<ChurchEvent> { }
+```
+
+**`interface` for objects; `type` for unions, intersections, and utilities:**
+```typescript
+export interface ChurchEvent { id: string; church: string; }
+export type EventType = 'mass' | 'feast';
+export type CreateEventInput = Omit<ChurchEvent, 'id' | 'createdAt'>;
+```
+
+**`import type` for type-only imports:**
+```typescript
+import type { ChurchEvent } from '$core/entities/Event';
+```
+
+**Always handle null/undefined explicitly:**
+```typescript
+const event = await findEvent(id);
+if (!event) throw ServiceError.notFound('Event not found', { id });
+```
+
+**Functions using `await` must be declared `async`** (applies to arrow functions too):
+```typescript
+// ✅ Good
+const handleClick = async () => { await tracker.track(...); };
+use:enhance={() => { return async ({ update }) => { await update(); }; }}
+
+// ❌ Bad — will cause a compile error
+const handleClick = () => { await tracker.track(...); };
+```
+
+**Boolean variable naming** — use `is`, `has`, `should`, `can` prefixes:
+```typescript
+const isSubmitting = $state(false);
+const hasEvents = events.length > 0;
+const canEdit = user.role === 'admin';
+```
+
 ### Database Operations
 
 Always use Drizzle ORM with type-safe queries:

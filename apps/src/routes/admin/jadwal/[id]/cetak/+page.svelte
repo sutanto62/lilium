@@ -65,14 +65,12 @@
 		<h1
 			class="mb-2 text-2xl font-extrabold leading-none tracking-tight text-gray-900 dark:text-white md:text-2xl lg:text-3xl"
 		>
-			{church.name}, {church.parish}
+			Misa {event.mass ?? ''}
 		</h1>
 
 		<h1
 			class="mb-0 text-xl font-bold leading-none tracking-tight text-gray-900 dark:text-white md:text-xl lg:text-2xl"
 		>
-			Misa {event.mass}
-			<br />
 			{event.date
 				? new Date(event.date).toLocaleDateString('id-ID', {
 						weekday: 'long',
@@ -81,6 +79,8 @@
 						day: 'numeric'
 					})
 				: ''}
+			<br />
+			Paroki {church.parish}
 		</h1>
 		<div class="mt-2 text-left">
 			<h2 class="mb-2 font-bold">CATATAN:</h2>

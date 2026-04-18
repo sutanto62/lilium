@@ -19,7 +19,8 @@
 		try {
 			const canvas = await html2canvas(element, {
 				useCORS: true,
-				logging: false
+				logging: false,
+				scale: 3
 			});
 
 			// Convert canvas to data URL
@@ -175,44 +176,23 @@
 </div>
 
 <style>
-	/* Base styles for both print and non-print */
+	/* A4: 210mm × 297mm — ratio 1:√2 (1:1.41421) */
 	.print-content {
-		padding: 5rem;
+		width: 210mm;
+		min-height: 297mm;
+		padding: 15mm;
+		margin: 0 auto;
+		box-sizing: border-box;
+		font-size: 0.7rem;
 	}
 
 	.print-content tr {
 		margin-top: 0px !important;
 	}
+
 	.print-content td,
 	.print-content th {
-		padding-bottom: 1rem !important;
-		padding-left: 0.5rem !important;
+		padding: 0.05rem 0.5rem 0.5rem 0.5rem !important; /* top right bottom left — lifts baseline, equal horizontal */
 		border-bottom: 1px solid black !important;
 	}
-	/* Print-specific styles */
-	/* @media print {
-		.no-print {
-			display: none;
-		}
-
-		.print-content th,
-		.print-content td {
-			padding: 0.5rem !important;
-			line-height: 1rem !important;
-			border: 1px solid black !important;
-		}
-
-		table {
-			page-break-inside: avoid;
-		}
-
-		tr {
-			page-break-inside: avoid;
-		}
-
-		th,
-		td {
-			padding: 0.25rem;
-		}
-	} */
 </style>

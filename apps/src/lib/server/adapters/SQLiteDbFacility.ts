@@ -246,7 +246,8 @@ export async function listPositionByMass(
 				eq(church_zone.church, churchId),
 				eq(mass_zone.mass, massId),
 				eq(church_position.active, 1),
-				eq(mass_zone.active, 1)
+				eq(mass_zone.active, 1),
+				eq(church_zone.active, 1)
 			)
 		)
 		.orderBy(church_position.sequence);
@@ -525,7 +526,7 @@ export async function findMassZonesByChurch(
 		})
 		.from(mass_zone)
 		.innerJoin(mass, eq(mass_zone.mass, mass.id))
-		.where(eq(mass.church, churchId))
+		.where(and(eq(mass.church, churchId), eq(mass_zone.active, 1)))
 		.orderBy(mass_zone.sequence);
 
 	return result.map((row) => ({

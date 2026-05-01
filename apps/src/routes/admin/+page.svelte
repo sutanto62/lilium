@@ -15,33 +15,47 @@
 	<BreadcrumbItem>Admin</BreadcrumbItem>
 </Breadcrumb>
 
-<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 	<FeatureCard
 		title="Jadwal Tata Tertib"
-		description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
+		description="Kelola jadwal tata tertib lingkungan per misa. Cetak daftar petugas."
 		buttonHref="/admin/jadwal"
 		buttonText="Kelola"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Jadwal Misa"
-		description="Melihat dan membuat jadwal misa. Buka sebulan sekali untuk membuat jadwal satu bulan penuh."
+		description="Buat jadwal misa bulanan. Satu bulan sekali."
 		buttonHref="/admin/misa"
-		buttonText="Misa"
+		buttonText="Jadwal"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Posisi"
-		description="Konfigurasi posisi titik tugas. Sesuaikan dengan kebutuhan posisi per setiap jenis misa."
+		description="Konfigurasi posisi titik tugas per jenis misa."
 		buttonHref="/admin/posisi"
 		buttonText="Posisi"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
-		title="Zona & Misa"
-		description="Kelola template jadwal misa, zona titik tugas, dan relasi misa-zona."
-		buttonHref="/admin/zone"
+		title="Template Misa"
+		description="Definisikan jenis-jenis misa: hari, waktu, dan kodenya."
+		buttonHref="/admin/zone/misa"
+		buttonText="Template"
+		buttonColor="alternative"
+	/>
+	<FeatureCard
+		title="Zona"
+		description="Buat dan kelola zona titik tugas di gereja."
+		buttonHref="/admin/zone/zona"
 		buttonText="Zona"
+		buttonColor="alternative"
+	/>
+	<FeatureCard
+		title="Misa–Zona"
+		description="Tentukan zona mana yang melayani tiap jenis misa."
+		buttonHref="/admin/zone/misa-zona"
+		buttonText="Relasi"
 		buttonColor="alternative"
 	/>
 </FeatureDefault>

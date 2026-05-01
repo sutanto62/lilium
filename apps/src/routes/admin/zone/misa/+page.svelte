@@ -116,20 +116,19 @@
 </script>
 
 <svelte:head>
-	<title>Kelola Misa</title>
+	<title>Template Misa</title>
 </svelte:head>
 
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/zone">Zona</BreadcrumbItem>
-	<BreadcrumbItem>Misa</BreadcrumbItem>
+	<BreadcrumbItem>Template Misa</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="mb-4">
 	<div class="mb-4 flex items-center justify-between">
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-			Kelola Misa
+			Template Misa
 		</Heading>
 		<Button color="blue" onclick={openCreateModal}>
 			<PlusOutline class="mr-2 h-4 w-4" />

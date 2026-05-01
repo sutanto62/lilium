@@ -104,8 +104,7 @@
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/zone">Zona</BreadcrumbItem>
-	<BreadcrumbItem>Kelola Zona</BreadcrumbItem>
+	<BreadcrumbItem>Zona</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="mb-4">

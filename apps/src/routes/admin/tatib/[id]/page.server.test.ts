@@ -17,7 +17,7 @@ vi.mock('$src/lib/application/StatsigService', () => ({
 	statsigService: { logEvent: vi.fn() }
 }));
 
-function createMockRequestEvent(formData: FormData, params: { id: string }): RequestEvent<RouteParams, '/admin/jadwal/[id]'> {
+function createMockRequestEvent(formData: FormData, params: { id: string }): RequestEvent<RouteParams, '/admin/tatib/[id]'> {
 	return {
 		request: { formData: async () => formData },
 		params: params as RouteParams,
@@ -30,12 +30,12 @@ function createMockRequestEvent(formData: FormData, params: { id: string }): Req
 		fetch: vi.fn(),
 		getClientAddress: vi.fn(),
 		platform: undefined,
-		route: { id: '/admin/jadwal/[id]' as const },
+		route: { id: '/admin/tatib/[id]' as const },
 		setHeaders: vi.fn(),
-		url: new URL(`http://localhost/admin/jadwal/${params.id}`),
+		url: new URL(`http://localhost/admin/tatib/${params.id}`),
 		isDataRequest: false,
 		isSubRequest: false
-	} as unknown as RequestEvent<RouteParams, '/admin/jadwal/[id]'>;
+	} as unknown as RequestEvent<RouteParams, '/admin/tatib/[id]'>;
 }
 
 describe('jadwal [id] +page.server', () => {

@@ -88,7 +88,7 @@
 <Breadcrumb class="mb-4	">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/jadwal">Jadwal</BreadcrumbItem>
+	<BreadcrumbItem href="/admin/tatib">Jadwal</BreadcrumbItem>
 	<BreadcrumbItem>
 		{eventDetail.mass}
 	</BreadcrumbItem>
@@ -123,7 +123,7 @@
 		</Button>
 		<Button
 			size="xs"
-			onclick={() => window.open(`/admin/jadwal/${eventDetail.id}/cetak`, '_blank')}
+			onclick={() => window.open(`/admin/tatib/${eventDetail.id}/cetak`, '_blank')}
 		>
 			<PrinterOutline class="me-2 h-5 w-5" /> Cetak
 		</Button>

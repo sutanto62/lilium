@@ -45,7 +45,7 @@
 				>
 				<Tooltip type="auto">Penghitung Kolekte</Tooltip>
 
-				<Button class="text-sm" size="xs" href="/admin/jadwal/{event.id}" {color}>Detail</Button>
+				<Button class="text-sm" size="xs" href="/admin/tatib/{event.id}" {color}>Detail</Button>
 			</div>
 		</div>
 	</Card>

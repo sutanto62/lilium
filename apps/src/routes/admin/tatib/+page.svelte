@@ -196,7 +196,6 @@
 	<caption
 		class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white"
 	>
-		Jadwal Konfirmasi Petugas Tatib
 		<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
 			Berikut jadwal konfirmasi petugas tatib untuk 2 minggu ke depan.
 		</p>
@@ -218,7 +217,7 @@
 				<TableBodyCell>{formatDate(event.date, 'long')}</TableBodyCell>
 				<TableBodyCell>
 					<a
-						href="/admin/jadwal/{event.id}"
+						href="/admin/tatib/{event.id}"
 						class="font-medium text-primary-600 hover:underline dark:text-primary-500"
 						onclick={() => handleEventClick(event.id, event.date, event.progress)}
 					>

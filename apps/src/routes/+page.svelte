@@ -80,9 +80,9 @@
 			<FeatureCard
 				title="Jadwal Tata Tertib"
 				description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
-				buttonHref="/admin/jadwal"
+				buttonHref="/admin/tatib"
 				buttonText="Kelola"
-				onclick={() => handleFeatureClick('Jadwal Tata Tertib', '/admin/jadwal')}
+				onclick={() => handleFeatureClick('Jadwal Tata Tertib', '/admin/tatib')}
 			/>
 			<FeatureCard
 				title="Pengaturan Misa"

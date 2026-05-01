@@ -95,7 +95,7 @@ export const actions: Actions = {
 			throw ServiceError.database('Gagal menonaktifkan jadwal');
 		}
 
-		return redirect(303, '/admin/jadwal');
+		return redirect(303, '/admin/tatib');
 	},
 	/**
 	 * Updates event's PIC

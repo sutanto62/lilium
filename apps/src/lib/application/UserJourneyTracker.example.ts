@@ -46,7 +46,7 @@ export async function trackPageNavigation() {
     await new Promise(resolve => setTimeout(resolve, 3000));
 
     // Track navigation to schedule management
-    await analyticsTracker.trackPageView('/admin/jadwal', {
+    await analyticsTracker.trackPageView('/admin/tatib', {
         section: 'admin',
         feature: 'schedule_management'
     });

@@ -144,6 +144,7 @@
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
+	<BreadcrumbItem href="/admin/settings">Pengaturan</BreadcrumbItem>
 	<BreadcrumbItem>Posisi</BreadcrumbItem>
 </Breadcrumb>
 

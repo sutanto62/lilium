@@ -151,7 +151,7 @@ export const load: PageServerLoad = async (event) => {
 	});
 
 	const activityItems = pastEvents.map(event => ({
-		link: `<a href="/admin/jadwal/${event.id}" class="font-semibold text-primary-600 dark:text-primary-500 hover:underline">${event.mass}</a>`,
+		link: `<a href="/admin/tatib/${event.id}" class="font-semibold text-primary-600 dark:text-primary-500 hover:underline">${event.mass}</a>`,
 		date: formatDate(event.date),
 		church: event.church,
 		churchCode: event.churchCode,

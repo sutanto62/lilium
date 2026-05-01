@@ -14,6 +14,7 @@ import type {
 	ChurchZoneGroup,
 	Lingkungan,
 	Mass,
+	MassZone,
 	Wilayah,
 } from '$core/entities/Schedule';
 import type { UsherResponse } from "$core/entities/Usher";
@@ -31,6 +32,18 @@ export interface ScheduleRepository {
 	getMasses: (churchId: string) => Promise<Mass[]>;
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
 	deactivateMass: (massId: string) => Promise<boolean>;
+	createMass: (input: Omit<Mass, 'id'>) => Promise<Mass>;
+	updateMass: (massId: string, patch: Partial<Omit<Mass, 'id' | 'church'>>) => Promise<Mass>;
+
+	// Zone CRUD
+	createZone: (input: Omit<ChurchZone, 'id'>) => Promise<ChurchZone>;
+	updateZone: (zoneId: string, patch: Partial<Omit<ChurchZone, 'id' | 'church'>>) => Promise<ChurchZone>;
+	deactivateZone: (zoneId: string) => Promise<boolean>;
+
+	// MassZone
+	getMassZones: (churchId: string) => Promise<MassZone[]>;
+	createMassZone: (massId: string, zoneId: string) => Promise<MassZone>;
+	deactivateMassZone: (massZoneId: string) => Promise<boolean>;
 
 	// Region
 	listWilayahByChurch: (churchId: string) => Promise<Wilayah[]>;

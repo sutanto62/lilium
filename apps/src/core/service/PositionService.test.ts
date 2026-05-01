@@ -14,6 +14,19 @@ describe('PositionService', () => {
 			// Mass
 			getMasses: vi.fn(),
 			getMassById: vi.fn(),
+			deactivateMass: vi.fn(),
+			createMass: vi.fn(),
+			updateMass: vi.fn(),
+
+			// Zone CRUD
+			createZone: vi.fn(),
+			updateZone: vi.fn(),
+			deactivateZone: vi.fn(),
+
+			// MassZone
+			getMassZones: vi.fn(),
+			createMassZone: vi.fn(),
+			deactivateMassZone: vi.fn(),
 
 			// Region
 			listWilayahByChurch: vi.fn(),
@@ -23,6 +36,7 @@ describe('PositionService', () => {
 			// Event
 			insertEvent: vi.fn(),
 			createEventPic: vi.fn(),
+			updateEventPic: vi.fn(),
 			getEventByChurch: vi.fn(),
 			listEvents: vi.fn(),
 			listEventsByWeekNumber: vi.fn(),
@@ -51,6 +65,7 @@ describe('PositionService', () => {
 			findChurchById: vi.fn(),
 			getZones: vi.fn(),
 			getZonesByEvent: vi.fn(),
+			getZonesByMass: vi.fn(),
 			findZoneGroupsByEvent: vi.fn(),
 			findPositionByChurch: vi.fn(),
 			listPositionByMass: vi.fn(),

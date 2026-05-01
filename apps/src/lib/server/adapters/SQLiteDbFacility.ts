@@ -1,4 +1,4 @@
-import type { Church, ChurchPosition, ChurchZone, ChurchZoneGroup } from '$core/entities/Schedule';
+import type { Church, ChurchPosition, ChurchZone, ChurchZoneGroup, MassZone } from '$core/entities/Schedule';
 import { church, church_position, church_zone, church_zone_group, event, mass, mass_zone } from '$src/lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
@@ -433,5 +433,139 @@ export async function reorderZonePositions(
 				.where(and(eq(church_position.id, item.id), eq(church_position.zone, zoneId)));
 		}
 	});
+}
+
+export async function createZone(
+	db: ReturnType<typeof drizzle>,
+	input: Omit<ChurchZone, 'id'>
+): Promise<ChurchZone> {
+	const id = uuidv4();
+	const result = await db
+		.insert(church_zone)
+		.values({
+			id,
+			church: input.church ?? null,
+			church_zone_group: input.group ?? null,
+			name: input.name,
+			code: input.code ?? null,
+			description: input.description ?? null,
+			sequence: input.sequence ?? null,
+			active: input.active ?? 1
+		})
+		.returning();
+	const row = result[0];
+	return {
+		id: row.id,
+		church: row.church ?? '',
+		group: row.church_zone_group ?? null,
+		name: row.name,
+		code: row.code,
+		description: row.description,
+		sequence: row.sequence,
+		active: row.active
+	};
+}
+
+export async function updateZone(
+	db: ReturnType<typeof drizzle>,
+	zoneId: string,
+	patch: Partial<Omit<ChurchZone, 'id' | 'church'>>
+): Promise<ChurchZone> {
+	const updateData: Record<string, unknown> = {};
+	if (patch.name !== undefined) updateData.name = patch.name;
+	if (patch.code !== undefined) updateData.code = patch.code ?? null;
+	if (patch.description !== undefined) updateData.description = patch.description ?? null;
+	if (patch.sequence !== undefined) updateData.sequence = patch.sequence ?? null;
+	if (patch.group !== undefined) updateData.church_zone_group = patch.group ?? null;
+	if (patch.active !== undefined) updateData.active = patch.active;
+
+	const result = await db
+		.update(church_zone)
+		.set(updateData)
+		.where(eq(church_zone.id, zoneId))
+		.returning();
+
+	if (!result[0]) throw new Error(`Zone not found: ${zoneId}`);
+	const row = result[0];
+	return {
+		id: row.id,
+		church: row.church ?? '',
+		group: row.church_zone_group ?? null,
+		name: row.name,
+		code: row.code,
+		description: row.description,
+		sequence: row.sequence,
+		active: row.active
+	};
+}
+
+export async function deactivateZone(
+	db: ReturnType<typeof drizzle>,
+	zoneId: string
+): Promise<boolean> {
+	const result = await db
+		.update(church_zone)
+		.set({ active: 0 })
+		.where(eq(church_zone.id, zoneId))
+		.returning();
+	return result.length > 0;
+}
+
+export async function findMassZonesByChurch(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<MassZone[]> {
+	const result = await db
+		.select({
+			id: mass_zone.id,
+			mass: mass_zone.mass,
+			zone: mass_zone.zone,
+			sequence: mass_zone.sequence,
+			active: mass_zone.active
+		})
+		.from(mass_zone)
+		.innerJoin(mass, eq(mass_zone.mass, mass.id))
+		.where(eq(mass.church, churchId))
+		.orderBy(mass_zone.sequence);
+
+	return result.map((row) => ({
+		id: row.id,
+		mass: row.mass,
+		zone: row.zone,
+		sequence: row.sequence ?? 0,
+		active: row.active
+	}));
+}
+
+export async function createMassZone(
+	db: ReturnType<typeof drizzle>,
+	massId: string,
+	zoneId: string
+): Promise<MassZone> {
+	const id = uuidv4();
+	const result = await db
+		.insert(mass_zone)
+		.values({ id, mass: massId, zone: zoneId, sequence: 0, active: 1 })
+		.returning();
+	const row = result[0];
+	return {
+		id: row.id,
+		mass: row.mass,
+		zone: row.zone,
+		sequence: row.sequence ?? 0,
+		active: row.active
+	};
+}
+
+export async function deactivateMassZone(
+	db: ReturnType<typeof drizzle>,
+	massZoneId: string
+): Promise<boolean> {
+	const result = await db
+		.update(mass_zone)
+		.set({ active: 0 })
+		.where(eq(mass_zone.id, massZoneId))
+		.returning();
+	return result.length > 0;
 }
 

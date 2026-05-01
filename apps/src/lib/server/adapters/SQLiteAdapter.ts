@@ -25,9 +25,14 @@ import {
 	updateEventById
 } from './SQLiteDbEvent';
 import {
+	createMassZone as createMassZoneDb,
 	createPosition,
+	createZone as createZoneDb,
+	deactivateMassZone as deactivateMassZoneDb,
+	deactivateZone as deactivateZoneDb,
 	findChurchById,
 	findChurches,
+	findMassZonesByChurch,
 	findPositionByChurch,
 	findZoneGroupsByEvent,
 	findZonesByChurch,
@@ -36,9 +41,16 @@ import {
 	listPositionByMass,
 	reorderZonePositions,
 	softDeletePosition,
-	updatePosition
+	updatePosition,
+	updateZone as updateZoneDb
 } from './SQLiteDbFacility';
-import { deactivateMass as deactivateMassDb, findMassById, findMasses } from './SQLiteDbMass';
+import {
+	createMass as createMassDb,
+	deactivateMass as deactivateMassDb,
+	findMassById,
+	findMasses,
+	updateMass as updateMassDb
+} from './SQLiteDbMass';
 import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
 
 import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
@@ -69,6 +81,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getMasses = (churchId: string) => findMasses(this.db, churchId);
 	getMassById = (id: string) => findMassById(this.db, id);
 	deactivateMass = (massId: string) => deactivateMassDb(this.db, massId);
+	createMass = (input: Omit<import('$core/entities/Schedule').Mass, 'id'>) => createMassDb(this.db, input);
+	updateMass = (massId: string, patch: Partial<Omit<import('$core/entities/Schedule').Mass, 'id' | 'church'>>) => updateMassDb(this.db, massId, patch);
 
 	// SQLiteDbEvents
 	getEventByChurch = (churchId: string, massId: string, date: string) =>
@@ -127,6 +141,12 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
 	getZonesByMass = (churchId: string, massId: string) => findZonesByMass(this.db, churchId, massId);
 	findZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
+	createZone = (input: Omit<ChurchZone, 'id'>) => createZoneDb(this.db, input);
+	updateZone = (zoneId: string, patch: Partial<Omit<ChurchZone, 'id' | 'church'>>) => updateZoneDb(this.db, zoneId, patch);
+	deactivateZone = (zoneId: string) => deactivateZoneDb(this.db, zoneId);
+	getMassZones = (churchId: string) => findMassZonesByChurch(this.db, churchId);
+	createMassZone = (massId: string, zoneId: string) => createMassZoneDb(this.db, massId, zoneId);
+	deactivateMassZone = (massZoneId: string) => deactivateMassZoneDb(this.db, massZoneId);
 	findPositionByChurch = (id: string) => findPositionByChurch(this.db, id);
 	createPosition = (position: Omit<import('$core/entities/Schedule').ChurchPosition, 'id' | 'church' | 'active'> & { zone: string }) =>
 		createPosition(this.db, position);

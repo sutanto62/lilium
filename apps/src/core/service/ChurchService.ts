@@ -6,6 +6,7 @@ import type {
 	ChurchZoneGroup,
 	Lingkungan,
 	Mass,
+	MassZone,
 	Wilayah
 } from '$core/entities/Schedule';
 import { repo } from '$src/lib/server/db';
@@ -144,5 +145,37 @@ export class ChurchService {
 	 */
 	async deactivateMass(massId: string): Promise<boolean> {
 		return await repo.deactivateMass(massId);
+	}
+
+	async createMass(input: Omit<Mass, 'id'>): Promise<Mass> {
+		return await repo.createMass(input);
+	}
+
+	async updateMass(massId: string, patch: Partial<Omit<Mass, 'id' | 'church'>>): Promise<Mass> {
+		return await repo.updateMass(massId, patch);
+	}
+
+	async createZone(input: Omit<ChurchZone, 'id'>): Promise<ChurchZone> {
+		return await repo.createZone(input);
+	}
+
+	async updateZone(zoneId: string, patch: Partial<Omit<ChurchZone, 'id' | 'church'>>): Promise<ChurchZone> {
+		return await repo.updateZone(zoneId, patch);
+	}
+
+	async deactivateZone(zoneId: string): Promise<boolean> {
+		return await repo.deactivateZone(zoneId);
+	}
+
+	async retrieveMassZones(): Promise<MassZone[]> {
+		return await repo.getMassZones(this.churchId);
+	}
+
+	async createMassZone(massId: string, zoneId: string): Promise<MassZone> {
+		return await repo.createMassZone(massId, zoneId);
+	}
+
+	async deactivateMassZone(massZoneId: string): Promise<boolean> {
+		return await repo.deactivateMassZone(massZoneId);
 	}
 }

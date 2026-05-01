@@ -118,7 +118,7 @@
 
 	{#if massOptions.length === 0 || zoneOptions.length === 0}
 		<div class="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-200">
-			Pastikan sudah ada data <a href="/admin/zone/misa" class="underline">Misa</a> dan <a href="/admin/zone/zona" class="underline">Zona</a> sebelum membuat relasi.
+			Pastikan sudah ada data <a href="/admin/data-misa" class="underline">Misa</a> dan <a href="/admin/data-zona" class="underline">Zona</a> sebelum membuat relasi.
 		</div>
 	{/if}
 

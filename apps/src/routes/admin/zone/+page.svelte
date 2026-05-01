@@ -22,21 +22,21 @@
 	<FeatureCard
 		title="Jadwal Misa"
 		description="Buat dan kelola template jadwal misa. Tentukan hari, waktu, dan kode misa."
-		buttonHref="/admin/zone/misa"
+		buttonHref="/admin/data-misa"
 		buttonText="Kelola Misa"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Zona"
 		description="Buat dan kelola zona titik tugas. Setiap zona mewakili area pelayanan di gereja."
-		buttonHref="/admin/zone/zona"
+		buttonHref="/admin/data-zona"
 		buttonText="Kelola Zona"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Relasi Misa-Zona"
 		description="Tentukan zona mana yang melayani setiap jadwal misa."
-		buttonHref="/admin/zone/misa-zona"
+		buttonHref="/admin/data-zona-misa"
 		buttonText="Kelola Relasi"
 		buttonColor="alternative"
 	/>

@@ -347,7 +347,7 @@
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
-	<BreadcrumbItem href="/admin/posisi">Posisi</BreadcrumbItem>
+	<BreadcrumbItem href="/admin/data-posisi">Posisi</BreadcrumbItem>
 	<BreadcrumbItem>{mass.name}</BreadcrumbItem>
 </Breadcrumb>
 

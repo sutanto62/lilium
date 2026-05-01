@@ -97,7 +97,7 @@
 			page.data.session,
 			page
 		);
-		await goto(`/admin/posisi/${mass.id}`);
+		await goto(`/admin/data-posisi/${mass.id}`);
 	}
 
 	// Auto-hide alerts after 10 seconds if form has result

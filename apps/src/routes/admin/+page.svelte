@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FeatureCard from '$components/FeatureCard.svelte';
 	import { statsigService } from '$src/lib/application/StatsigService';
-	import { Breadcrumb, BreadcrumbItem } from 'flowbite-svelte';
+	import { Breadcrumb, BreadcrumbItem, Heading, Hr } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
 	import { onMount } from 'svelte';
 
@@ -14,7 +14,7 @@
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem>Admin</BreadcrumbItem>
 </Breadcrumb>
-
+<Heading tag="h3">Jadwal</Heading>
 <FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 	<FeatureCard
 		title="Jadwal Tata Tertib"
@@ -30,31 +30,35 @@
 		buttonText="Jadwal"
 		buttonColor="alternative"
 	/>
+</FeatureDefault>
+<Hr/>
+<Heading tag="h3">Konfigurasi</Heading>
+<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 	<FeatureCard
 		title="Posisi"
 		description="Konfigurasi posisi titik tugas per jenis misa."
-		buttonHref="/admin/posisi"
+		buttonHref="/admin/data-posisi"
 		buttonText="Posisi"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Template Misa"
 		description="Definisikan jenis-jenis misa: hari, waktu, dan kodenya."
-		buttonHref="/admin/zone/misa"
+		buttonHref="/admin/data-misa"
 		buttonText="Template"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Zona"
 		description="Buat dan kelola zona titik tugas di gereja."
-		buttonHref="/admin/zone/zona"
+		buttonHref="/admin/data-zona"
 		buttonText="Zona"
 		buttonColor="alternative"
 	/>
 	<FeatureCard
 		title="Misa–Zona"
 		description="Tentukan zona mana yang melayani tiap jenis misa."
-		buttonHref="/admin/zone/misa-zona"
+		buttonHref="/admin/data-zona-misa"
 		buttonText="Relasi"
 		buttonColor="alternative"
 	/>

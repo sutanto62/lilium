@@ -23,6 +23,12 @@ describe('PositionService', () => {
 			updateZone: vi.fn(),
 			deactivateZone: vi.fn(),
 
+			// ZoneGroup CRUD
+			listZoneGroups: vi.fn(),
+			createZoneGroup: vi.fn(),
+			updateZoneGroup: vi.fn(),
+			deactivateZoneGroup: vi.fn(),
+
 			// MassZone
 			getMassZones: vi.fn(),
 			createMassZone: vi.fn(),

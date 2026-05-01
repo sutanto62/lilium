@@ -40,6 +40,12 @@ export interface ScheduleRepository {
 	updateZone: (zoneId: string, patch: Partial<Omit<ChurchZone, 'id' | 'church'>>) => Promise<ChurchZone>;
 	deactivateZone: (zoneId: string) => Promise<boolean>;
 
+	// ZoneGroup CRUD
+	listZoneGroups: (churchId: string) => Promise<ChurchZoneGroup[]>;
+	createZoneGroup: (input: Omit<ChurchZoneGroup, 'id'>) => Promise<ChurchZoneGroup>;
+	updateZoneGroup: (id: string, patch: Partial<Omit<ChurchZoneGroup, 'id' | 'church'>>) => Promise<ChurchZoneGroup>;
+	deactivateZoneGroup: (id: string) => Promise<boolean>;
+
 	// MassZone
 	getMassZones: (churchId: string) => Promise<MassZone[]>;
 	createMassZone: (massId: string, zoneId: string) => Promise<MassZone>;

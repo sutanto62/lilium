@@ -70,6 +70,99 @@ export async function findZoneGroupsByEvent(
 	}));
 }
 
+export async function listZoneGroups(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<ChurchZoneGroup[]> {
+	const result = await db
+		.select()
+		.from(church_zone_group)
+		.where(and(eq(church_zone_group.church, churchId), eq(church_zone_group.active, 1)))
+		.orderBy(church_zone_group.sequence);
+
+	return result.map((group) => ({
+		id: group.id,
+		church: group.church ?? '',
+		name: group.name,
+		code: group.code,
+		description: group.description,
+		sequence: group.sequence,
+		active: group.active,
+	}));
+}
+
+export async function createZoneGroup(
+	db: ReturnType<typeof drizzle>,
+	input: Omit<ChurchZoneGroup, 'id'>
+): Promise<ChurchZoneGroup> {
+	const id = uuidv4();
+	const result = await db
+		.insert(church_zone_group)
+		.values({
+			id,
+			church: input.church ?? null,
+			name: input.name,
+			code: input.code ?? null,
+			description: input.description ?? null,
+			sequence: input.sequence ?? null,
+			active: input.active ?? 1
+		})
+		.returning();
+	const row = result[0];
+	return {
+		id: row.id,
+		church: row.church ?? '',
+		name: row.name,
+		code: row.code,
+		description: row.description,
+		sequence: row.sequence,
+		active: row.active,
+	};
+}
+
+export async function updateZoneGroup(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<Omit<ChurchZoneGroup, 'id' | 'church'>>
+): Promise<ChurchZoneGroup> {
+	const updateData: Record<string, unknown> = {};
+	if (patch.name !== undefined) updateData.name = patch.name;
+	if (patch.code !== undefined) updateData.code = patch.code ?? null;
+	if (patch.description !== undefined) updateData.description = patch.description ?? null;
+	if (patch.sequence !== undefined) updateData.sequence = patch.sequence ?? null;
+	if (patch.active !== undefined) updateData.active = patch.active;
+
+	const result = await db
+		.update(church_zone_group)
+		.set(updateData)
+		.where(eq(church_zone_group.id, id))
+		.returning();
+
+	if (!result[0]) throw new Error(`ZoneGroup not found: ${id}`);
+	const row = result[0];
+	return {
+		id: row.id,
+		church: row.church ?? '',
+		name: row.name,
+		code: row.code,
+		description: row.description,
+		sequence: row.sequence,
+		active: row.active,
+	};
+}
+
+export async function deactivateZoneGroup(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<boolean> {
+	const result = await db
+		.update(church_zone_group)
+		.set({ active: 0 })
+		.where(eq(church_zone_group.id, id))
+		.returning();
+	return result.length > 0;
+}
+
 export async function findZonesByEvent(
 	db: ReturnType<typeof drizzle>,
 	churchId: string,

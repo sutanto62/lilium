@@ -28,8 +28,10 @@ import {
 	createMassZone as createMassZoneDb,
 	createPosition,
 	createZone as createZoneDb,
+	createZoneGroup as createZoneGroupDb,
 	deactivateMassZone as deactivateMassZoneDb,
 	deactivateZone as deactivateZoneDb,
+	deactivateZoneGroup as deactivateZoneGroupDb,
 	findChurchById,
 	findChurches,
 	findMassZonesByChurch,
@@ -39,10 +41,12 @@ import {
 	findZonesByEvent,
 	findZonesByMass,
 	listPositionByMass,
+	listZoneGroups as listZoneGroupsDb,
 	reorderZonePositions,
 	softDeletePosition,
 	updatePosition,
-	updateZone as updateZoneDb
+	updateZone as updateZoneDb,
+	updateZoneGroup as updateZoneGroupDb
 } from './SQLiteDbFacility';
 import {
 	createMass as createMassDb,
@@ -54,7 +58,7 @@ import {
 import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
 
 import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
-import type { Church, ChurchZone, Lingkungan } from '$core/entities/Schedule';
+import type { Church, ChurchZone, ChurchZoneGroup, Lingkungan } from '$core/entities/Schedule';
 import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
 
 // Adapter
@@ -141,6 +145,10 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
 	getZonesByMass = (churchId: string, massId: string) => findZonesByMass(this.db, churchId, massId);
 	findZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
+	listZoneGroups = (churchId: string) => listZoneGroupsDb(this.db, churchId);
+	createZoneGroup = (input: Omit<ChurchZoneGroup, 'id'>) => createZoneGroupDb(this.db, input);
+	updateZoneGroup = (id: string, patch: Partial<Omit<ChurchZoneGroup, 'id' | 'church'>>) => updateZoneGroupDb(this.db, id, patch);
+	deactivateZoneGroup = (id: string) => deactivateZoneGroupDb(this.db, id);
 	createZone = (input: Omit<ChurchZone, 'id'>) => createZoneDb(this.db, input);
 	updateZone = (zoneId: string, patch: Partial<Omit<ChurchZone, 'id' | 'church'>>) => updateZoneDb(this.db, zoneId, patch);
 	deactivateZone = (zoneId: string) => deactivateZoneDb(this.db, zoneId);

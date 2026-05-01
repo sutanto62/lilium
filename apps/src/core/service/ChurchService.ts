@@ -167,6 +167,22 @@ export class ChurchService {
 		return await repo.deactivateZone(zoneId);
 	}
 
+	async retrieveZoneGroups(): Promise<ChurchZoneGroup[]> {
+		return await repo.listZoneGroups(this.churchId);
+	}
+
+	async createZoneGroup(input: Omit<ChurchZoneGroup, 'id'>): Promise<ChurchZoneGroup> {
+		return await repo.createZoneGroup(input);
+	}
+
+	async updateZoneGroup(id: string, patch: Partial<Omit<ChurchZoneGroup, 'id' | 'church'>>): Promise<ChurchZoneGroup> {
+		return await repo.updateZoneGroup(id, patch);
+	}
+
+	async deactivateZoneGroup(id: string): Promise<boolean> {
+		return await repo.deactivateZoneGroup(id);
+	}
+
 	async retrieveMassZones(): Promise<MassZone[]> {
 		return await repo.getMassZones(this.churchId);
 	}

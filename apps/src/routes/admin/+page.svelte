@@ -37,4 +37,11 @@
 		buttonText="Posisi"
 		buttonColor="alternative"
 	/>
+	<FeatureCard
+		title="Zona & Misa"
+		description="Kelola template jadwal misa, zona titik tugas, dan relasi misa-zona."
+		buttonHref="/admin/zone"
+		buttonText="Zona"
+		buttonColor="alternative"
+	/>
 </FeatureDefault>

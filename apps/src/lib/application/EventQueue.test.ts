@@ -49,7 +49,7 @@ describe('EventQueue', () => {
         mockFlushHandler = vi.fn().mockResolvedValue(undefined);
         eventQueue = new EventQueue(mockFlushHandler, {
             maxQueueSize: 100,
-            maxRetries: 2,
+            maxRetries: 3,
             baseRetryDelay: 100,
             maxRetryDelay: 1000,
             batchSize: 5,

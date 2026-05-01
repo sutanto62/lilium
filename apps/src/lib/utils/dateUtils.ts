@@ -369,27 +369,30 @@ export function formatDateWithPattern(
 ): string {
 	const dateObj = typeof date === 'string' ? new Date(date) : date;
 
-	// Map common patterns to DateTimeFormat options
+	// Patterns that require strict field ordering — use manual formatting
+	const fmt = new Intl.DateTimeFormat('en-CA', {
+		year: 'numeric', month: '2-digit', day: '2-digit', timeZone: timezone
+	});
+	const parts = Object.fromEntries(fmt.formatToParts(dateObj).map(p => [p.type, p.value]));
+	const yyyy = parts.year;
+	const MM = parts.month;
+	const dd = parts.day;
+
+	if (pattern === 'yyyy-MM-dd') return `${yyyy}-${MM}-${dd}`;
+	if (pattern === 'MM/dd/yyyy') return `${MM}/${dd}/${yyyy}`;
+	if (pattern === 'dd/MM/yyyy') return `${dd}/${MM}/${yyyy}`;
+
+	// Locale-aware patterns
 	const patternMap: Record<string, Intl.DateTimeFormatOptions> = {
-		'MM/dd/yyyy': { month: '2-digit', day: '2-digit', year: 'numeric' },
-		'dd/MM/yyyy': { day: '2-digit', month: '2-digit', year: 'numeric' },
-		'yyyy-MM-dd': { year: 'numeric', month: '2-digit', day: '2-digit' },
 		'dd MMM yyyy': { day: '2-digit', month: 'short', year: 'numeric' },
 		'dd MMMM yyyy': { day: '2-digit', month: 'long', year: 'numeric' },
 		'MMM dd, yyyy': { month: 'short', day: '2-digit', year: 'numeric' },
 		'MMMM dd, yyyy': { month: 'long', day: '2-digit', year: 'numeric' }
 	};
 
-	const options = patternMap[pattern] || {
-		year: 'numeric',
-		month: '2-digit',
-		day: '2-digit'
-	};
+	const options = patternMap[pattern] || { year: 'numeric', month: '2-digit', day: '2-digit' };
 
-	return new Intl.DateTimeFormat(locale, {
-		...options,
-		timeZone: timezone
-	}).format(dateObj);
+	return new Intl.DateTimeFormat(locale, { ...options, timeZone: timezone }).format(dateObj);
 }
 
 /**

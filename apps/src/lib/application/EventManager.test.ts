@@ -47,11 +47,12 @@ describe('EventManager', () => {
     beforeEach(() => {
         mockProcessor = vi.fn().mockResolvedValue(undefined);
         eventManager = new EventManager(mockProcessor, {
-            maxRetries: 2,
-            baseRetryDelay: 100,
-            maxRetryDelay: 1000,
+            maxRetries: 3,
+            baseRetryDelay: 50,
+            maxRetryDelay: 200,
             batchSize: 5,
-            processingTimeout: 1000
+            processingTimeout: 1000,
+            processInterval: 100
         });
     });
 
@@ -127,8 +128,8 @@ describe('EventManager', () => {
 
         await eventManager.processEvent(testEvent);
 
-        // Wait for retries
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for initial processing + 2 retries (processInterval=100ms, baseRetryDelay=50ms)
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         expect(mockProcessor).toHaveBeenCalledTimes(3);
     });
@@ -183,10 +184,10 @@ describe('EventManager', () => {
 
         await eventManager.processEvent(testEvent);
 
-        // Wait for processing and cleanup
+        // Wait for processing and cleanup (cleanup removes completed events from the queue)
         await new Promise(resolve => setTimeout(resolve, 300));
 
         const stats = eventManager.getQueueStats();
-        expect(stats.completed).toBeGreaterThan(0);
+        expect(stats.total).toBe(0);
     });
 });

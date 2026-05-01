@@ -4,14 +4,22 @@ import { repo } from '$src/lib/server/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueueManager } from '../QueueManager';
 
+vi.mock('$src/lib/utils/ppgUtils', () => ({
+    shouldRequirePpg: vi.fn().mockResolvedValue(true)
+}));
+
 describe('QueueManager', () => {
     const repoGetEventUshers = vi.spyOn(repo, 'findEventUshers');
     const repoMassPositions = vi.spyOn(repo, 'listPositionByMass');
     const repoEditEventUshers = vi.spyOn(repo, 'editEventUshers');
+    const repoFindChurch = vi.spyOn(repo, 'findChurchById');
     const manager = QueueManager.getInstance();
 
     beforeEach(() => {
         manager.isPpgEnabled = false;
+        manager.isRoundRobinEnabled = false;
+        manager.shouldRequirePpg = true;
+        repoFindChurch.mockResolvedValue({ id: '1', code: 'CH1', requirePpg: 1 } as any);
     });
 
     it('should filter out PPG positions when ppg is disabled', async () => {

@@ -24,12 +24,27 @@ vi.mock('$lib/server/db', () => ({
 		getMasses: vi.fn(),
 		getWilayahs: vi.fn(),
 		getLingkungans: vi.fn(),
+		listWilayahByChurch: vi.fn().mockResolvedValue([]),
+		listLingkunganByChurch: vi.fn().mockResolvedValue([]),
 		getEventByChurch: vi.fn().mockResolvedValue(null),
 		insertEvent: vi.fn().mockResolvedValue({ id: 'event1' })
 	}
 }));
 
-vi.mock('$core/service/EventService');
+vi.mock('$core/service/EventService', () => ({
+	EventService: vi.fn().mockImplementation(() => ({
+		retrieveEventsByWeekRange: vi.fn().mockResolvedValue([]),
+		retrieveEventById: vi.fn()
+	}))
+}));
+
+vi.mock('$core/service/ChurchService', () => ({
+	ChurchService: vi.fn().mockImplementation(() => ({
+		retrieveWilayahs: vi.fn().mockResolvedValue([]),
+		retrieveLingkungans: vi.fn().mockResolvedValue([])
+	}))
+}));
+
 vi.mock('$core/service/UsherService');
 vi.mock('$lib/utils/ppgUtils', () => ({
 	shouldRequirePpg: vi.fn()
@@ -241,9 +256,9 @@ test('should handle queue processing errors', async () => {
 	formData.append('wilayahId', 'wilayah1');
 	formData.append('lingkunganId', 'lingkungan1');
 	formData.append('ushers', JSON.stringify([
-		{ name: 'John Doe', isPpg: false, isKolekte: false },
-		{ name: 'Jane Smith', isPpg: false, isKolekte: false },
-		{ name: 'Bob Wilson', isPpg: false, isKolekte: false },
+		{ name: 'John Doe', isPpg: false, isKolekte: true },
+		{ name: 'Jane Smith', isPpg: false, isKolekte: true },
+		{ name: 'Bob Wilson', isPpg: false, isKolekte: true },
 		{ name: 'Alice Brown', isPpg: false, isKolekte: false },
 		{ name: 'Charlie Davis', isPpg: false, isKolekte: false },
 		{ name: 'Diana Miller', isPpg: false, isKolekte: false }
@@ -257,7 +272,7 @@ test('should handle queue processing errors', async () => {
 });
 
 describe('validateUsherNames', () => {
-	const createMockUsher = (name: string): EventUsher => ({
+	const base = (name: string, isKolekte = false): EventUsher => ({
 		id: '1',
 		name,
 		event: 'event1',
@@ -265,26 +280,38 @@ describe('validateUsherNames', () => {
 		lingkungan: 'lingkungan1',
 		position: null,
 		isPpg: false,
-		isKolekte: false,
+		isKolekte,
 		createdAt: Date.now()
 	});
 
+	// Build 6 valid-role ushers (3 kolekte) with the first usher's name overridden.
+	// requirePpg=false so 0 PPG is acceptable.
+	const withName = (name: string): EventUsher[] => [
+		base(name, true),
+		base('Jane Smith', true),
+		base('Bob Johnson', true),
+		base('Alice Brown'),
+		base('Charlie Davis'),
+		base('Eve Wilson')
+	];
+
 	test('should return valid for unique, properly formatted names', () => {
-		const ushers = [
-			createMockUsher('John Doe'),
-			createMockUsher('Jane Smith')
-		];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('John Doe');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({ isValid: true });
 	});
 
 	test('should reject duplicate names', () => {
 		const ushers = [
-			createMockUsher('John Doe'),
-			createMockUsher('John Doe')
+			base('John Doe', true),
+			base('Jane Smith', true),
+			base('Bob Johnson', true),
+			base('John Doe'),
+			base('Charlie Davis'),
+			base('Eve Wilson')
 		];
-		const result = validateUsherNames(ushers);
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({
 			isValid: false,
@@ -293,8 +320,8 @@ describe('validateUsherNames', () => {
 	});
 
 	test('should reject names shorter than 3 characters', () => {
-		const ushers = [createMockUsher('Jo')];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('Jo');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({
 			isValid: false,
@@ -303,8 +330,8 @@ describe('validateUsherNames', () => {
 	});
 
 	test('should reject names with excessive character repetition', () => {
-		const ushers = [createMockUsher('Jooohn')];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('Jooohn');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({
 			isValid: false,
@@ -313,8 +340,8 @@ describe('validateUsherNames', () => {
 	});
 
 	test('should reject names with non-alphabetic characters', () => {
-		const ushers = [createMockUsher('John123')];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('John123');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({
 			isValid: false,
@@ -323,8 +350,8 @@ describe('validateUsherNames', () => {
 	});
 
 	test('should reject names with dots', () => {
-		const ushers = [createMockUsher('John S. Doe')];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('John S. Doe');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({
 			isValid: false,
@@ -332,11 +359,10 @@ describe('validateUsherNames', () => {
 		});
 	});
 
-	// Additional test cases
 	test('should reject names longer than 50 characters', () => {
 		const longName = 'A'.repeat(51);
-		const ushers = [createMockUsher(longName)];
-		const result = validateUsherNames(ushers);
+		const ushers = withName(longName);
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({
 			isValid: false,
@@ -345,15 +371,15 @@ describe('validateUsherNames', () => {
 	});
 
 	test('should handle names with multiple spaces', () => {
-		const ushers = [createMockUsher('John   Doe')];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('John   Doe');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({ isValid: true });
 	});
 
 	test('should handle names with leading/trailing spaces', () => {
-		const ushers = [createMockUsher('  John Doe  ')];
-		const result = validateUsherNames(ushers);
+		const ushers = withName('  John Doe  ');
+		const result = validateUsherNames(ushers, false);
 
 		expect(result).toEqual({ isValid: true });
 	});

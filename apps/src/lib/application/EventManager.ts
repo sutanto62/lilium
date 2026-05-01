@@ -37,6 +37,7 @@ export interface EventProcessingConfig {
     maxRetryDelay: number; // milliseconds
     batchSize: number;
     processingTimeout: number; // milliseconds
+    processInterval?: number; // milliseconds, default 2000
 }
 
 /**
@@ -171,10 +172,10 @@ export class EventManager {
      * Start the processing queue
      */
     private startProcessing(): void {
-        // Process queue every 2 seconds
+        const interval = this.config.processInterval ?? 2000;
         this.processingInterval = setInterval(() => {
             this.processQueueBatch();
-        }, 2000);
+        }, interval);
 
         // Process immediately on startup
         setTimeout(() => this.processQueueBatch(), 100);

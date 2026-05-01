@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ChurchService } from './ChurchService';
+import { ChurchService } from '../ChurchService';
 import { repo } from '$src/lib/server/db';
 import type { ChurchZone, Mass } from '$core/entities/Schedule';
 

@@ -143,6 +143,7 @@ describe('PositionService', () => {
 				zoneName: 'Zone A',
 				zoneGroupId: 'group-1',
 				zoneGroupName: 'Group 1',
+				zoneGroupSequence: null,
 				positionId: 'pos-1',
 				positionName: 'Usher Pintu Utama',
 				positionType: 'usher',

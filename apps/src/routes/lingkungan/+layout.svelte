@@ -3,8 +3,8 @@
 </script>
 
 <svelte:head>
-	<title>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'} | Admin</title>
-	<meta name="description" content="Pengelolaan jadwal, jam, dan titik tugas" />
+	<title>{import.meta.env.VITE_SITE_TITLE || 'Lilium Inter Spinas'} | Lingkungan</title>
+	<meta name="description" content="Titik tugas petugas tata tertib lingkungan" />
 </svelte:head>
 
 <!-- do not add main tag and navigation/footer components here -->

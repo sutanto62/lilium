@@ -328,8 +328,8 @@
 {/if}
 
 {#if showForm}
-	<h1 class="mb-6 text-xl font-semibold">Konfirmasi Petugas Tata Tertib</h1>
-	<p class="mb-4 text-sm text-gray-600">
+	<h1 class="mb-6 text-xl font-semibold dark:text-white">Konfirmasi Petugas Tata Tertib</h1>
+	<p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
 		Hari ini: <strong>{data.currentDay}</strong> • {data.formAvailabilityReason}
 	</p>
 	<form method="POST" class="mb-6" onsubmit={handleSubmit}>
@@ -341,7 +341,7 @@
 		<input type="hidden" name="ushers" value={JSON.stringify(ushers)} />
 
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-			<section class="rounded-lg border bg-white p-6 md:col-span-1">
+			<section class="rounded-lg border bg-white p-6 dark:border-gray-700 dark:bg-gray-800 md:col-span-1">
 				<Regional
 					eventsDate={data.eventsDate}
 					events={data.events}
@@ -353,7 +353,7 @@
 					bind:selectedLingkunganId
 				/>
 			</section>
-			<section class="rounded-lg border bg-white p-6 md:col-span-3">
+			<section class="rounded-lg border bg-white p-6 dark:border-gray-700 dark:bg-gray-800 md:col-span-3">
 				<UshersList bind:ushers bind:isSubmitable={isUshersValid} requirePpg={data.requirePpg} />
 			</section>
 		</div>
@@ -364,9 +364,9 @@
 		</div>
 	</form>
 {:else}
-	<h2 class="mb-6 text-2xl font-bold">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
+	<h2 class="mb-6 text-2xl font-bold dark:text-white">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
 	<p>Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
-	<p class="mt-2 text-sm text-gray-600">
+	<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
 		Hari ini: <strong>{data.currentDay}</strong><br />
 		{data.formAvailabilityReason}
 	</p>

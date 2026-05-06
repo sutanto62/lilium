@@ -191,9 +191,9 @@
 </script>
 
 <div class="mb-6 grid gap-6 md:grid-cols-1">
-	<div class="text-left text-lg font-semibold">
+	<div class="text-left text-lg font-semibold dark:text-white">
 		Pilih Jadwal
-		<p class="mt-1 text-sm font-normal">Hari ini: {currentDate}</p>
+		<p class="mt-1 text-sm font-normal dark:text-gray-400">Hari ini: {currentDate}</p>
 	</div>
 
 	<Label class="text-md font-normal">

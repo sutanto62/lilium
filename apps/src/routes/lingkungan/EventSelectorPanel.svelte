@@ -81,28 +81,28 @@
 </script>
 
 {#if selectedEvent}
-<h2 class="mb-3 text-2xl font-bold text-gray-900">Titik Tugas, {selectedEvent.description}</h2>
+<h2 class="mb-3 text-2xl font-bold text-gray-900 dark:text-white">Titik Tugas, {selectedEvent.description}</h2>
 {/if}
 
-<div class="rounded-xl bg-gray-100 p-4">
+<div class="rounded-xl bg-gray-100 p-4 dark:bg-gray-800">
 <!-- Heading row -->
 <div class="mb-4 flex items-center justify-center gap-1">
 		<button
 			type="button"
 			onclick={goPrevMonth}
 			aria-label="Bulan sebelumnya"
-			class="rounded p-1 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+			class="rounded p-1 text-gray-500 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-400"
 		>
 			<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
 			</svg>
 		</button>
-		<h3 class="text-base font-semibold text-gray-900">{monthLabel}</h3>
+		<h3 class="text-base font-semibold text-gray-900 dark:text-white">{monthLabel}</h3>
 		<button
 			type="button"
 			onclick={goNextMonth}
 			aria-label="Bulan berikutnya"
-			class="rounded p-1 text-gray-500 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+			class="rounded p-1 text-gray-500 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-400"
 		>
 			<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -120,19 +120,19 @@
 			onclick={() => handleDayClick(day)}
 			aria-pressed={isSelected}
 			aria-label="{format(day, 'EEEE d MMMM yyyy', { locale: id })}"
-			class="flex flex-col items-center rounded-lg py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900
+			class="flex flex-col items-center rounded-lg py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:focus-visible:ring-gray-400
 				{isSelected
-					? 'bg-gray-900 text-white'
-					: 'text-gray-700 hover:bg-gray-200'}"
+					? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+					: 'text-gray-700 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700'}"
 		>
 			<span class="text-[10px] font-semibold uppercase tracking-wide
-				{isSelected ? 'text-gray-300' : 'text-gray-500'}">
+				{isSelected ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'}">
 				{DAY_LABELS[i]}
 			</span>
 			<span class="mt-1 text-base font-semibold leading-none">{format(day, 'd')}</span>
 			{#if dayEvents.length > 0}
 				<span
-					class="mt-1.5 h-1.5 w-1.5 rounded-full {isSelected ? 'bg-white' : 'bg-gray-400'}"
+					class="mt-1.5 h-1.5 w-1.5 rounded-full {isSelected ? 'bg-white dark:bg-gray-900' : 'bg-gray-400 dark:bg-gray-500'}"
 					aria-hidden="true"
 				></span>
 			{:else}
@@ -151,18 +151,18 @@
 				role="option"
 				aria-selected={selectedEventId === event.id}
 				onclick={() => onEventSelect(event.id)}
-				class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900
+				class="rounded-full border px-4 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:focus-visible:ring-gray-400
 					{selectedEventId === event.id
-						? 'border-gray-900 bg-gray-900 text-white'
-						: 'border-gray-300 bg-white text-gray-700 hover:border-gray-500 hover:bg-gray-50'}"
+						? 'border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+						: 'border-gray-300 bg-white text-gray-700 hover:border-gray-500 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:border-gray-400 dark:hover:bg-gray-600'}"
 			>
 				{event.code ?? event.description ?? '—'}
 			</button>
 		{/each}
 	</div>
 {:else if selectedDate}
-	<p class="text-sm text-gray-500">Tidak ada jadwal untuk tanggal ini</p>
+	<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada jadwal untuk tanggal ini</p>
 {:else}
-	<p class="text-sm text-gray-500">Pilih tanggal untuk melihat jadwal</p>
+	<p class="text-sm text-gray-500 dark:text-gray-400">Pilih tanggal untuk melihat jadwal</p>
 {/if}
 </div>

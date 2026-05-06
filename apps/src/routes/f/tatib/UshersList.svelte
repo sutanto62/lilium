@@ -358,7 +358,7 @@
 	{#if progress > 0}
 		<div class="mb-4">
 			<Progressbar {progress} size="h-2" color={progress < 75 ? 'gray' : 'green'} />
-			<p class="mt-2 text-sm text-gray-500">
+			<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
 				{progress}% lengkap
 			</p>
 		</div>
@@ -415,7 +415,7 @@
 										id="ppg-{index}"
 										type="checkbox"
 										bind:checked={usher.isPpg}
-										class="h-4 w-4 rounded border-gray-300"
+										class="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
 										onclick={() => handleRoleChange(index, 'PPG')}
 									/>
 								</div>
@@ -427,7 +427,7 @@
 									id="kolekte-{index}"
 									type="checkbox"
 									bind:checked={usher.isKolekte}
-									class="h-4 w-4 rounded border-gray-300"
+									class="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
 									onclick={() => handleRoleChange(index, 'Kolekte')}
 								/>
 							</div>

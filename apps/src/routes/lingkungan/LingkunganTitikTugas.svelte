@@ -16,12 +16,14 @@
 	let events = $derived<ChurchEvent[]>(data.events ?? []);
 	let filterValue = $state<string>('');
 
-	// Calendar state
-	let selectedDate = $state<Date | null>(null);
+	// Calendar state — pre-seed from first event so filteredEvents is scoped on first render
+	let selectedDate = $state<Date | null>(
+		data.events?.[0]?.date ? new Date(data.events[0].date) : null
+	);
 	let filteredEvents = $derived(
 		selectedDate
 			? events.filter((e) => new Date(e.date).toDateString() === selectedDate!.toDateString())
-			: events
+			: []
 	);
 	let selectedEventId = $state<string | null>(null);
 	let selectedEvent = $derived(
@@ -168,17 +170,19 @@
 	<input type="hidden" name="eventId" bind:value={selectedEventId} />
 </form>
 
-<div class="grid w-full gap-8 lg:grid-cols-7">
-	<EventSelectorPanel
-		{events}
-		{selectedEventId}
-		{selectedDate}
-		{filteredEvents}
-		onEventSelect={handleEventSelect}
-		onDateSelect={handleDateSelect}
-	/>
+<div class="grid w-full gap-6 lg:grid-cols-[280px_1fr]">
+	<aside aria-label="Pilih jadwal misa">
+		<EventSelectorPanel
+			{events}
+			{selectedEventId}
+			{selectedDate}
+			{filteredEvents}
+			onEventSelect={handleEventSelect}
+			onDateSelect={handleDateSelect}
+		/>
+	</aside>
 
-	<div class="lg:col-span-3">
+	<main aria-label="Daftar titik tugas">
 		<UsherDutyTable
 			{selectedEvent}
 			{lingkungans}
@@ -191,7 +195,7 @@
 			onFilterChange={handleFilterChange}
 			onPetunjukOpen={handlePetunjukOpen}
 		/>
-	</div>
+	</main>
 </div>
 
 <PetunjukModal bind:open={showPetunjukModal} briefingTime={selectedEvent?.briefingTime} />

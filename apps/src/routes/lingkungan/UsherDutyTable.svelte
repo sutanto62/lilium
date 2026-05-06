@@ -5,17 +5,6 @@
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { tracker } from '$src/lib/utils/analytics';
 	import { formatDate } from '$src/lib/utils/dateUtils';
-	import {
-		Button,
-		ButtonGroup,
-		Heading,
-		Table,
-		TableBody,
-		TableBodyCell,
-		TableBodyRow,
-		TableHead,
-		TableHeadCell
-	} from 'flowbite-svelte';
 
 	type UsherGroup = {
 		lingkungan: string;
@@ -97,103 +86,100 @@
 </script>
 
 {#if selectedEvent}
-	<Heading tag="h2" class="text-4xl tracking-tight text-amber-500 dark:text-white">
-		Titik Tugas
-	</Heading>
-	<p class="text-md mb-6 font-light text-gray-900 dark:text-white">
-		{selectedEvent.description}, {formatDate(selectedEvent.date, 'long')}
-	</p>
-
-	<div class="mb-4 flex items-center justify-between">
-		{#if lingkungans.length > 1}
-			<ButtonGroup>
-				<Button size="sm" onclick={() => onFilterChange('')}>Semua</Button>
-				{#each lingkungans as lingkungan}
-					<Button size="sm" onclick={() => onFilterChange(lingkungan)}>{lingkungan}</Button>
-				{/each}
-			</ButtonGroup>
-		{:else}
-			<span></span>
-		{/if}
-
-		{#if ushers.length > 0}
-			<Button size="sm" color="light" onclick={handleCopyRoster}>
-				{copied ? 'Tersalin!' : 'Salin Daftar'}
-			</Button>
-		{/if}
-	</div>
-
-	<Table color="amber" shadow class="rounded-xl">
-		<TableHead>
-			<TableHeadCell>Nama</TableHeadCell>
-			<TableHeadCell class="hidden lg:table-cell">Zona</TableHeadCell>
-			<TableHeadCell>Posisi</TableHeadCell>
-			<TableHeadCell class="hidden lg:table-cell">Tugas</TableHeadCell>
-		</TableHead>
-		<TableBody>
-			{#if isLoading}
-				<TableBodyRow>
-					<TableBodyCell colspan={4} class="py-8 text-center">
-						<div class="flex items-center justify-center">
-							<div class="h-6 w-6 animate-spin rounded-full border-b-2 border-amber-500"></div>
-							<span class="ml-2">Loading ushers...</span>
-						</div>
-					</TableBodyCell>
-				</TableBodyRow>
-			{:else if formSuccess === false}
-				<TableBodyRow>
-					<TableBodyCell colspan={4} class="py-8 text-center text-red-500">
-						Error: {formError || 'Failed to load ushers'}
-					</TableBodyCell>
-				</TableBodyRow>
-			{:else if ushers.length === 0}
-				<TableBodyRow>
-					<TableBodyCell colspan={4} class="text-white-500 py-8 text-center">
-						Belum ada petugas
-					</TableBodyCell>
-				</TableBodyRow>
-			{:else}
-				{#each groupedUshers as group}
-					<TableBodyRow class="text-md">
-						<TableBodyCell
-							class="whitespace-normal bg-amber-200 text-sm font-semibold text-black"
-							colspan={4}
-						>
-							{group.lingkungan} ({group.wilayah})
-						</TableBodyCell>
-					</TableBodyRow>
-					{#each group.ushers as usher}
-						<TableBodyRow class="text-sm">
-							<TableBodyCell class="whitespace-normal text-sm">
-								{usher.name}
-								{#if usher.isPpg}
-									<span class="text-sm sm:hidden"> (PPG)</span>
-								{/if}
-								{#if usher.isKolekte}
-									<span class="text-sm sm:hidden"> (Kolekte)</span>
-								{/if}
-							</TableBodyCell>
-							<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
-								{usher.zone}
-							</TableBodyCell>
-							<TableBodyCell class="whitespace-normal text-sm">
-								<span class="block sm:hidden">{usher.zone} - </span>{usher.position}
-							</TableBodyCell>
-							<TableBodyCell class="hidden whitespace-normal text-sm lg:table-cell">
-								{usher.isPpg ? 'PPG' : ''}{usher.isKolekte ? 'Kolekte' : ''}
-							</TableBodyCell>
-						</TableBodyRow>
+	<!-- Lingkungan filter -->
+	{#if lingkungans.length > 1}
+		<div class="mb-4">
+			<label for="lingkungan-filter" class="sr-only">Filter berdasarkan lingkungan</label>
+			<div class="relative">
+				<select
+					id="lingkungan-filter"
+					value={filterValue}
+					onchange={(e) => onFilterChange(e.currentTarget.value)}
+					class="w-full appearance-none rounded-md border border-gray-300 bg-white py-2.5 pl-4 pr-10 text-sm font-medium text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900"
+				>
+					<option value="">Tampilkan semua lingkungan</option>
+					{#each lingkungans as lingkungan}
+						<option value={lingkungan}>{lingkungan}</option>
 					{/each}
-				{/each}
-			{/if}
-		</TableBody>
-	</Table>
+				</select>
+				<div class="pointer-events-none absolute inset-y-0 right-3 flex items-center" aria-hidden="true">
+					<svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+					</svg>
+				</div>
+			</div>
+		</div>
+	{/if}
 
-	<div class="mt-6 rounded-xl bg-white p-4 sm:p-6 md:p-8">
-		Mohon baca <button
-			type="button"
-			onclick={onPetunjukOpen}
-			class="text-blue-600 hover:underline">Petunjuk Tugas</button
-		>
+	<!-- Usher table -->
+	<div
+		role="region"
+		aria-label="Daftar petugas"
+		aria-live="polite"
+		aria-busy={isLoading}
+	>
+		{#if isLoading}
+			<div class="flex items-center gap-3 rounded-md border border-gray-200 bg-white px-4 py-6">
+				<div class="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" role="status" aria-label="Memuat data"></div>
+				<span class="text-sm text-gray-700">Memuat petugas...</span>
+			</div>
+		{:else if formSuccess === false}
+			<div class="rounded-md border border-red-200 bg-red-50 px-4 py-4" role="alert">
+				<p class="text-sm font-medium text-red-800">Gagal memuat data petugas</p>
+				{#if formError}
+					<p class="mt-1 text-sm text-red-600">{formError}</p>
+				{/if}
+			</div>
+		{:else if ushers.length === 0}
+			<div class="rounded-md border border-gray-200 px-4 py-8 text-center">
+				<p class="text-sm text-gray-600">Belum ada petugas untuk jadwal ini</p>
+			</div>
+		{:else}
+			<table class="w-full border-collapse text-sm">
+				<thead>
+					<tr class="border-b-2 border-gray-900">
+						<th scope="col" class="py-3 pr-4 text-left text-sm font-semibold text-gray-900">Nama</th>
+						<th scope="col" class="hidden py-3 pr-4 text-left text-sm font-semibold text-gray-900 lg:table-cell">Zona</th>
+						<th scope="col" class="hidden py-3 pr-4 text-left text-sm font-semibold text-gray-900 lg:table-cell">Posisi</th>
+						<th scope="col" class="hidden py-3 text-left text-sm font-semibold text-gray-900 lg:table-cell">Tugas</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each groupedUshers as group}
+						<tr>
+							<td
+								colspan={4}
+								class="border-b border-gray-200 bg-gray-100 py-2 pl-3 text-xs font-semibold uppercase tracking-wide text-gray-600"
+							>
+								{group.lingkungan} — {group.wilayah}
+							</td>
+						</tr>
+						{#each group.ushers as usher}
+							<tr class="border-b border-gray-100 hover:bg-gray-50">
+								<td class="py-3 pr-4 text-sm">
+									<!-- Mobile: 2-line stacked -->
+									<div class="lg:hidden">
+										<div class="flex flex-wrap items-center gap-1.5">
+											<span class="font-medium text-gray-900">{usher.name}</span>
+											{#if usher.isPpg}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-700">PPG</span>{/if}
+											{#if usher.isKolekte}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-xs text-gray-700">Kolekte</span>{/if}
+										</div>
+										<p class="mt-0.5 text-xs text-gray-500">{usher.zone} · {usher.position}</p>
+									</div>
+									<!-- Desktop: name only -->
+									<span class="hidden text-gray-900 lg:inline">{usher.name}</span>
+								</td>
+								<td class="hidden py-3 pr-4 text-sm text-gray-700 lg:table-cell">{usher.zone}</td>
+								<td class="hidden py-3 pr-4 text-sm text-gray-700 lg:table-cell">{usher.position}</td>
+								<td class="hidden py-3 text-sm text-gray-700 lg:table-cell">
+									{#if usher.isPpg}<span class="mr-1 rounded bg-gray-200 px-1 py-0.5 text-xs text-gray-700">PPG</span>{/if}
+									{#if usher.isKolekte}<span class="rounded bg-gray-200 px-1 py-0.5 text-xs text-gray-700">Kolekte</span>{/if}
+								</td>
+							</tr>
+						{/each}
+					{/each}
+				</tbody>
+			</table>
+		{/if}
 	</div>
 {/if}

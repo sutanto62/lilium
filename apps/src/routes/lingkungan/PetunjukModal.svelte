@@ -11,27 +11,24 @@
 </script>
 
 <Modal title="Petunjuk Tugas" bind:open autoclose>
-	<div class="mb-4">
-		<h3 class="mb-4 text-lg font-semibold">Petunjuk Tugas Petugas Tata Tertib</h3>
-		<ul class="list-outside list-decimal space-y-2 pl-4 text-sm font-light">
-			<li>Aturan Tata Tertib hadir pkl. {briefingTime ?? '[waktu]'} sebelum Misa untuk briefing</li>
+	<div class="space-y-4">
+		<h3 class="text-base font-semibold text-gray-900">Petunjuk Tugas Petugas Tata Tertib</h3>
+		<ol class="space-y-3 text-sm text-gray-800" style="list-style: decimal; padding-left: 1.25rem;">
 			<li>
-				Pakaian saat bertugas : (khusus Petugas TATIB lingkungan)
-				<ol class="mt-2 list-outside list-disc space-y-1 pl-4 text-sm font-light">
-					<li>
-						Atasan kemeja/blouse PUTIH (BUKAN Polo T-Shirt atau Kaos atau Blouse tanpa lengan)
-					</li>
-					<li>Bawahan HITAM / Warna Gelap (bukan celana Legging / training (khusus wanita))</li>
-					<li>Sepatu tertutup (bukan sepatu sandal / selop)</li>
-				</ol>
+				Aturan Tata Tertib hadir pkl. <strong>{briefingTime ?? '[waktu]'}</strong> sebelum Misa untuk briefing
 			</li>
-			<li>Petugas TIDAK DIPERBOLEHKAN membawa tas pada saat bertugas</li>
-			<li>Membawa Handsanitizer dan botol minum sendiri</li>
 			<li>
-				Petugas menempati posisi tugas masing-masing yang telah ditentukan dan tidak berpindah
-				tempat
+				Pakaian saat bertugas (khusus Petugas TATIB lingkungan):
+				<ul class="mt-2 space-y-1 text-gray-700" style="list-style: disc; padding-left: 1.25rem;">
+					<li>Atasan kemeja/blouse <strong>PUTIH</strong> — bukan Polo T-Shirt, Kaos, atau Blouse tanpa lengan</li>
+					<li>Bawahan <strong>HITAM / Warna Gelap</strong> — bukan celana Legging/training (khusus wanita)</li>
+					<li>Sepatu tertutup — bukan sepatu sandal/selop</li>
+				</ul>
 			</li>
-		</ul>
+			<li>Petugas <strong>TIDAK DIPERBOLEHKAN</strong> membawa tas saat bertugas</li>
+			<li>Membawa hand sanitizer dan botol minum sendiri</li>
+			<li>Petugas menempati posisi masing-masing yang telah ditentukan dan tidak berpindah tempat</li>
+		</ol>
 	</div>
 
 	{#snippet footer()}

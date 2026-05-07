@@ -1,15 +1,16 @@
 <script lang="ts">
 	import type { ChurchEvent } from '$core/entities/Event';
 	import {
-		addMonths,
+		addWeeks,
 		eachDayOfInterval,
 		endOfWeek,
 		format,
 		isSameDay,
 		startOfMonth,
 		startOfWeek,
-		subMonths
+		subWeeks
 	} from 'date-fns';
+
 	import { id } from 'date-fns/locale';
 
 	const DAY_LABELS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -30,9 +31,6 @@
 		onDateSelect: (date: Date) => void;
 	} = $props();
 
-	// Month label derived from selected date — no separate state needed
-	let viewMonth = $derived(startOfMonth(selectedDate ?? new Date()));
-
 	let weekDays = $derived.by(() => {
 		const anchor = selectedDate ?? new Date();
 		const ws = startOfWeek(anchor, { weekStartsOn: 1 });
@@ -44,7 +42,7 @@
 	);
 
 	let monthLabel = $derived(
-		format(viewMonth, 'MMM yyyy', { locale: id })
+		format(startOfMonth(selectedDate ?? new Date()), 'MMM yyyy', { locale: id })
 			.replace(/^\w/, (c) => c.toUpperCase())
 	);
 
@@ -59,24 +57,22 @@
 		if (dayEvents.length > 0) onEventSelect(dayEvents[0].id);
 	}
 
-	function goPrevMonth() {
-		const target = subMonths(viewMonth, 1);
-		const monthStr = format(target, 'yyyy-MM');
-		const first = events.find((e) => e.date?.startsWith(monthStr));
-		if (first) {
-			onDateSelect(new Date(first.date + 'T00:00:00'));
-			onEventSelect(first.id);
-		}
+	function goPrevWeek() {
+		const anchor = selectedDate ?? new Date();
+		const prevWeekStart = startOfWeek(subWeeks(anchor, 1), { weekStartsOn: 1 });
+		onDateSelect(prevWeekStart);
+		const dateStr = format(prevWeekStart, 'yyyy-MM-dd');
+		const first = events.find((e) => e.date === dateStr);
+		if (first) onEventSelect(first.id);
 	}
 
-	function goNextMonth() {
-		const target = addMonths(viewMonth, 1);
-		const monthStr = format(target, 'yyyy-MM');
-		const first = events.find((e) => e.date?.startsWith(monthStr));
-		if (first) {
-			onDateSelect(new Date(first.date + 'T00:00:00'));
-			onEventSelect(first.id);
-		}
+	function goNextWeek() {
+		const anchor = selectedDate ?? new Date();
+		const nextWeekStart = startOfWeek(addWeeks(anchor, 1), { weekStartsOn: 1 });
+		onDateSelect(nextWeekStart);
+		const dateStr = format(nextWeekStart, 'yyyy-MM-dd');
+		const first = events.find((e) => e.date === dateStr);
+		if (first) onEventSelect(first.id);
 	}
 </script>
 
@@ -89,8 +85,8 @@
 <div class="mb-4 flex items-center justify-center gap-1">
 		<button
 			type="button"
-			onclick={goPrevMonth}
-			aria-label="Bulan sebelumnya"
+			onclick={goPrevWeek}
+			aria-label="Minggu sebelumnya"
 			class="rounded p-1 text-gray-500 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-400"
 		>
 			<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -100,8 +96,8 @@
 		<h3 class="text-base font-semibold text-gray-900 dark:text-white">{monthLabel}</h3>
 		<button
 			type="button"
-			onclick={goNextMonth}
-			aria-label="Bulan berikutnya"
+			onclick={goNextWeek}
+			aria-label="Minggu berikutnya"
 			class="rounded p-1 text-gray-500 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-400"
 		>
 			<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

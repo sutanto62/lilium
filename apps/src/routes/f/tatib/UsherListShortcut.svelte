@@ -9,7 +9,7 @@
 <span class="flex gap-2">
 	<button
 		type="button"
-		class="text-gray-100 hover:text-black"
+		class="text-gray-200 dark:text-gray-700 hover:text-gray-900 dark:hover:text-white"
 		onclick={() => {
 			ushers = [
 				{ name: 'Satu', isPpg: false, isKolekte: true, sequence: 0 },
@@ -23,7 +23,7 @@
 	>
 	<button
 		type="button"
-		class="text-gray-100 hover:text-black"
+		class="text-gray-200 dark:text-gray-700 hover:text-gray-900 dark:hover:text-white"
 		onclick={() => {
 			ushers = [
 				{ name: 'Satu', isPpg: false, isKolekte: true, sequence: 0 },

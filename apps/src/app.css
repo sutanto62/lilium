@@ -8,8 +8,17 @@
     text-decoration: underline;
   }
 
+  .dark a {
+    color: var(--color-primary-400);
+  }
+
   input::placeholder,
   textarea::placeholder {
     @apply text-gray-500;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    @apply text-gray-400;
   }
 }

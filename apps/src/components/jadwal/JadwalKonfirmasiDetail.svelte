@@ -55,7 +55,7 @@
 	}
 </script>
 
-<Card shadow="sm" id={cardId} class="flex h-full flex-col bg-gray-50 p-2 text-black">
+<Card shadow="sm" id={cardId} class="flex h-full flex-col bg-gray-50 p-2 text-gray-900 dark:bg-gray-800 dark:text-gray-100">
 	<div class="flex items-center justify-between">
 		<div>
 			<h1 class="text-lg font-semibold">{lingkungan.name}</h1>
@@ -64,7 +64,7 @@
 		</div>
 		<div class="flex items-center gap-2">
 			<Button
-				class="flex items-center justify-center rounded-full bg-red-200 p-2 text-gray-600 hover:bg-gray-300"
+				class="flex items-center justify-center rounded-full bg-red-200 p-2 text-gray-600 hover:bg-gray-300 dark:bg-red-900 dark:text-gray-300 dark:hover:bg-red-800"
 				onclick={() => {
 					isDeleteConfirmation = true;
 				}}
@@ -73,7 +73,7 @@
 				<TrashBinOutline class="size-4" />
 			</Button>
 			<Button
-				class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300"
+				class="flex items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
 				onclick={captureSnapshot}
 				id="download-jadwal-konfirmasi"
 			>
@@ -106,7 +106,7 @@
 			</tbody>
 		</table>
 	</div>
-	<div class="mt-auto border-t border-gray-200 pt-2 text-right text-sm font-light">
+	<div class="mt-auto border-t border-gray-200 pt-2 text-right text-sm font-light dark:border-gray-600 dark:text-gray-400">
 		konfirmasi pada {submitted}
 	</div>
 </Card>

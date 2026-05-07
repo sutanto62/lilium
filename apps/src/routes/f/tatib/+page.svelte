@@ -299,7 +299,7 @@
 
 <!-- On success -->
 {#if form?.success}
-	<Alert color="green" class="mb-4 text-black">
+	<Alert color="green" class="mb-4 text-gray-900 dark:text-gray-100">
 		<div id="copy-usher">
 			<p class="font-medium">
 				Konfirmasi lingkungan: <strong>{form?.json.lingkungan} ({form?.json.wilayahName})</strong>
@@ -365,7 +365,7 @@
 	</form>
 {:else}
 	<h2 class="mb-6 text-2xl font-bold dark:text-white">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
-	<p>Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
+	<p class="text-gray-700 dark:text-gray-300">Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
 	<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
 		Hari ini: <strong>{data.currentDay}</strong><br />
 		{data.formAvailabilityReason}

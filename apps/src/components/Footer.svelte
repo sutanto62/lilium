@@ -55,7 +55,7 @@
 				spanClass="text-lg font-bold text-[#eb4f27]"
 				onclick={() => handleExternalLinkClick('github', 'https://github.com/sutanto62/lilium')}
 			/>
-			<ul class="list-unstyled small">
+			<ul class="list-unstyled small text-gray-700 dark:text-gray-400">
 				<li class="mb-2">
 					Persembahan untuk Bunda Maria dari
 					<a

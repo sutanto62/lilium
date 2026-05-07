@@ -60,7 +60,7 @@ function handleEditDescription(event: Event) {
 	{#if onEditPic}
 		<Button
 			type="button"
-			class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300"
+			class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-green-800"
 			title={row.pic.length > 0 ? 'Edit PIC zona' : 'Tambah PIC zona'}
 			onclick={(e: Event) => handleEditPic(row, e)}
 		>
@@ -95,7 +95,7 @@ function handleEditDescription(event: Event) {
 					{#if onEditDescription}
 						<Button
 							type="button"
-							class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300"
+							class="flex shrink-0 items-center justify-center rounded-full bg-gray-200 p-2 text-gray-600 hover:bg-green-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-green-800"
 							title={description ? 'Edit PIC Misa' : 'Tambah PIC Misa'}
 							onclick={(e: Event) => handleEditDescription(e)}
 						>
@@ -111,7 +111,7 @@ function handleEditDescription(event: Event) {
 		</TableBodyRow>
 
 		{#each rows as jadwalDetaillZone, i}
-			<TableBodyRow class="hover:bg-gray-100" onclick={(event: MouseEvent) => handleToggleRow(i, event)}>
+			<TableBodyRow class="hover:bg-gray-100 dark:hover:bg-gray-700" onclick={(event: MouseEvent) => handleToggleRow(i, event)}>
 				<TableBodyCell class="px-2 align-top">
 					{jadwalDetaillZone.name}
 					<ol class="mt-1 block lg:hidden">

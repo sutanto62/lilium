@@ -335,9 +335,9 @@
 	<div
 		class="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-0 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
 	>
-		<div class="text-left text-lg font-semibold">
+		<div class="text-left text-lg font-semibold text-gray-900 dark:text-gray-100">
 			Petugas
-			<p class="mt-1 text-sm font-normal">
+			<p class="mt-1 text-sm font-normal text-gray-700 dark:text-gray-300">
 				{#if requirePpg}
 					Mohon isi petugas sesuai dengan persyaratan (8 orang, 2 PPG dan 3 Kolekte)
 				{:else}

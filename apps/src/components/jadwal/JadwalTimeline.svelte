@@ -24,24 +24,24 @@
 				{event.description}
 			{/if}
 		</h2>
-		<p class="mb-2 text-sm text-gray-500">{event.church}</p>
-		<div class="text-sm text-gray-900">
+		<p class="mb-2 text-sm text-gray-500 dark:text-gray-400">{event.church}</p>
+		<div class="text-sm text-gray-900 dark:text-gray-100">
 			<h3 class="font-semibold">Konfirmasi</h3>
 			<Progressbar {progress} class="my-3" {color} />
 			<h3 class="font-semibold">Petugas</h3>
 			<div class="flex items-center justify-between">
 				<span class="flex items-center gap-2">
-					<UsersOutline class="text-gray-500" />{usherCounts.confirmedUshers}
+					<UsersOutline class="text-gray-500 dark:text-gray-400" />{usherCounts.confirmedUshers}
 				</span>
 				<Tooltip type="auto">Total Petugas {usherCounts.totalUshers}</Tooltip>
 
 				<span class="flex items-center gap-2"
-					><ArchiveOutline class="text-gray-500" />{usherCounts.totalPpg}</span
+					><ArchiveOutline class="text-gray-500 dark:text-gray-400" />{usherCounts.totalPpg}</span
 				>
 				<Tooltip type="auto">Petugas PPG</Tooltip>
 
 				<span class="flex items-center gap-2">
-					<CashOutline class="text-gray-500" />{usherCounts.totalKolekte}</span
+					<CashOutline class="text-gray-500 dark:text-gray-400" />{usherCounts.totalKolekte}</span
 				>
 				<Tooltip type="auto">Penghitung Kolekte</Tooltip>
 

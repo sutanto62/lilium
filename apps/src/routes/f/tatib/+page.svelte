@@ -299,7 +299,7 @@
 
 <!-- On success -->
 {#if form?.success}
-	<Alert color="green" class="mb-4 text-gray-900 dark:text-gray-100">
+	<Alert color="green" class="mb-4 text-gray-900 dark:bg-green-900/20 dark:border-green-800 dark:text-green-100">
 		<div id="copy-usher">
 			<p class="font-medium">
 				Konfirmasi lingkungan: <strong>{form?.json.lingkungan} ({form?.json.wilayahName})</strong>

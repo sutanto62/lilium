@@ -32,8 +32,9 @@
 			: null
 	);
 
-	// Ushers
-	let ushers = $derived(form?.ushers ?? []);
+	// Ushers — only show after a form submission completes for the current selection
+	let shouldShowUshers = $state(false);
+	let ushers = $derived(shouldShowUshers ? (form?.ushers ?? []) : []);
 	let lingkungans: string[] = $derived(
 		Array.from(
 			new Set(
@@ -124,6 +125,7 @@
 	async function handleDateSelect(date: Date) {
 		const previousDate = selectedDate;
 		selectedDate = date;
+		shouldShowUshers = false;
 		await Promise.all([
 			statsigService.logEvent('lingkungan_titik_tugas_date_select', 'date', data.session || undefined, {
 				date: date.toISOString(),
@@ -162,8 +164,9 @@
 	use:enhance={() => {
 		isLoading = true;
 		return async ({ update }) => {
-			isLoading = false;
 			await update();
+			isLoading = false;
+			shouldShowUshers = true;
 		};
 	}}
 >

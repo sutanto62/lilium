@@ -797,10 +797,11 @@ export async function findCetakJadwal(
 	const massEventPic = await fetchEventPics(db, eventId);
 	const massPic = massEventPic.filter((pic) => pic.zone === 'Global');
 
-	// Process data into required format
-	const rowsUshers = processUshersByZone(massEventUsher, massEventPic);
-	const rowsKolekte = processSpecialUshers(massEventUsher.filter(usher => usher.isKolekte === 1), 'Kolekte', 'Menghitung uang kolekte');
-	const rowsPpg = processSpecialUshers(massEventUsher.filter(usher => usher.isPpg === 1), 'PPG', 'Menghitung uang amplop PPG');
+	// Process data into required format — exclude ushers with no assigned position
+	const assignedUshers = massEventUsher.filter(usher => usher.position !== null);
+	const rowsUshers = processUshersByZone(assignedUshers, massEventPic);
+	const rowsKolekte = processSpecialUshers(assignedUshers.filter(usher => usher.isKolekte === 1 && usher.isPpg !== 1 && usher.positionIsPpg !== 1), 'Kolekte', 'Menghitung uang kolekte');
+	const rowsPpg = processSpecialUshers(assignedUshers.filter(usher => usher.isPpg === 1), 'PPG', 'Menghitung uang amplop PPG');
 
 	return {
 		...massEvent,
@@ -870,6 +871,7 @@ async function fetchEventUshers(db: ReturnType<typeof drizzle>, eventId: string)
 			position: church_position.name,
 			sequence: church_position.sequence,
 			isPpg: event_usher.isPpg,
+			positionIsPpg: church_position.isPpg,
 			isKolekte: event_usher.isKolekte
 		})
 		.from(event_usher)

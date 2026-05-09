@@ -171,7 +171,6 @@ class PostHogService {
     private journeyTracker: UserJourneyTracker | null = null;
     private eventManager: EventManager | null = null;
     private eventQueue: EventQueue | null = null;
-    private testMode = false; // Add test mode flag
 
     /**
      * Create a new instance of the PostHogService.
@@ -182,9 +181,6 @@ class PostHogService {
      * @throws Error if VITE_POSTHOG_KEY is not configured
      */
     private constructor() {
-        // Check if we're in test mode
-        this.testMode = import.meta.env.MODE === 'test' || import.meta.env.VITEST === 'true';
-
         if (browser) {
             const posthogKey = import.meta.env.VITE_POSTHOG_KEY;
             if (!posthogKey) {
@@ -207,10 +203,7 @@ class PostHogService {
                     }
                 });
 
-                // Initialize EventManager and EventQueue only if not in test mode
-                if (!this.testMode) {
-                    this.initializeEventProcessing();
-                }
+                this.initializeEventProcessing();
             } catch (error) {
                 logger.error('PostHogService.constructor: Failed to initialize PostHog', { error });
                 // Don't throw - allow graceful degradation
@@ -316,7 +309,7 @@ class PostHogService {
             }
 
             // Initialize user journey tracking
-            this.initializeUserJourney();
+            await this.initializeUserJourney();
 
             // Set up page navigation tracking
             this.setupPageNavigationTracking();
@@ -333,8 +326,8 @@ class PostHogService {
      * Initialize user journey tracking for the current session.
      * Lazily creates the UserJourneyTracker on first call.
      */
-    private initializeUserJourney(): void {
-        if (!browser || this.testMode) return;
+    private async initializeUserJourney(): Promise<void> {
+        if (!browser) return;
 
         if (!this.journeyTracker) {
             this.journeyTracker = new UserJourneyTracker(
@@ -343,7 +336,7 @@ class PostHogService {
             );
         }
 
-        this.journeyTracker.initialize();
+        await this.journeyTracker.initialize();
     }
 
     /**
@@ -379,7 +372,7 @@ class PostHogService {
      * (SPA navigation) and stays attached directly here.
      */
     private setupPageNavigationTracking(): void {
-        if (!browser || this.testMode || !this.journeyTracker) return;
+        if (!browser || !this.journeyTracker) return;
 
         // Track initial page load
         this.journeyTracker.trackPageNavigation(window.location.href, document.referrer);
@@ -440,8 +433,12 @@ class PostHogService {
             // Enrich event with session context
             const enrichedEvent = this.enrichEventWithContext(event);
 
-            if (this.testMode) {
-                // In test mode, send directly to PostHog for immediate testing
+            if (this.eventQueue) {
+                // Use EventQueue for resilient processing
+                const priority = this.determineEventPriority(enrichedEvent);
+                await this.eventQueue.enqueue(enrichedEvent, priority);
+            } else {
+                // Fallback: send directly to PostHog
                 posthog.capture(enrichedEvent.name, {
                     ...enrichedEvent.properties,
                     timestamp: enrichedEvent.timestamp.toISOString(),
@@ -449,33 +446,12 @@ class PostHogService {
                     userId: enrichedEvent.userId,
                     userRole: enrichedEvent.userRole,
                     churchContext: enrichedEvent.churchContext,
-                    // Add technical context
                     app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
                     environment: import.meta.env.DEV ? 'development' : 'production'
                 });
-            } else {
-                // Production mode: use EventQueue for resilient processing
-                const priority = this.determineEventPriority(enrichedEvent);
-
-                if (this.eventQueue) {
-                    await this.eventQueue.enqueue(enrichedEvent, priority);
-                } else {
-                    // Fallback: send directly to PostHog
-                    posthog.capture(enrichedEvent.name, {
-                        ...enrichedEvent.properties,
-                        timestamp: enrichedEvent.timestamp.toISOString(),
-                        sessionId: enrichedEvent.sessionId,
-                        userId: enrichedEvent.userId,
-                        userRole: enrichedEvent.userRole,
-                        churchContext: enrichedEvent.churchContext,
-                        // Add technical context
-                        app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
-                        environment: import.meta.env.DEV ? 'development' : 'production'
-                    });
-                }
             }
 
-            logger.info(`PostHogService.trackStructuredEvent: Event ${this.testMode ? 'sent' : 'queued'}`, {
+            logger.info('PostHogService.trackStructuredEvent: Event dispatched', {
                 eventName: enrichedEvent.name,
                 properties: enrichedEvent.properties
             });
@@ -657,17 +633,17 @@ class PostHogService {
 
         const sessionContext = sessionContextManager.getSessionContext();
 
-        // Handle user journey tracking for page navigation (only in non-test mode)
-        if (!this.testMode && browser) {
+        // Handle user journey tracking for page navigation
+        if (browser) {
             if (this.journeyTracker?.getJourney()) {
                 // If this is a different page than current, track navigation
                 if (this.journeyTracker.getCurrentPage() !== pageName) {
-                    this.journeyTracker.trackPageNavigation(pageName, this.journeyTracker.getCurrentPage() || '');
+                    await this.journeyTracker.trackPageNavigation(pageName, this.journeyTracker.getCurrentPage() || '');
                 }
             } else {
                 // Initialize journey if not already done
-                this.initializeUserJourney();
-                this.journeyTracker?.trackPageNavigation(pageName, document.referrer || '');
+                await this.initializeUserJourney();
+                await this.journeyTracker?.trackPageNavigation(pageName, document.referrer || '');
             }
 
             // Add to user journey (dedupe handled by recordPageVisit)

@@ -79,8 +79,22 @@ vi.mock('./EventManager', () => {
 });
 
 vi.mock('./EventQueue', () => {
+    // Simulate the production flush path: enqueue → posthog.capture with the
+    // same enriched event shape the real eventProcessor would emit.
     const mockEventQueue = {
-        enqueue: vi.fn().mockResolvedValue(undefined),
+        enqueue: vi.fn().mockImplementation(async (event: AnalyticsEvent) => {
+            const posthog = (await import('posthog-js')).default;
+            posthog.capture(event.name, {
+                ...event.properties,
+                timestamp: event.timestamp.toISOString(),
+                sessionId: event.sessionId,
+                userId: event.userId,
+                userRole: event.userRole,
+                churchContext: event.churchContext,
+                app_version: import.meta.env.VITE_APP_VERSION || 'unknown',
+                environment: import.meta.env.DEV ? 'development' : 'production'
+            });
+        }),
         flush: vi.fn().mockResolvedValue(undefined),
         getStats: vi.fn().mockReturnValue({
             totalEvents: 0,
@@ -138,7 +152,7 @@ describe('Enhanced PostHogService', () => {
 
         // Reset PostHog service state
         (posthogService as any).initialized = false;
-        (posthogService as any).currentJourney = null;
+        (posthogService as any).journeyTracker?.reset();
 
         // Setup default mock returns
         mockSessionContextManager.getSessionContext.mockReturnValue({
@@ -154,14 +168,8 @@ describe('Enhanced PostHogService', () => {
             startTime: new Date()
         });
 
-        // Mock EventQueue to call flush handler immediately for testing
-        mockEventQueue.enqueue.mockImplementation(async (event: any, priority: any) => {
-            // Simulate immediate processing by calling the flush handler
-            const flushHandler = (posthogService as any).eventQueue?.flushHandler;
-            if (flushHandler) {
-                await flushHandler([event]);
-            }
-        });
+        // Note: the EventQueue mock's enqueue impl already simulates delivery
+        // to posthog.capture (see vi.mock above), so per-test setup isn't needed.
     });
 
     test('should initialize with session context', async () => {
@@ -289,8 +297,6 @@ describe('Enhanced PostHogService', () => {
 
         await posthogService.trackPageView('/admin/dashboard', { section: 'admin' });
 
-        // In test mode, journey tracking is disabled for simplicity
-        // But we should still verify the page view event was sent
         const posthog = await import('posthog-js');
         expect(posthog.default.capture).toHaveBeenCalledWith(
             '$pageview',
@@ -300,9 +306,10 @@ describe('Enhanced PostHogService', () => {
             })
         );
 
-        // Journey tracking is disabled in test mode, so we don't test it
+        // Journey is now tracked end-to-end (no test-mode bypass)
         const journey = posthogService.getCurrentJourney();
-        expect(journey).toBeNull(); // Should be null in test mode
+        expect(journey).not.toBeNull();
+        expect(journey?.pages.some(p => p.page === '/admin/dashboard')).toBe(true);
     });
 
     test('should generate unique session IDs', async () => {
@@ -312,8 +319,10 @@ describe('Enhanced PostHogService', () => {
         // Reset and initialize again
         posthogService.resetUser();
 
-        // Mock a different session context for the second initialization
-        mockSessionContextManager.getSessionContext.mockReturnValueOnce({
+        // Persistently return a different session context for all subsequent
+        // getSessionContext calls (production code calls this multiple times
+        // during journey init, then the test queries it once more).
+        mockSessionContextManager.getSessionContext.mockReturnValue({
             sessionId: 'different_session',
             userId: 'user123',
             userRole: 'admin',

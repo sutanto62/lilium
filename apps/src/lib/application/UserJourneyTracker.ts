@@ -49,7 +49,7 @@ export class UserJourneyTracker {
 	 * Initialize a new user journey from the current session context.
 	 * Captures entry-point info (URL, referrer, source category).
 	 */
-	initialize(): void {
+	async initialize(): Promise<void> {
 		if (!browser) return;
 
 		const sessionContext = sessionContextManager.getSessionContext();
@@ -66,7 +66,7 @@ export class UserJourneyTracker {
 			conversionEvents: []
 		};
 
-		this.captureEntryPoint();
+		await this.captureEntryPoint();
 
 		logger.info('UserJourneyTracker.initialize: journey started', {
 			sessionId: sessionContext.sessionId
@@ -76,7 +76,7 @@ export class UserJourneyTracker {
 	/**
 	 * Track navigation to a new page, computing time-on-previous-page if applicable.
 	 */
-	trackPageNavigation(newPage: string, referrer: string): void {
+	async trackPageNavigation(newPage: string, referrer: string): Promise<void> {
 		if (!browser || !this.journey) return;
 
 		const now = new Date();
@@ -91,7 +91,7 @@ export class UserJourneyTracker {
 				lastPageVisit.timeSpent = timeSpent;
 			}
 
-			this.trackPageLeaveEvent(this.currentPage, timeSpent);
+			await this.trackPageLeaveEvent(this.currentPage, timeSpent);
 		}
 
 		const pageVisit: PageVisit = {
@@ -104,7 +104,7 @@ export class UserJourneyTracker {
 		this.currentPage = newPage;
 		this.currentPageStartTime = now;
 
-		this.trackPageViewEvent(newPage, referrer, timeSpent);
+		await this.trackPageViewEvent(newPage, referrer, timeSpent);
 
 		logger.info('UserJourneyTracker.trackPageNavigation: page tracked', {
 			newPage,
@@ -250,7 +250,7 @@ export class UserJourneyTracker {
 
 	// ─── private ──────────────────────────────────────────────────────────
 
-	private captureEntryPoint(): void {
+	private async captureEntryPoint(): Promise<void> {
 		if (!browser) return;
 
 		const currentUrl = window.location.href;
@@ -277,7 +277,7 @@ export class UserJourneyTracker {
 			churchContext: sessionContext?.churchContext
 		};
 
-		this.sendEvent(entryPointEvent);
+		await this.sendEvent(entryPointEvent);
 
 		logger.info('UserJourneyTracker.captureEntryPoint: entry captured', {
 			entryPage: currentUrl,
@@ -286,7 +286,7 @@ export class UserJourneyTracker {
 		});
 	}
 
-	private trackPageViewEvent(page: string, referrer: string, timeSpentOnPrevious?: number): void {
+	private async trackPageViewEvent(page: string, referrer: string, timeSpentOnPrevious?: number): Promise<void> {
 		const sessionContext = sessionContextManager.getSessionContext();
 		const pageViewEvent: AnalyticsEvent = {
 			name: 'page_navigation',
@@ -305,10 +305,10 @@ export class UserJourneyTracker {
 			churchContext: sessionContext?.churchContext
 		};
 
-		this.sendEvent(pageViewEvent);
+		await this.sendEvent(pageViewEvent);
 	}
 
-	private trackPageLeaveEvent(page: string, timeSpent: number): void {
+	private async trackPageLeaveEvent(page: string, timeSpent: number): Promise<void> {
 		const sessionContext = sessionContextManager.getSessionContext();
 		const pageLeaveEvent: AnalyticsEvent = {
 			name: 'page_leave',
@@ -325,7 +325,7 @@ export class UserJourneyTracker {
 			churchContext: sessionContext?.churchContext
 		};
 
-		this.sendEvent(pageLeaveEvent);
+		await this.sendEvent(pageLeaveEvent);
 	}
 
 	private calculateTotalEngagementTime(): number {

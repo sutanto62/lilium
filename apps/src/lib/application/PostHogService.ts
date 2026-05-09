@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import type { Session } from "@auth/core/types";
 import posthog from 'posthog-js';
+import { calculateEngagementLevel, categorizeReferrer, isHomepage } from '../utils/analyticsUtils';
 import { logger } from '../utils/logger';
 import { EventManager } from './EventManager';
 import { EventPriority, EventQueue } from './EventQueue';
@@ -369,7 +370,7 @@ class PostHogService {
 
         const currentUrl = window.location.href;
         const referrer = document.referrer;
-        const isHomepage = this.isHomepage(currentUrl);
+        const isOnHomepage = isHomepage(currentUrl);
 
         // Store session start information
         this.sessionStartPage = currentUrl;
@@ -381,8 +382,8 @@ class PostHogService {
             properties: {
                 entry_page: currentUrl,
                 referrer: referrer || 'direct',
-                is_homepage: isHomepage,
-                entry_source: this.categorizeReferrer(referrer),
+                is_homepage: isOnHomepage,
+                entry_source: categorizeReferrer(referrer, window.location.hostname),
                 category: 'user_journey'
             },
             timestamp: new Date(),
@@ -397,57 +398,8 @@ class PostHogService {
         logger.info('PostHogService.captureEntryPoint: Entry point captured', {
             entryPage: currentUrl,
             referrer: referrer || 'direct',
-            isHomepage
+            isHomepage: isOnHomepage
         });
-    }
-
-    /**
-     * Check if the given URL is the homepage
-     */
-    private isHomepage(url: string): boolean {
-        try {
-            const urlObj = new URL(url);
-            const pathname = urlObj.pathname;
-            return pathname === '/' || pathname === '/index.html' || pathname === '';
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * Categorize referrer source for analytics
-     */
-    private categorizeReferrer(referrer: string): string {
-        if (!referrer) return 'direct';
-
-        try {
-            const referrerUrl = new URL(referrer);
-            const domain = referrerUrl.hostname.toLowerCase();
-
-            // Search engines
-            if (domain.includes('google')) return 'google';
-            if (domain.includes('bing')) return 'bing';
-            if (domain.includes('yahoo')) return 'yahoo';
-            if (domain.includes('duckduckgo')) return 'duckduckgo';
-
-            // Social media
-            if (domain.includes('facebook')) return 'facebook';
-            if (domain.includes('twitter') || domain.includes('t.co')) return 'twitter';
-            if (domain.includes('instagram')) return 'instagram';
-            if (domain.includes('linkedin')) return 'linkedin';
-            if (domain.includes('whatsapp')) return 'whatsapp';
-
-            // Email
-            if (domain.includes('gmail') || domain.includes('outlook') || domain.includes('mail')) return 'email';
-
-            // Same domain (internal)
-            if (domain === window.location.hostname) return 'internal';
-
-            // External website
-            return 'external';
-        } catch {
-            return 'unknown';
-        }
     }
 
     /**
@@ -561,7 +513,7 @@ class PostHogService {
             properties: {
                 page,
                 time_spent: timeSpent,
-                engagement_level: this.calculateEngagementLevel(timeSpent),
+                engagement_level: calculateEngagementLevel(timeSpent),
                 category: 'user_journey'
             },
             timestamp: new Date(),
@@ -572,17 +524,6 @@ class PostHogService {
         };
 
         this.trackStructuredEvent(pageLeaveEvent);
-    }
-
-    /**
-     * Calculate engagement level based on time spent
-     */
-    private calculateEngagementLevel(timeSpent: number): string {
-        if (timeSpent < 5000) return 'bounce'; // Less than 5 seconds
-        if (timeSpent < 30000) return 'low'; // Less than 30 seconds
-        if (timeSpent < 120000) return 'medium'; // Less than 2 minutes
-        if (timeSpent < 300000) return 'high'; // Less than 5 minutes
-        return 'very_high'; // 5+ minutes
     }
 
     /**

@@ -701,19 +701,6 @@ class PostHogService {
     }
 
     /**
-     * Manually track page navigation (for SPA routing)
-     * 
-     * @param newPage - The new page URL or path
-     * @param referrer - The previous page (optional)
-     */
-    trackPageChange(newPage: string, referrer?: string): void {
-        if (!browser) return;
-
-        const previousPage = this.currentPage || referrer || '';
-        this.trackPageNavigation(newPage, previousPage);
-    }
-
-    /**
      * Get current session context
      */
     getSessionContext(): SessionContext | null {
@@ -1079,11 +1066,16 @@ class PostHogService {
 
             // Update user context if session is provided
             if (session?.user) {
-                this.identifyUser(session.user.name || 'anonymous', {
-                    email: session.user.email || undefined,
-                    role: session.user.role || undefined,
-                    cid: session.user.cid || undefined
-                });
+                const userId = session.user.name || 'anonymous';
+                try {
+                    posthog.identify(userId, {
+                        email: session.user.email || undefined,
+                        role: session.user.role || undefined,
+                        cid: session.user.cid || undefined
+                    });
+                } catch (error) {
+                    logger.error('PostHogService.trackEvent: Failed to identify user', { userId, error });
+                }
             }
 
             // Convert to structured event for consistency
@@ -1103,49 +1095,6 @@ class PostHogService {
         } catch (error) {
             logger.error('PostHogService.trackEvent: Failed to track event', { event, error });
             // Don't throw - event tracking failures shouldn't break the application
-        }
-    }
-
-    /**
-     * Identify a user with PostHog.
-     * 
-     * @param userId - The unique identifier for the user
-     * @param properties - Additional user properties
-     */
-    identifyUser(userId: string, properties?: PostHogUserProperties): void {
-        if (!browser) return;
-
-        if (!userId || typeof userId !== 'string') {
-            logger.warn('PostHogService.identifyUser: Invalid userId', { userId });
-            return;
-        }
-
-        try {
-            posthog.identify(userId, properties);
-            logger.info('PostHogService.identifyUser: User identified', { userId, properties });
-        } catch (error) {
-            logger.error('PostHogService.identifyUser: Failed to identify user', { userId, error });
-        }
-    }
-
-    /**
-     * Set user properties.
-     * 
-     * @param properties - Properties to set for the current user
-     */
-    setUserProperties(properties: PostHogUserProperties): void {
-        if (!browser) return;
-
-        if (!properties || typeof properties !== 'object') {
-            logger.warn('PostHogService.setUserProperties: Invalid properties', { properties });
-            return;
-        }
-
-        try {
-            posthog.people.set(properties);
-            logger.info('PostHogService.setUserProperties: User properties set', { properties });
-        } catch (error) {
-            logger.error('PostHogService.setUserProperties: Failed to set user properties', { error });
         }
     }
 
@@ -1174,7 +1123,12 @@ class PostHogService {
             this.sessionStartReferrer = null;
 
             // Clear event queues for privacy
-            this.clearEventQueues();
+            if (this.eventManager) {
+                this.eventManager.clearQueue();
+            }
+            if (this.eventQueue) {
+                this.eventQueue.clear();
+            }
 
             // Reset initialization flag to allow re-initialization with new session
             this.initialized = false;
@@ -1183,63 +1137,6 @@ class PostHogService {
         } catch (error) {
             logger.error('PostHogService.resetUser: Failed to reset user', { error });
         }
-    }
-
-    /**
-     * Get event processing statistics
-     */
-    getEventProcessingStats(): {
-        eventManager: ReturnType<EventManager['getQueueStats']> | undefined;
-        eventQueue: ReturnType<EventQueue['getStats']> | undefined;
-    } {
-        return {
-            eventManager: this.eventManager?.getQueueStats(),
-            eventQueue: this.eventQueue?.getStats()
-        };
-    }
-
-    /**
-     * Get the EventManager instance for advanced usage
-     */
-    getEventManager(): EventManager | null {
-        return this.eventManager;
-    }
-
-    /**
-     * Get the EventQueue instance for advanced usage
-     */
-    getEventQueue(): EventQueue | null {
-        return this.eventQueue;
-    }
-
-    /**
-     * Flush all pending events immediately
-     */
-    async flushEvents(): Promise<void> {
-        if (this.eventQueue) {
-            await this.eventQueue.flush();
-        }
-    }
-
-    /**
-     * Clear all queued events (useful for testing or privacy compliance)
-     */
-    clearEventQueues(): void {
-        if (this.eventManager) {
-            this.eventManager.clearQueue();
-        }
-        if (this.eventQueue) {
-            this.eventQueue.clear();
-        }
-    }
-
-    /**
-     * Get the PostHog instance for advanced usage.
-     * 
-     * @returns The PostHog instance
-     */
-    getInstance(): typeof posthog {
-        return posthog;
     }
 }
 

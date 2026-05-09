@@ -218,7 +218,7 @@
 		editType = position.positionType;
 		editCode = ''; // Code is not in MassPositionView, will need to fetch or leave empty
 		editDescription = ''; // Description is not in MassPositionView, will need to fetch or leave empty
-		editIsPpg = position.isPpg;
+		editIsPpg = position.isPpg ?? false;
 		editSequence = position.positionSequence !== null ? position.positionSequence.toString() : '';
 		showEditModal = true;
 	}

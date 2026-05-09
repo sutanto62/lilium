@@ -41,8 +41,8 @@ export interface EventUsher {
 	name: string;
 	wilayah: string;
 	lingkungan: string;
-	isPpg: boolean | false;
-	isKolekte: boolean | false;
+	isPpg: boolean | null;
+	isKolekte: boolean | null;
 	position: string | null;
 	createdAt: number;
 }

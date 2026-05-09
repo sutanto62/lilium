@@ -60,7 +60,7 @@ export interface ChurchPosition {
 	name: string;
 	code: string | null;
 	description: string | null;
-	isPpg: boolean | false;
+	isPpg: boolean | null;
 	sequence: number | null; // Sequence should be unique by church
 	type: string;
 	active: number;
@@ -76,7 +76,7 @@ export interface MassPositionView {
 	positionId: string;
 	positionName: string;
 	positionType: 'usher' | 'prodiakon' | 'peta';
-	isPpg: boolean;
+	isPpg: boolean | null;
 	positionSequence: number | null;
 	positionActive: number;
 }
@@ -102,8 +102,8 @@ export interface Lingkungan {
 
 export interface Usher {
 	name: string;
-	isPpg: boolean | false;
-	isKolekte: boolean | false;
+	isPpg: boolean | null;
+	isKolekte: boolean | null;
 	sequence: number | null;
 	validationMessage?: string;
 }

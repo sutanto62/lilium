@@ -7,8 +7,8 @@ export interface UsherResponse {
     zone: string | null;
     wilayah: string | null;
     lingkungan: string | null;
-    isPpg: boolean | false;
-    isKolekte: boolean | false;
+    isPpg: boolean | null;
+    isKolekte: boolean | null;
     position: string | null;
     sequence: number | null;
     createdAt: number | null;

@@ -1,11 +1,11 @@
 import { browser } from '$app/environment';
 import type { Session } from "@auth/core/types";
 import posthog from 'posthog-js';
-import { calculateEngagementLevel, categorizeReferrer, isHomepage } from '../utils/analyticsUtils';
 import { logger } from '../utils/logger';
 import { EventManager } from './EventManager';
 import { EventPriority, EventQueue } from './EventQueue';
 import { sessionContextManager, type ChurchContext, type SessionContext } from './SessionContextManager';
+import { UserJourneyTracker, type UserJourneyStats } from './UserJourneyTracker';
 
 // Enhanced Analytics Interfaces
 
@@ -168,14 +168,10 @@ export interface ChurchEventProperties {
 class PostHogService {
     private static instance: PostHogService;
     private initialized = false;
-    private currentJourney: UserJourney | null = null;
+    private journeyTracker: UserJourneyTracker | null = null;
     private eventManager: EventManager | null = null;
     private eventQueue: EventQueue | null = null;
     private testMode = false; // Add test mode flag
-    private currentPageStartTime: Date | null = null;
-    private currentPage: string | null = null;
-    private sessionStartPage: string | null = null;
-    private sessionStartReferrer: string | null = null;
 
     /**
      * Create a new instance of the PostHogService.
@@ -334,72 +330,44 @@ class PostHogService {
     }
 
     /**
-     * Initialize user journey tracking for the current session
+     * Initialize user journey tracking for the current session.
+     * Lazily creates the UserJourneyTracker on first call.
      */
     private initializeUserJourney(): void {
         if (!browser || this.testMode) return;
 
-        const sessionContext = sessionContextManager.getSessionContext();
-        if (!sessionContext) {
-            logger.warn('PostHog: Cannot initialize user journey - no session context');
-            return;
+        if (!this.journeyTracker) {
+            this.journeyTracker = new UserJourneyTracker(
+                (event) => this.trackStructuredEvent(event),
+                (event) => this.sendBeaconEvent(event)
+            );
         }
 
-        // Create new user journey
-        this.currentJourney = {
-            sessionId: sessionContext.sessionId,
-            startTime: sessionContext.startTime,
-            pages: [],
-            actions: [],
-            conversionEvents: []
-        };
-
-        // Capture entry point information
-        this.captureEntryPoint();
-
-        logger.info('PostHogService.initializeUserJourney: User journey tracking initialized', {
-            sessionId: sessionContext.sessionId
-        });
+        this.journeyTracker.initialize();
     }
 
     /**
-     * Capture entry point and referrer information for the session
+     * Send an event synchronously via navigator.sendBeacon (used during page unload).
+     * Falls back to regular tracking if sendBeacon is unavailable.
      */
-    private captureEntryPoint(): void {
-        if (!browser || this.testMode) return;
-
-        const currentUrl = window.location.href;
-        const referrer = document.referrer;
-        const isOnHomepage = isHomepage(currentUrl);
-
-        // Store session start information
-        this.sessionStartPage = currentUrl;
-        this.sessionStartReferrer = referrer;
-
-        // Track entry point event
-        const entryPointEvent: AnalyticsEvent = {
-            name: 'session_entry_point',
-            properties: {
-                entry_page: currentUrl,
-                referrer: referrer || 'direct',
-                is_homepage: isOnHomepage,
-                entry_source: categorizeReferrer(referrer, window.location.hostname),
-                category: 'user_journey'
-            },
-            timestamp: new Date(),
-            sessionId: this.currentJourney?.sessionId || '',
-            userId: sessionContextManager.getSessionContext()?.userId,
-            userRole: sessionContextManager.getSessionContext()?.userRole,
-            churchContext: sessionContextManager.getSessionContext()?.churchContext
-        };
-
-        this.trackStructuredEvent(entryPointEvent);
-
-        logger.info('PostHogService.captureEntryPoint: Entry point captured', {
-            entryPage: currentUrl,
-            referrer: referrer || 'direct',
-            isHomepage: isOnHomepage
-        });
+    private sendBeaconEvent(event: AnalyticsEvent): void {
+        if (browser && navigator.sendBeacon) {
+            const payload = JSON.stringify({
+                event: event.name,
+                properties: {
+                    ...event.properties,
+                    timestamp: event.timestamp.toISOString(),
+                    sessionId: event.sessionId,
+                    userId: event.userId,
+                    userRole: event.userRole,
+                    churchContext: event.churchContext
+                }
+            });
+            const posthogUrl = `${import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com'}/capture/`;
+            navigator.sendBeacon(posthogUrl, payload);
+        } else {
+            this.trackStructuredEvent(event);
+        }
     }
 
     /**
@@ -411,240 +379,37 @@ class PostHogService {
      * (SPA navigation) and stays attached directly here.
      */
     private setupPageNavigationTracking(): void {
-        if (!browser || this.testMode) return;
+        if (!browser || this.testMode || !this.journeyTracker) return;
 
         // Track initial page load
-        this.trackPageNavigation(window.location.href, document.referrer);
+        this.journeyTracker.trackPageNavigation(window.location.href, document.referrer);
 
         // Subscribe to SessionContextManager lifecycle events
         sessionContextManager.addLifecycleListener((event) => {
+            if (!this.journeyTracker) return;
             switch (event) {
                 case 'session_terminating':
-                    this.handleSessionTermination();
+                    this.journeyTracker.handleSessionTermination();
                     break;
                 case 'page_hidden':
-                    this.handlePageLeave();
+                    this.journeyTracker.handlePageLeave();
                     break;
                 case 'page_visible':
-                    this.handlePageReturn();
+                    this.journeyTracker.handlePageReturn();
                     break;
             }
         });
 
         // Set up popstate handler for SPA navigation
         window.addEventListener('popstate', () => {
-            this.trackPageNavigation(window.location.href, this.currentPage || '');
+            if (!this.journeyTracker) return;
+            this.journeyTracker.trackPageNavigation(
+                window.location.href,
+                this.journeyTracker.getCurrentPage() || ''
+            );
         });
 
         logger.info('PostHogService.setupPageNavigationTracking: Page navigation tracking set up');
-    }
-
-    /**
-     * Track page navigation with time spent calculation
-     */
-    private trackPageNavigation(newPage: string, referrer: string): void {
-        if (!browser || !this.currentJourney || this.testMode) return;
-
-        const now = new Date();
-
-        // Calculate time spent on previous page
-        let timeSpent: number | undefined;
-        if (this.currentPageStartTime && this.currentPage) {
-            timeSpent = now.getTime() - this.currentPageStartTime.getTime();
-
-            // Update the previous page visit with time spent
-            const lastPageVisit = this.currentJourney.pages[this.currentJourney.pages.length - 1];
-            if (lastPageVisit && lastPageVisit.page === this.currentPage) {
-                lastPageVisit.timeSpent = timeSpent;
-            }
-
-            // Track page leave event for the previous page
-            this.trackPageLeaveEvent(this.currentPage, timeSpent);
-        }
-
-        // Create new page visit record
-        const pageVisit: PageVisit = {
-            page: newPage,
-            timestamp: now,
-            referrer: referrer || undefined
-        };
-
-        // Add to journey
-        this.currentJourney.pages.push(pageVisit);
-
-        // Update current page tracking
-        this.currentPage = newPage;
-        this.currentPageStartTime = now;
-
-        // Track page view event
-        this.trackPageViewEvent(newPage, referrer, timeSpent);
-
-        logger.info('PostHogService.trackPageNavigation: Page navigation tracked', {
-            newPage,
-            timeSpentOnPrevious: timeSpent,
-            totalPages: this.currentJourney.pages.length
-        });
-    }
-
-    /**
-     * Track page view event with navigation context
-     */
-    private trackPageViewEvent(page: string, referrer: string, timeSpentOnPrevious?: number): void {
-        const pageViewEvent: AnalyticsEvent = {
-            name: 'page_navigation',
-            properties: {
-                page,
-                referrer: referrer || 'direct',
-                time_spent_on_previous: timeSpentOnPrevious,
-                page_sequence: this.currentJourney?.pages.length || 1,
-                session_duration: this.getSessionDuration(),
-                category: 'user_journey'
-            },
-            timestamp: new Date(),
-            sessionId: this.currentJourney?.sessionId || '',
-            userId: sessionContextManager.getSessionContext()?.userId,
-            userRole: sessionContextManager.getSessionContext()?.userRole,
-            churchContext: sessionContextManager.getSessionContext()?.churchContext
-        };
-
-        this.trackStructuredEvent(pageViewEvent);
-    }
-
-    /**
-     * Track page leave event with time spent
-     */
-    private trackPageLeaveEvent(page: string, timeSpent: number): void {
-        const pageLeaveEvent: AnalyticsEvent = {
-            name: 'page_leave',
-            properties: {
-                page,
-                time_spent: timeSpent,
-                engagement_level: calculateEngagementLevel(timeSpent),
-                category: 'user_journey'
-            },
-            timestamp: new Date(),
-            sessionId: this.currentJourney?.sessionId || '',
-            userId: sessionContextManager.getSessionContext()?.userId,
-            userRole: sessionContextManager.getSessionContext()?.userRole,
-            churchContext: sessionContextManager.getSessionContext()?.churchContext
-        };
-
-        this.trackStructuredEvent(pageLeaveEvent);
-    }
-
-    /**
-     * Handle page leave (when tab becomes hidden)
-     */
-    private handlePageLeave(): void {
-        if (!this.currentPageStartTime || !this.currentPage) return;
-
-        // Don't end the page session, just pause timing
-        // We'll resume when the page becomes visible again
-        logger.info('PostHogService.handlePageLeave: Page hidden, pausing time tracking');
-    }
-
-    /**
-     * Handle page return (when tab becomes visible again)
-     */
-    private handlePageReturn(): void {
-        if (!this.currentPage) return;
-
-        // Resume timing from current moment
-        this.currentPageStartTime = new Date();
-        logger.info('PostHogService.handlePageReturn: Page visible, resuming time tracking');
-    }
-
-    /**
-     * Handle session termination and record final metrics
-     */
-    private handleSessionTermination(): void {
-        if (!this.currentJourney) return;
-
-        const now = new Date();
-        const sessionDuration = now.getTime() - this.currentJourney.startTime.getTime();
-
-        // Calculate final time spent on current page
-        let finalTimeSpent: number | undefined;
-        if (this.currentPageStartTime && this.currentPage) {
-            finalTimeSpent = now.getTime() - this.currentPageStartTime.getTime();
-
-            // Update the current page visit with final time spent
-            const lastPageVisit = this.currentJourney.pages[this.currentJourney.pages.length - 1];
-            if (lastPageVisit && lastPageVisit.page === this.currentPage) {
-                lastPageVisit.timeSpent = finalTimeSpent;
-            }
-        }
-
-        // Track session termination event
-        const sessionTerminationEvent: AnalyticsEvent = {
-            name: 'session_termination',
-            properties: {
-                session_duration: sessionDuration,
-                pages_visited: this.currentJourney.pages.length,
-                actions_performed: this.currentJourney.actions.length,
-                conversions_completed: this.currentJourney.conversionEvents.length,
-                entry_page: this.sessionStartPage,
-                exit_page: this.currentPage,
-                entry_referrer: this.sessionStartReferrer,
-                final_time_on_page: finalTimeSpent,
-                total_engagement_time: this.calculateTotalEngagementTime(),
-                bounce_rate: this.currentJourney.pages.length === 1 ? 1 : 0,
-                category: 'user_journey'
-            },
-            timestamp: now,
-            sessionId: this.currentJourney.sessionId,
-            userId: sessionContextManager.getSessionContext()?.userId,
-            userRole: sessionContextManager.getSessionContext()?.userRole,
-            churchContext: sessionContextManager.getSessionContext()?.churchContext
-        };
-
-        // Send immediately (synchronous) since page is unloading
-        if (browser && navigator.sendBeacon) {
-            // Use sendBeacon for reliable delivery during page unload
-            const payload = JSON.stringify({
-                event: sessionTerminationEvent.name,
-                properties: {
-                    ...sessionTerminationEvent.properties,
-                    timestamp: sessionTerminationEvent.timestamp.toISOString(),
-                    sessionId: sessionTerminationEvent.sessionId,
-                    userId: sessionTerminationEvent.userId,
-                    userRole: sessionTerminationEvent.userRole,
-                    churchContext: sessionTerminationEvent.churchContext
-                }
-            });
-
-            const posthogUrl = `${import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com'}/capture/`;
-            navigator.sendBeacon(posthogUrl, payload);
-        } else {
-            // Fallback to regular tracking
-            this.trackStructuredEvent(sessionTerminationEvent);
-        }
-
-        logger.info('PostHogService.handleSessionTermination: Session termination recorded', {
-            sessionDuration,
-            pagesVisited: this.currentJourney.pages.length,
-            actionsPerformed: this.currentJourney.actions.length,
-            conversions: this.currentJourney.conversionEvents.length
-        });
-    }
-
-    /**
-     * Calculate total engagement time (sum of time spent on all pages)
-     */
-    private calculateTotalEngagementTime(): number {
-        if (!this.currentJourney) return 0;
-
-        return this.currentJourney.pages.reduce((total, page) => {
-            return total + (page.timeSpent || 0);
-        }, 0);
-    }
-
-    /**
-     * Get current session duration in milliseconds
-     */
-    private getSessionDuration(): number {
-        if (!this.currentJourney) return 0;
-        return Date.now() - this.currentJourney.startTime.getTime();
     }
 
     /**
@@ -812,15 +577,13 @@ class PostHogService {
         await this.trackStructuredEvent(event);
 
         // Add to user journey if tracking
-        if (this.currentJourney) {
-            this.currentJourney.actions.push({
-                action: eventType,
-                target: properties.entityId || 'unknown',
-                timestamp: new Date(),
-                result: 'success',
-                properties: properties
-            });
-        }
+        this.journeyTracker?.recordAction({
+            action: eventType,
+            target: properties.entityId || 'unknown',
+            timestamp: new Date(),
+            result: 'success',
+            properties: properties
+        });
     }
 
     /**
@@ -895,32 +658,20 @@ class PostHogService {
         const sessionContext = sessionContextManager.getSessionContext();
 
         // Handle user journey tracking for page navigation (only in non-test mode)
-        if (!this.testMode) {
-            if (this.currentJourney && browser) {
+        if (!this.testMode && browser) {
+            if (this.journeyTracker?.getJourney()) {
                 // If this is a different page than current, track navigation
-                if (this.currentPage !== pageName) {
-                    this.trackPageNavigation(pageName, this.currentPage || '');
+                if (this.journeyTracker.getCurrentPage() !== pageName) {
+                    this.journeyTracker.trackPageNavigation(pageName, this.journeyTracker.getCurrentPage() || '');
                 }
-            } else if (browser) {
+            } else {
                 // Initialize journey if not already done
                 this.initializeUserJourney();
-                this.trackPageNavigation(pageName, document.referrer || '');
+                this.journeyTracker?.trackPageNavigation(pageName, document.referrer || '');
             }
-        }
 
-        const pageVisit: PageVisit = {
-            page: pageName,
-            timestamp: new Date(),
-            referrer: browser ? document.referrer || undefined : undefined
-        };
-
-        // Add to user journey (only in non-test mode to avoid complexity)
-        if (!this.testMode && this.currentJourney) {
-            // Check if this page is already the last page in journey (avoid duplicates)
-            const lastPage = this.currentJourney.pages[this.currentJourney.pages.length - 1];
-            if (!lastPage || lastPage.page !== pageName) {
-                this.currentJourney.pages.push(pageVisit);
-            }
+            // Add to user journey (dedupe handled by recordPageVisit)
+            this.journeyTracker?.recordPageVisit(pageName);
         }
 
         const event: AnalyticsEvent = {
@@ -928,8 +679,8 @@ class PostHogService {
             properties: {
                 page: pageName,
                 referrer: browser ? document.referrer : undefined,
-                page_sequence: this.currentJourney?.pages.length || 1,
-                session_duration: this.getSessionDuration(),
+                page_sequence: this.journeyTracker?.getJourney()?.pages.length || 1,
+                session_duration: this.journeyTracker?.getSessionDuration() || 0,
                 ...properties
             },
             timestamp: new Date(),
@@ -953,37 +704,14 @@ class PostHogService {
      * Get current user journey
      */
     getCurrentJourney(): UserJourney | null {
-        return this.currentJourney;
+        return this.journeyTracker?.getJourney() ?? null;
     }
 
     /**
      * Get user journey statistics
      */
-    getJourneyStats(): {
-        sessionDuration: number;
-        pagesVisited: number;
-        actionsPerformed: number;
-        conversionsCompleted: number;
-        totalEngagementTime: number;
-        averageTimePerPage: number;
-        entryPage: string | null;
-        currentPage: string | null;
-    } | null {
-        if (!this.currentJourney) return null;
-
-        const totalEngagementTime = this.calculateTotalEngagementTime();
-        const pagesVisited = this.currentJourney.pages.length;
-
-        return {
-            sessionDuration: this.getSessionDuration(),
-            pagesVisited,
-            actionsPerformed: this.currentJourney.actions.length,
-            conversionsCompleted: this.currentJourney.conversionEvents.length,
-            totalEngagementTime,
-            averageTimePerPage: pagesVisited > 0 ? totalEngagementTime / pagesVisited : 0,
-            entryPage: this.sessionStartPage,
-            currentPage: this.currentPage
-        };
+    getJourneyStats(): UserJourneyStats | null {
+        return this.journeyTracker?.getStats() ?? null;
     }
 
     /**
@@ -1053,21 +781,15 @@ class PostHogService {
 
         try {
             // Record session termination before reset
-            if (this.currentJourney) {
-                this.handleSessionTermination();
+            if (this.journeyTracker?.getJourney()) {
+                this.journeyTracker.handleSessionTermination();
             }
 
             posthog.reset();
 
-            // Clear session context and journey using SessionContextManager
+            // Clear session context and journey state
             sessionContextManager.clearSession();
-            this.currentJourney = null;
-
-            // Clear page tracking state
-            this.currentPage = null;
-            this.currentPageStartTime = null;
-            this.sessionStartPage = null;
-            this.sessionStartReferrer = null;
+            this.journeyTracker?.reset();
 
             // Clear event queues for privacy
             if (this.eventManager) {

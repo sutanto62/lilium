@@ -28,7 +28,9 @@ vi.mock('./SessionContextManager', () => {
         initializeSession: vi.fn(),
         getSessionContext: vi.fn(),
         updateSessionContext: vi.fn(),
-        clearSession: vi.fn()
+        clearSession: vi.fn(),
+        addLifecycleListener: vi.fn(),
+        removeLifecycleListener: vi.fn()
     };
 
     return {

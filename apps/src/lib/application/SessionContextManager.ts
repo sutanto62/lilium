@@ -50,6 +50,13 @@ export interface SessionUpdateEvent {
 }
 
 /**
+ * Browser lifecycle event broadcast by SessionContextManager.
+ * Subscribers (e.g. PostHogService) react instead of attaching their own
+ * `beforeunload` / `visibilitychange` listeners, eliminating duplication.
+ */
+export type LifecycleEvent = 'page_hidden' | 'page_visible' | 'session_terminating';
+
+/**
  * SessionContextManager - Manages user session state and church context for analytics
  * 
  * This class provides centralized session management for the analytics system,
@@ -77,6 +84,7 @@ export class SessionContextManager {
     private sessionStartTime: Date | null = null;
     private activityTimer: NodeJS.Timeout | null = null;
     private updateListeners: ((event: SessionUpdateEvent) => void)[] = [];
+    private lifecycleListeners: ((event: LifecycleEvent) => void)[] = [];
     private readonly ACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
     private readonly STORAGE_KEY = 'lilium_session_context';
 
@@ -109,15 +117,21 @@ export class SessionContextManager {
         // Load persisted privacy settings
         this.loadPrivacySettings();
 
-        // Set up beforeunload handler for session cleanup
+        // Set up beforeunload handler for session cleanup.
+        // Subscribers (e.g. PostHogService) react via lifecycle events.
         window.addEventListener('beforeunload', () => {
+            this.notifyLifecycleListeners('session_terminating');
             this.handleSessionEnd();
         });
 
-        // Set up visibility change handler for activity tracking
+        // Set up visibility change handler. Broadcasts to lifecycle listeners
+        // and refreshes activity timer on return.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
+                this.notifyLifecycleListeners('page_visible');
                 this.updateActivity();
+            } else if (document.visibilityState === 'hidden') {
+                this.notifyLifecycleListeners('page_hidden');
             }
         });
     }
@@ -409,7 +423,7 @@ export class SessionContextManager {
 
     /**
      * Add listener for session context updates
-     * 
+     *
      * @param listener - Function to call when context updates
      */
     addUpdateListener(listener: (event: SessionUpdateEvent) => void): void {
@@ -418,13 +432,35 @@ export class SessionContextManager {
 
     /**
      * Remove update listener
-     * 
+     *
      * @param listener - Listener function to remove
      */
     removeUpdateListener(listener: (event: SessionUpdateEvent) => void): void {
         const index = this.updateListeners.indexOf(listener);
         if (index > -1) {
             this.updateListeners.splice(index, 1);
+        }
+    }
+
+    /**
+     * Subscribe to browser lifecycle events (page hidden/visible, session terminating).
+     * Use this instead of attaching your own `beforeunload` / `visibilitychange` listeners.
+     *
+     * @param listener - Function to call when a lifecycle event fires
+     */
+    addLifecycleListener(listener: (event: LifecycleEvent) => void): void {
+        this.lifecycleListeners.push(listener);
+    }
+
+    /**
+     * Unsubscribe from browser lifecycle events.
+     *
+     * @param listener - Listener function previously passed to addLifecycleListener
+     */
+    removeLifecycleListener(listener: (event: LifecycleEvent) => void): void {
+        const index = this.lifecycleListeners.indexOf(listener);
+        if (index > -1) {
+            this.lifecycleListeners.splice(index, 1);
         }
     }
 
@@ -708,6 +744,16 @@ export class SessionContextManager {
     /**
      * Notify all update listeners
      */
+    private notifyLifecycleListeners(event: LifecycleEvent): void {
+        this.lifecycleListeners.forEach(listener => {
+            try {
+                listener(event);
+            } catch (error) {
+                logger.error('SessionContextManager: lifecycle listener failed', { event, error });
+            }
+        });
+    }
+
     private notifyListeners(event: SessionUpdateEvent): void {
         this.updateListeners.forEach(listener => {
             try {

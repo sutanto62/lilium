@@ -403,7 +403,12 @@ class PostHogService {
     }
 
     /**
-     * Set up page navigation tracking with time spent calculation
+     * Set up page navigation tracking with time spent calculation.
+     *
+     * Lifecycle events (`beforeunload`, `visibilitychange`) are owned by
+     * `SessionContextManager` — we subscribe to its broadcast instead of
+     * attaching duplicate DOM listeners. `popstate` is PostHog-specific
+     * (SPA navigation) and stays attached directly here.
      */
     private setupPageNavigationTracking(): void {
         if (!browser || this.testMode) return;
@@ -411,17 +416,18 @@ class PostHogService {
         // Track initial page load
         this.trackPageNavigation(window.location.href, document.referrer);
 
-        // Set up beforeunload handler for session termination
-        window.addEventListener('beforeunload', () => {
-            this.handleSessionTermination();
-        });
-
-        // Set up visibility change handler for accurate time tracking
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') {
-                this.handlePageLeave();
-            } else if (document.visibilityState === 'visible') {
-                this.handlePageReturn();
+        // Subscribe to SessionContextManager lifecycle events
+        sessionContextManager.addLifecycleListener((event) => {
+            switch (event) {
+                case 'session_terminating':
+                    this.handleSessionTermination();
+                    break;
+                case 'page_hidden':
+                    this.handlePageLeave();
+                    break;
+                case 'page_visible':
+                    this.handlePageReturn();
+                    break;
             }
         });
 

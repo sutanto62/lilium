@@ -1,4 +1,16 @@
-Perform a security review of the provided code against this checklist.
+---
+name: security-review
+description: >
+  Run a security review of SvelteKit code against this project's security standards.
+  Trigger this skill whenever the user shares, writes, or asks you to review any SvelteKit
+  route, server action, hook, or form — even if they don't mention security explicitly.
+  Common triggers: "does this look good?", "review this route", "I added a new page",
+  "is this correct?", any code touching +page.server.ts, hooks.server.ts, form actions,
+  session/role checks, environment variables, or input handling. When in doubt, run it —
+  a false positive is far cheaper than a missed vulnerability.
+---
+
+Review the provided code against this security checklist. Work through each section, flag every violation with its file location, and suggest a concrete fix. Skip sections that clearly don't apply (e.g. no cookies in the diff → skip Cookies).
 
 ## Authentication & Authorization
 - [ ] Session validated before accessing protected resources (`event.locals.auth()`)
@@ -43,4 +55,15 @@ Perform a security review of the provided code against this checklist.
 ## Dependencies
 - [ ] `npm audit` clean (no high/critical vulnerabilities)
 
-Report each finding with the file location and a recommended fix.
+## Reporting format
+
+For each finding, report:
+```
+🔴 HIGH / 🟡 MEDIUM / 🟢 LOW  — [Section]
+File: src/routes/admin/...
+Issue: <what's wrong>
+Fix:
+  // corrected code snippet
+```
+
+If no issues are found, say: "✅ No security issues found in the reviewed code."

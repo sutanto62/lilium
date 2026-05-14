@@ -15,7 +15,7 @@
 
 ---
 
-## Phase 0 — Feature Flag Plumbing
+## Phase 0 — Feature Flag Plumbing (Done)
 
 - [ ] **0.1** Add `featurePreference` column to `user` table; generate + apply migration
 - [ ] **0.2** Add preference toggle UI in `/admin/settings` sidebar — render only when `locals.user.role === 'admin'` (D2)
@@ -30,26 +30,26 @@
 
 ## Phase 1 — New Domain Entities
 
-- [ ] **1.1** Create `src/core/entities/Parish.ts` — Parish, Wilayah, Community, CommunityWithAncestry, ChurchContext, ParishHierarchy
-- [ ] **1.2** Create `src/core/entities/Facility.ts` — Church (v2), Section, Zone, Station, ChurchFacility
-- [ ] **1.3** Create `src/core/entities/Ministry.ts` — Ministry, MinistryRole
-- [ ] **1.4** Create `src/core/entities/Roster.ts` — RosterStatus, Roster, RosterEntry, RosterUsher, command types
-- [ ] **1.5** Verify `npm run check` passes with no type errors
+- [x] **1.1** Create `src/core/entities/Parish.ts` — Parish, Wilayah, Community, CommunityWithAncestry, ChurchContext, ParishHierarchy
+- [x] **1.2** Create `src/core/entities/Facility.ts` — Church (v2), Section, Zone, Station, ChurchFacility
+- [x] **1.3** Create `src/core/entities/Ministry.ts` — Ministry, MinistryRole
+- [x] **1.4** Create `src/core/entities/Roster.ts` — RosterStatus, Roster, RosterEntry, RosterUsher, command types
+- [x] **1.5** Verify `npm run check` passes with no type errors
 
 ---
 
 ## Phase 2 — New DB Schema + Migrations
 
-- [ ] **2.1** Add `parish` table to `schema.ts` + seed one row in migration (D1)
-- [ ] **2.2** Add nullable `parishId` FK to `wilayah` and `church` tables
-- [ ] **2.3** Add `community` table (empty; D3 — no data copied from `lingkungan` until Phase 8)
-- [ ] **2.4** Add `section` table (parallel to `church_zone_group`)
-- [ ] **2.5** Add `zone` v2 table with `sectionId` FK (parallel to `church_zone`)
-- [ ] **2.6** Add `station` table with `ministryId` FK (parallel to `church_position`)
-- [ ] **2.7** Add `ministry` + `ministry_role` tables + seed data
-- [ ] **2.8** Add `roster`, `roster_entry`, `roster_usher` tables
-- [ ] **2.9** Run `npm run db:generate` + `npm run db:migrate` — verify clean run
-- [ ] **2.10** Verify old tables still exist in Drizzle Studio
+- [x] **2.1** Add `parish` table to `schema.ts` + seed one row in migration (D1)
+- [x] **2.2** Add nullable `parishId` FK to `wilayah` and `church` tables
+- [x] **2.3** Add `community` table (empty; D3 — no data copied from `lingkungan` until Phase 8)
+- [x] **2.4** Add `section` table (parallel to `church_zone_group`)
+- [x] **2.5** Add `zone` v2 table with `sectionId` FK (parallel to `church_zone`)
+- [x] **2.6** Add `station` table with `ministryId` FK (parallel to `church_position`)
+- [x] **2.7** Add `ministry` + `ministry_role` tables + seed data
+- [x] **2.8** Add `roster`, `roster_entry`, `roster_usher` tables
+- [x] **2.9** Run `npm run db:generate` + `npm run db:migrate` — verify clean run
+- [x] **2.10** Verify old tables still exist in Drizzle Studio
 
 ---
 

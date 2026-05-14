@@ -1,0 +1,4 @@
+-- Initial schema migration (applied 2024-12-29).
+-- Original SQL file was not committed; this placeholder allows the migrator to
+-- read the journal without error. The migration is already recorded in
+-- __drizzle_migrations and will be skipped based on the timestamp comparison.

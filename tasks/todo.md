@@ -15,14 +15,14 @@
 
 ---
 
-## Phase 0 — Feature Flag Plumbing (Done)
+## Phase 0 — Feature Flag Plumbing
 
-- [ ] **0.1** Add `featurePreference` column to `user` table; generate + apply migration
-- [ ] **0.2** Add preference toggle UI in `/admin/settings` sidebar — render only when `locals.user.role === 'admin'` (D2)
-- [ ] **0.3** Form action: persist `featurePreference` for logged-in user
-- [ ] **0.4** On layout load: call `statsigService.updateUser` with `featurePreference`
-- [ ] **0.5** Create `src/lib/server/featureFlags.ts` — `checkServerGate(locals, gate)` helper
-- [ ] **0.6** Unit test for `checkServerGate` fallback behaviour
+- [x] **0.1** Add `featurePreference` column to `user` table; generate + apply migration
+- [x] **0.2** Add preference toggle UI in `/admin/settings` sidebar — render only when `locals.user.role === 'admin'` (D2)
+- [x] **0.3** Form action: persist `featurePreference` for logged-in user
+- [x] **0.4** On layout load: call `statsigService.updateUser` with `featurePreference`
+- [x] **0.5** Create `src/lib/server/featureFlags.ts` — `checkServerGate(locals, gate)` helper
+- [x] **0.6** Unit test for `checkServerGate` fallback behaviour
 
 **⏸ CHECKPOINT 0** — Gate check works end-to-end, preference persists
 
@@ -55,21 +55,21 @@
 
 ## Phase 3 — Repository Interfaces
 
-- [ ] **3.1** Create `src/core/repositories/ParishRepository.ts`
-- [ ] **3.2** Create `src/core/repositories/FacilityRepository.ts`
-- [ ] **3.3** Create `src/core/repositories/MinistryRepository.ts`
-- [ ] **3.4** Create `src/core/repositories/RosterRepository.ts`
+- [x] **3.1** Create `src/core/repositories/ParishRepository.ts`
+- [x] **3.2** Create `src/core/repositories/FacilityRepository.ts`
+- [x] **3.3** Create `src/core/repositories/MinistryRepository.ts`
+- [x] **3.4** Create `src/core/repositories/RosterRepository.ts`
 
 ---
 
 ## Phase 4 — Adapter Implementations
 
-- [ ] **4.1** Extend `SQLiteDbRegion.ts` with `findParishHierarchy`, `listCommunities`, `findCommunityById`
-- [ ] **4.2** Extend `SQLiteDbFacility.ts` with `findChurchFacility`, `listStationsByZone`, `listZonesByEvent`
-- [ ] **4.3** Create `src/lib/server/adapters/SQLiteDbMinistry.ts`
-- [ ] **4.4** Create `src/lib/server/adapters/SQLiteDbRoster.ts` (with transactional submit + optimistic lock)
-- [ ] **4.5** Update `SQLiteAdapter.ts` facade to delegate new interfaces
-- [ ] **4.6** Integration tests for all four new adapters
+- [x] **4.1** Extend `SQLiteDbRegion.ts` with `findParishHierarchy`, `listCommunities`, `findCommunityById`
+- [x] **4.2** Extend `SQLiteDbFacility.ts` with `findChurchFacility`, `listStationsByZone`, `listZonesByEvent`
+- [x] **4.3** Create `src/lib/server/adapters/SQLiteDbMinistry.ts`
+- [x] **4.4** Create `src/lib/server/adapters/SQLiteDbRoster.ts` (with transactional submit + optimistic lock)
+- [x] **4.5** Update `SQLiteAdapter.ts` facade to delegate new interfaces
+- [x] **4.6** Integration tests for all four new adapters
 
 ---
 

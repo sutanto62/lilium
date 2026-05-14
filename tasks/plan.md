@@ -1,6 +1,6 @@
 # Plan: Rebuild Web App with Feature-Flagged Architecture Migration
 
-> Status: **Approved** — decisions recorded 2026-05-14
+> Status: **In Progress** — Phase 4 next
 > Last updated: 2026-05-14
 > Author: Claude Code (planning session)
 
@@ -97,9 +97,9 @@ Phase 0: Feature Flag Plumbing
 - On admin layout load: call `statsigService.updateUser({ custom: { featurePreference } })`
 
 **Acceptance criteria:**
-- [ ] Toggle visible only to users with `role = 'admin'`; invisible to `role = 'user'`
-- [ ] Preference persists across sessions (stored in `user` table, not `localStorage`)
-- [ ] `statsigService.checkGate('new_domain_model')` returns `true` for opted-in admin in Statsig console
+- [x] Toggle visible only to users with `role = 'admin'`; invisible to `role = 'user'`
+- [x] Preference persists across sessions (stored in `user` table, not `localStorage`)
+- [x] `statsigService.checkGate('new_domain_model')` returns `true` for opted-in admin in Statsig console
 
 **Verification:** Manual test — flip toggle as admin, reload, check Statsig diagnostics panel.
 
@@ -115,14 +115,14 @@ Phase 0: Feature Flag Plumbing
 - Falls back to `false` on missing key (dev safety)
 
 **Acceptance criteria:**
-- [ ] Function importable in any `+page.server.ts`
-- [ ] Returns consistent result matching client-side `checkGate`
+- [x] Function importable in any `+page.server.ts`
+- [x] Returns consistent result matching client-side `checkGate`
 
 **Verification:** Unit test in `src/lib/server/__tests__/featureFlags.test.ts`.
 
 ---
 
-**CHECKPOINT 0:** Gate check works end-to-end. User preference is persisted. Get team sign-off before building domain layer.
+**CHECKPOINT 0 ✅:** Gate check works end-to-end. User preference is persisted. Get team sign-off before building domain layer.
 
 ---
 
@@ -139,8 +139,8 @@ Interfaces: `Parish`, `Wilayah`, `Community`, `CommunityWithAncestry`, `ChurchCo
 > **D1 implication:** `Parish` interface is present for completeness but the app always operates against the single seeded row. No tenant-scoping generics needed. `ChurchContext` does not need a `parishId` discriminator in practice.
 
 **Acceptance criteria:**
-- [ ] File compiles with `npm run check`
-- [ ] No import of `ChurchZoneGroup` / `Lingkungan` / `church_zone` in this file
+- [x] File compiles with `npm run check`
+- [x] No import of `ChurchZoneGroup` / `Lingkungan` / `church_zone` in this file
 
 ### Task 1.2 — Physical hierarchy entities
 
@@ -151,8 +151,8 @@ Interfaces: `Church` (new, with `parishId`), `Section`, `Zone`, `Station`, `Chur
 Note: new `Church` interface intentionally differs from old `Schedule.ts:Church` — old type stays to avoid breaking existing code.
 
 **Acceptance criteria:**
-- [ ] File compiles cleanly
-- [ ] `Station` has `ministryId` (FK to Ministry) not boolean `isPpg`
+- [x] File compiles cleanly
+- [x] `Station` has `ministryId` (FK to Ministry) not boolean `isPpg`
 
 ### Task 1.3 — Ministry catalog entities
 
@@ -161,8 +161,8 @@ File: `src/core/entities/Ministry.ts`
 Interfaces: `Ministry`, `MinistryRole`
 
 **Acceptance criteria:**
-- [ ] No boolean flags (`isPpg`, `isKolekte`) — replaced by `MinistryRole.code`
-- [ ] `Ministry.requiresStation: boolean` present
+- [x] No boolean flags (`isPpg`, `isKolekte`) — replaced by `MinistryRole.code`
+- [x] `Ministry.requiresStation: boolean` present
 
 ### Task 1.4 — Roster aggregate entities
 
@@ -171,9 +171,9 @@ File: `src/core/entities/Roster.ts`
 Interfaces + types: `RosterStatus`, `Roster`, `RosterEntry`, `RosterUsher`, `CreateRosterCommand`, `SubmitRosterEntryCommand`, `ConfirmRosterEntryCommand`
 
 **Acceptance criteria:**
-- [ ] `RosterEntry` has `communityName` + `wilayahName` snapshot fields
-- [ ] `Roster.version: number` present (optimistic lock)
-- [ ] `applyTransition` pure function (no I/O) compilable in this file or `RosterService.ts`
+- [x] `RosterEntry` has `communityName` + `wilayahName` snapshot fields
+- [x] `Roster.version: number` present (optimistic lock)
+- [x] `applyTransition` pure function (no I/O) compilable in this file or `RosterService.ts`
 
 ---
 
@@ -196,10 +196,10 @@ Update `church` table to add `parishId` nullable FK pointing to the single paris
 Generate migration: `npm run db:generate`
 
 **Acceptance criteria:**
-- [ ] `npm run db:migrate` runs without error on fresh DB
-- [ ] `SELECT COUNT(*) FROM parish` = 1 immediately after migration (seed row present)
-- [ ] Old tables (`church_zone_group`, `lingkungan`) still present (no drop)
-- [ ] `community` table exists but is empty (D3)
+- [x] `npm run db:migrate` runs without error on fresh DB
+- [x] `SELECT COUNT(*) FROM parish` = 1 immediately after migration (seed row present)
+- [x] Old tables (`church_zone_group`, `lingkungan`) still present (no drop)
+- [x] `community` table exists but is empty (D3)
 
 ### Task 2.2 — Ministry catalog tables
 
@@ -212,8 +212,8 @@ MinistryRole: REGULAR, KOLEKTE, PPG, PPKG (under USHER)
 ```
 
 **Acceptance criteria:**
-- [ ] `npm run db:migrate` inserts seed rows
-- [ ] `SELECT * FROM ministry` returns 4 rows in Drizzle Studio
+- [x] `npm run db:migrate` inserts seed rows
+- [x] `SELECT * FROM ministry` returns 4 rows in Drizzle Studio
 
 ### Task 2.3 — Roster tables
 
@@ -222,8 +222,8 @@ Add: `roster`, `roster_entry`, `roster_usher` tables
 Note: `station` table replaces `church_position`; `station` has `ministryId` FK.
 
 **Acceptance criteria:**
-- [ ] `npm run db:migrate` runs cleanly
-- [ ] All FK references resolve (no dangling references)
+- [x] `npm run db:migrate` runs cleanly
+- [x] All FK references resolve (no dangling references)
 
 ---
 
@@ -238,8 +238,8 @@ Files:
 - `src/core/repositories/FacilityRepository.ts` — `findChurchFacility`, `listStationsByZone`, `listZonesByEvent`
 
 **Acceptance criteria:**
-- [ ] Interfaces use only types from Phase 1 entity files
-- [ ] No Drizzle imports
+- [x] Interfaces use only types from Phase 1 entity files
+- [x] No Drizzle imports
 
 ### Task 3.2 — Ministry + Roster repositories
 
@@ -248,7 +248,7 @@ Files:
 - `src/core/repositories/RosterRepository.ts` — `createRoster`, `loadRoster`, `submitEntry`, `confirmEntry`, `reopenEntry`, `listByCommunity`
 
 **Acceptance criteria:**
-- [ ] Method signatures match commands defined in `Roster.ts`
+- [x] Method signatures match commands defined in `Roster.ts`
 
 ---
 
@@ -263,24 +263,24 @@ Add methods: `findParishHierarchy(parishId)`, `listCommunities(parishId)`, `find
 Old methods remain untouched (backward compatible).
 
 **Acceptance criteria:**
-- [ ] `findParishHierarchy` returns a `ParishHierarchy` object with Maps pre-built
-- [ ] Integration test in `src/lib/server/adapters/__tests__/SQLiteDbRegion.test.ts`
+- [x] `findParishHierarchy` returns a `ParishHierarchy` object with Maps pre-built
+- [x] Integration test in `src/lib/server/adapters/__tests__/SQLiteDbRegion.test.ts`
 
 ### Task 4.2 — `SQLiteDbFacility.ts` (extend for new physical schema)
 
 Add methods: `findChurchFacility(churchId)`, `listStationsByZone(zoneId)`, `listZonesByEvent(eventId)`
 
 **Acceptance criteria:**
-- [ ] `findChurchFacility` returns `ChurchFacility` with Maps pre-built
-- [ ] Integration test passes
+- [x] `findChurchFacility` returns `ChurchFacility` with Maps pre-built
+- [x] Integration test passes
 
 ### Task 4.3 — `SQLiteDbMinistry.ts` (new file)
 
 Methods: `listMinistries()`, `listRolesByMinistry(ministryId)`, `findRoleByCode(ministryCode, roleCode)`
 
 **Acceptance criteria:**
-- [ ] Returns typed `Ministry[]` and `MinistryRole[]`
-- [ ] Integration test with seed data
+- [x] Returns typed `Ministry[]` and `MinistryRole[]`
+- [x] Integration test with seed data
 
 ### Task 4.4 — `SQLiteDbRoster.ts` (new file)
 
@@ -289,17 +289,17 @@ Methods: `createRoster(cmd)`, `loadRoster(eventId)`, `submitEntry(cmd)`, `confir
 Implement optimistic lock: `UPDATE roster SET version = version + 1 WHERE id = ? AND version = ?`
 
 **Acceptance criteria:**
-- [ ] `submitEntry` is transactional (all-or-nothing)
-- [ ] Optimistic lock throws `ServiceError.conflict` on version mismatch
-- [ ] Integration tests for happy path + conflict path
+- [x] `submitEntry` is transactional (all-or-nothing)
+- [x] Optimistic lock throws `ServiceError.conflict` on version mismatch
+- [x] Integration tests for happy path + conflict path
 
 ### Task 4.5 — Update `SQLiteAdapter.ts` facade
 
 Delegate new repository interfaces to new adapter modules.
 
 **Acceptance criteria:**
-- [ ] `SQLiteAdapter` implements all four new repository interfaces
-- [ ] Old methods still pass existing tests
+- [x] `SQLiteAdapter` implements all four new repository interfaces
+- [x] Old methods still pass existing tests
 
 ---
 

@@ -116,24 +116,24 @@
 </script>
 
 <svelte:head>
-	<title>Template Misa</title>
+	<title>Misa</title>
 </svelte:head>
 
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/settings">Pengaturan</BreadcrumbItem>
-	<BreadcrumbItem>Template Misa</BreadcrumbItem>
+	<BreadcrumbItem>Misa</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="mb-4">
-	<div class="mb-4 flex items-center justify-between">
+	<div class="mb-4 flex items-right justify-between">
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-			Template Misa
+			Pengaturan Misa
 		</Heading>
 		<Button color="blue" onclick={openCreateModal}>
 			<PlusOutline class="mr-2 h-4 w-4" />
-			Tambah Misa
+			Tambah
 		</Button>
 	</div>
 
@@ -152,8 +152,10 @@
 	{:else}
 		<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
-				Daftar Misa
-				<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">Jadwal misa yang terdaftar di gereja.</p>
+				Penjelasan	
+				<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
+					Mengatur jenis misa untuk jadwal rutin, hari dan jam, waktu berkumpul untuk petugas, dan urutan tampilan.
+				</p>
 			</caption>
 			<TableHead>
 				<TableHeadCell>Kode</TableHeadCell>

@@ -111,11 +111,11 @@
 <div class="mb-4">
 	<div class="mb-4 flex items-center justify-between">
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-			Kelola Zona
+			Pengaturan Zona
 		</Heading>
 		<Button color="blue" onclick={openCreateModal}>
 			<PlusOutline class="mr-2 h-4 w-4" />
-			Tambah Zona
+			Tambah
 		</Button>
 	</div>
 
@@ -134,7 +134,7 @@
 	{:else}
 		<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
-				Daftar Zona
+				Instruksi	
 				<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">Zona titik tugas yang terdaftar di gereja.</p>
 			</caption>
 			<TableHead>

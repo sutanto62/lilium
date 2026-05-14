@@ -73,39 +73,70 @@ The domain layer contains pure business entities with no external dependencies.
 
 #### Entity Definitions
 
-**Core Entities:**
-- `ChurchEvent`: Represents church events (mass/feast)
-- `EventUsher`: Represents usher assignments to events
-- `Mass`: Represents mass service configurations
-- `Church`: Represents church/parish information
-- `ChurchZone`: Represents zone organization
-- `ChurchPosition`: Represents positions within zones
-- `Wilayah`: Represents regional organization
-- `Lingkungan`: Represents communities within regions
-- `User`: Represents system users
+**Core Entities — Territorial hierarchy (WHERE, territorial):**
+- `Parish`: Administrative root; owns Wilayahs and Churches
+- `Wilayah`: Canonical Indonesian Catholic territorial unit (proper noun)
+- `Community`: Neighbourhood community (was: *Lingkungan*); UI label stays *Lingkungan*
+- `Parishioner`: Person attached to a Community; stable identity for roster assignments
+
+**Core Entities — Physical hierarchy (WHERE, physical):**
+- `Church`: Physical building belonging to a Parish
+- `Section`: Named part of a building (was: `ChurchZoneGroup`)
+- `Zone`: Service area within a Section (was: `ChurchZone`)
+- `Station`: Specific assignment point within a Zone (was: `ChurchPosition`); Indonesian: *Pos*
+
+**Core Entities — Liturgy (WHAT × WHEN):**
+- `MassSchedule`: Recurring liturgy template (was: `Mass`)
+- `Celebration`: Concrete dated instance of a liturgy (was: `ChurchEvent`); Indonesian: *Perayaan*
+- `LiturgyKind`: Enum — `Mass`, `Adoration`, `Vespers`, … (replaces `EventType.MASS | FEAST`)
+- `LiturgicalRank`: Enum — `Solemnity`, `Feast`, `Memorial`, `Weekday`
+
+**Core Entities — Ministries (WHO, liturgical service):**
+- `Ministry`: Type-Object catalog entry — `Usher`, `PETA`, `EMHC`, `AltarServer`, …
+- `MinistryRole`: Sub-catalog within a ministry — `Regular`, `Kolekte`, `PPG`, `PPKG`, `Processional`
+- `Roster`: Aggregate root for one Celebration's assignments; lifecycle `draft → submitted → confirmed`
+- `RosterEntry`: One Community's commitment to one Celebration (child of `Roster`)
+- `RosterUsher`: One minister's station assignment within a `RosterEntry` (was: `EventUsher`)
+
+**Core Entities — Affiliations (WHO, governance):**
+- `Committee`: Governance catalog — `PPG`, `PPKG`, `DPP`, …
+- `CommitteeMembership`: Parishioner × Committee with date range
+- `User`: System user (authentication/authorisation)
 
 #### Entity Structure Example
 
 ```typescript
-export interface ChurchEvent {
-  id: string;
-  church: string;
-  churchCode?: string | null;
-  mass: string;
-  massId?: string | null;
-  date: string;
-  weekNumber?: number | null;
-  createdAt?: number | null;
-  isComplete?: number | null; // 100% assigned ushers
-  active?: number | null;
-  type?: EventType | null;
-  code?: string | null;
-  description?: string | null;
+// src/core/entities/Liturgy.ts
+
+/** Concrete dated instance of a liturgy (was: ChurchEvent). Indonesian: Perayaan. */
+export interface Celebration {
+  readonly id: string;
+  readonly churchId: string;
+  readonly massScheduleId: string | null;  // null for one-off celebrations
+  readonly date: string;
+  readonly weekNumber: number | null;
+  readonly liturgyKind: LiturgyKind;
+  readonly liturgicalRank: LiturgicalRank | null;
+  readonly createdAt: number | null;
+  readonly active: number | null;
+  readonly code: string | null;
+  readonly description: string | null;
 }
 
-export enum EventType {
-  MASS = 'mass',
-  FEAST = 'feast'
+/** What is celebrated — orthogonal to rank and cadence. Replaces EventType.MASS | FEAST. */
+export enum LiturgyKind {
+  Mass = 'mass',
+  Adoration = 'adoration',
+  Vespers = 'vespers',
+  StationsOfCross = 'stations_of_cross',
+}
+
+/** The Church's importance classification for this celebration. */
+export enum LiturgicalRank {
+  Solemnity = 'solemnity',
+  Feast = 'feast',
+  Memorial = 'memorial',
+  Weekday = 'weekday',
 }
 ```
 
@@ -122,26 +153,31 @@ The application layer contains business logic and defines contracts for data acc
 #### Service Classes
 
 **EventService** (`core/service/EventService.ts`):
-- Manages church event operations
-- Orchestrates event creation, retrieval, and updates
-- Handles week-based event queries
-- Coordinates with UsherService for usher-related operations
+- Manages `Celebration` (formerly `ChurchEvent`) CRUD operations
+- Orchestrates creation, retrieval, and updates
+- Handles week-based celebration queries
 
-**UsherService** (`core/service/UsherService.ts`):
-- Manages usher assignment operations
-- Retrieves usher assignments by event
-- Handles usher assignment persistence
-- Validates usher assignments
+**RosterService** (`core/service/RosterService.ts`):
+- Aggregate root service for the Roster lifecycle
+- `createRoster(cmd)` — PETA assigns Communities to a Celebration
+- `submitEntry(cmd)` — Community submits usher names; status `draft → submitted`
+- `confirmEntry(cmd)` — PETA confirms + triggers station distribution; status `submitted → confirmed`
+- `applyTransition(entry, transition)` — pure state-machine function; no I/O; fully unit-testable
 
 **ChurchService** (`core/service/ChurchService.ts`):
-- Manages church-related data (zones, masses, regions)
-- Provides access to church configuration
-- Handles wilayah and lingkungan data
+- `retrieveParishHierarchy(parishId)` — pre-loads `Parish → Wilayah → Community` tree
+- `retrieveChurchFacility(churchId)` — pre-loads `Church → Section → Zone → Station` tree
+- Avoids N+1 queries in roster and schedule pages
+
+**MinistryService** (`core/service/MinistryService.ts`):
+- Thin catalog service over `Ministry` and `MinistryRole` tables
+- `listMinistries()`, `listRolesByMinistry(ministryId)`, `findRoleByCode(code)`
+- Used by `RosterService` for role resolution at assignment time
 
 **QueueManager** (`core/service/QueueManager.ts`):
-- Singleton service for processing usher assignment queues
-- Implements position distribution algorithms (round-robin, sequential)
-- Handles role-based constraints (PPG vs non-PPG)
+- Singleton service for processing station-distribution queues
+- Implements distribution strategies (round-robin, sequential)
+- Reads `MinistryRole.code` to apply role-based constraints (replaces PPG/Kolekte boolean flags)
 - Processes confirmation queues from communities
 
 **AuthService** (`core/service/AuthService.ts`):
@@ -150,31 +186,38 @@ The application layer contains business logic and defines contracts for data acc
 
 #### Repository Interfaces
 
-Repository interfaces (ports) define contracts for data access:
+Repository interfaces (ports) define contracts for data access. Following the Clean Architecture split in `design-pattern.md`, there are four domain-specific repositories rather than one monolithic `ScheduleRepository`:
 
 ```typescript
-export interface ScheduleRepository {
-  // Event operations
-  insertEvent(event: ChurchEvent): Promise<ChurchEvent>;
-  getEventById(id: string): Promise<ChurchEvent>;
-  updateEventById(eventId: string, event: ChurchEvent): Promise<ChurchEvent>;
-  listEventsByWeekNumber(
-    churchId: string,
-    weekNumbers: number[],
-    isToday: boolean,
-    limit?: number
-  ): Promise<ChurchEvent[]>;
-  
-  // Usher operations
-  listUsherByEvent(eventId: string): Promise<UsherResponse[]>;
-  persistEventUshers(
-    eventId: string,
-    ushers: EventUsher[],
-    wilayahId: string,
-    lingkunganId: string
-  ): Promise<number>;
-  
-  // ... other operations
+// src/core/repositories/ParishRepository.ts
+export interface ParishRepository {
+  findParishHierarchy(parishId: string): Promise<ParishHierarchy>;
+  listCommunities(wilayahId: string): Promise<Community[]>;
+  findCommunityById(communityId: string): Promise<Community | null>;
+}
+
+// src/core/repositories/FacilityRepository.ts
+export interface FacilityRepository {
+  findChurchFacility(churchId: string): Promise<ChurchFacility>;
+  listStationsByZone(zoneId: string): Promise<Station[]>;
+  listZonesByMass(massScheduleId: string): Promise<Zone[]>;
+}
+
+// src/core/repositories/MinistryRepository.ts
+export interface MinistryRepository {
+  listMinistries(): Promise<Ministry[]>;
+  listRolesByMinistry(ministryId: string): Promise<MinistryRole[]>;
+  findRoleByCode(code: string): Promise<MinistryRole | null>;
+}
+
+// src/core/repositories/RosterRepository.ts
+export interface RosterRepository {
+  createRoster(cmd: CreateRosterCommand): Promise<Roster>;
+  loadRoster(eventId: string): Promise<Roster | null>;
+  submitEntry(cmd: SubmitRosterEntryCommand): Promise<RosterEntry>;
+  confirmEntry(cmd: ConfirmRosterEntryCommand): Promise<RosterEntry>;
+  reopenEntry(rosterId: string, communityId: string): Promise<RosterEntry>;
+  listByCommunity(communityId: string): Promise<Roster[]>;
 }
 ```
 
@@ -197,11 +240,13 @@ The infrastructure layer implements repository interfaces using specific technol
 **Structure:**
 ```
 lib/server/adapters/
-├── SQLiteAdapter.ts          # Main adapter implementing ScheduleRepository
-├── SQLiteDbEvent.ts          # Event-related database operations
-├── SQLiteDbFacility.ts       # Church, zone, position operations
-├── SQLiteDbMass.ts           # Mass-related operations
-├── SQLiteDbRegion.ts         # Wilayah, lingkungan operations
+├── SQLiteAdapter.ts          # Facade; delegates to domain-specific modules
+├── SQLiteDbEvent.ts          # Celebration (was ChurchEvent) queries
+├── SQLiteDbFacility.ts       # Church + Section + Zone + Station queries
+├── SQLiteDbMass.ts           # MassSchedule (was Mass) queries
+├── SQLiteDbMinistry.ts       # Ministry + MinistryRole catalog reads
+├── SQLiteDbRegion.ts         # Parish + Wilayah + Community queries
+├── SQLiteDbRoster.ts         # Transactional Roster writes (createRoster, submitEntry, confirmEntry)
 └── SQLiteDbUser.ts           # User operations
 ```
 
@@ -215,14 +260,14 @@ export class SQLiteAdapter implements ScheduleRepository {
     this.db = db;
   }
 
-  getEventById = (id: string) => findEventById(this.db, id);
-  insertEvent = (event: ChurchEvent) => createEvent(this.db, event);
-  listEventsByWeekNumber = (
+  findCelebrationById = (id: string) => findCelebrationById(this.db, id);
+  insertCelebration = (event: Celebration) => createCelebration(this.db, event);
+  listCelebrationsByWeekNumber = (
     churchId: string,
     weekNumbers: number[],
     isToday: boolean,
     limit?: number
-  ) => listEventsByWeekNumber(this.db, churchId, weekNumbers, isToday, limit);
+  ) => listCelebrationsByWeekNumber(this.db, churchId, weekNumbers, isToday, limit);
 }
 ```
 
@@ -357,37 +402,79 @@ export const actions: Actions = {
 
 See `doc/ERD.mermaid` for complete ERD. Key relationships:
 
+**Territorial hierarchy (WHERE, territorial):**
+- Parish → Wilayah (governs)
+- Wilayah → Community (contains; UI label: *Lingkungan*)
+- Community → Parishioner (belongs_to)
+
+**Physical hierarchy (WHERE, physical):**
+- Parish → Church (owns)
+- Church → Section (has; was ZoneGroup)
+- Section → Zone (contains; was ChurchZone)
+- Zone → Station (defines; was ChurchPosition)
+- Station → Ministry (served_by)
+
+**Liturgy (WHAT × WHEN):**
+- Church → MassSchedule (recurring template; was Mass)
+- MassSchedule → Celebration (instance on a date; was ChurchEvent)
+
+**Roster (WHO):**
+- Celebration → Roster (assembled for)
+- Roster → RosterEntry (one per Community assigned)
+- RosterEntry → RosterUsher (one per minister; was EventUsher)
+- RosterUsher → Station (assigned_to)
+- RosterUsher → MinistryRole (role_in)
+
+**Auth:**
 - User → Church (belongs_to)
-- User → Lingkungan (assigned_to)
-- Church → Mass (hosts)
-- Church → ChurchZone (organizes)
-- ChurchZone → ChurchPosition (defines)
-- Church → Wilayah (covers)
-- Wilayah → Lingkungan (contains)
-- Church → ChurchEvent (schedules)
-- ChurchEvent → EventUsher (assigns)
 
 ### Schema Definitions
 
 Schema is defined in `src/lib/server/db/schema.ts` using Drizzle ORM:
 
 ```typescript
-export const event = sqliteTable('event', {
+// Celebration (was: event table)
+export const celebration = sqliteTable('celebration', {
   id: text('id').primaryKey().unique().notNull(),
   church_id: text('church_id')
     .references(() => church.id, { onDelete: 'cascade' })
     .notNull(),
-  mass_id: text('mass_id')
-    .references(() => mass.id, { onDelete: 'cascade' })
-    .notNull(),
+  mass_schedule_id: text('mass_schedule_id')
+    .references(() => mass_schedule.id, { onDelete: 'set null' }),
   date: text('date').notNull(),
   week_number: integer('week_number'),
   created_at: integer('created_at').default(sql`(unixepoch())`),
-  is_complete: integer('is_complete').notNull().default(0),
   active: integer('active').notNull().default(1),
-  type: text('type', { enum: ['mass', 'feast'] }).notNull().default('mass'),
+  liturgy_kind: text('liturgy_kind', {
+    enum: ['mass', 'adoration', 'vespers', 'stations_of_cross']
+  }).notNull().default('mass'),
+  liturgical_rank: text('liturgical_rank', {
+    enum: ['solemnity', 'feast', 'memorial', 'weekday']
+  }),
   code: text('code'),
   description: text('description')
+});
+
+// Ministry catalog (Type Object pattern — new ministry types are inserted as rows)
+export const ministry = sqliteTable('ministry', {
+  id: text('id').primaryKey().unique().notNull(),
+  name: text('name').notNull(),
+  code: text('code').notNull().unique(),   // 'USHER', 'PETA', 'EMHC', 'ALTAR_SERVER'
+  description: text('description'),
+  requires_station: integer('requires_station').notNull().default(1),
+  active: integer('active').notNull().default(1),
+});
+
+// MinistryRole sub-catalog (replaces is_ppg / is_kolekte boolean flags)
+export const ministry_role = sqliteTable('ministry_role', {
+  id: text('id').primaryKey().unique().notNull(),
+  ministry_id: text('ministry_id')
+    .references(() => ministry.id, { onDelete: 'cascade' })
+    .notNull(),
+  name: text('name').notNull(),
+  code: text('code').notNull(),   // 'REGULAR', 'KOLEKTE', 'PPG', 'PPKG', 'PROCESSIONAL'
+  is_special_collection: integer('is_special_collection').notNull().default(0),
+  active: integer('active').notNull().default(1),
 });
 ```
 
@@ -436,24 +523,24 @@ export class EventService {
     this.usherService = new UsherService(churchId);
   }
 
-  async createEvent(newEvent: ChurchEvent): Promise<ChurchEvent> {
+  async createCelebration(data: Omit<Celebration, 'id' | 'createdAt'>): Promise<Celebration> {
     // 1. Validate business rules
-    if (!newEvent.church) {
+    if (!data.churchId) {
       throw ServiceError.validation('Church ID is required');
     }
 
     // 2. Check for duplicates
-    const existing = await repo.getEventByChurch(
+    const existing = await repo.findCelebrationByChurchAndDate(
       this.churchId,
-      newEvent.mass,
-      newEvent.date
+      data.massScheduleId,
+      data.date
     );
     if (existing) {
-      throw ServiceError.duplicate('Event already exists');
+      throw ServiceError.duplicate('Celebration already exists');
     }
 
     // 3. Persist
-    return await repo.insertEvent(newEvent);
+    return await repo.insertCelebration(data);
   }
 }
 ```
@@ -564,54 +651,54 @@ The system uses soft deletion (active flag) instead of hard deletes to maintain 
 
 Soft deletion is implemented using an `active` column (integer, 1 = active, 0 = inactive) on tables that support it:
 
-- `church_position`: Positions can be deactivated without affecting existing usher assignments
-- `mass_zone`: Zone assignments to masses can be deactivated without breaking existing events
+- `station` (was `church_position`): Stations can be deactivated without affecting existing `roster_usher` assignments
+- `mass_zone`: Zone assignments to mass schedules can be deactivated without breaking existing celebrations
 
-**Pattern for Positions:**
+**Pattern for Stations:**
 
 ```typescript
-// Deactivate position (soft delete)
-export async function deactivatePosition(
+// Deactivate station (soft delete)
+export async function deactivateStation(
   db: ReturnType<typeof drizzle>,
-  positionId: string
+  stationId: string
 ): Promise<boolean> {
   try {
     const result = await db
-      .update(church_position)
+      .update(station)
       .set({ active: 0 })
-      .where(eq(church_position.id, positionId))
+      .where(eq(station.id, stationId))
       .returning();
     
     return result.length > 0;
   } catch (error) {
-    throw new DatabaseError(`Failed to deactivate position: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new DatabaseError(`Failed to deactivate station: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
-// Query only active positions
-export async function findActivePositions(
+// Query only active stations
+export async function findActiveStations(
   db: ReturnType<typeof drizzle>,
   zoneId: string
-): Promise<ChurchPosition[]> {
+): Promise<Station[]> {
   const result = await db
     .select()
-    .from(church_position)
+    .from(station)
     .where(and(
-      eq(church_position.zone, zoneId),
-      eq(church_position.active, 1) // Only active positions
+      eq(station.zoneId, zoneId),
+      eq(station.active, 1) // Only active stations
     ));
   
-  return result.map(mapToChurchPosition);
+  return result.map(mapToStation);
 }
 ```
 
-**Pattern for Mass-Zone Associations:**
+**Pattern for MassSchedule-Zone Associations:**
 
 ```typescript
 // Deactivate mass-zone association (soft delete)
 export async function deactivateMassZone(
   db: ReturnType<typeof drizzle>,
-  massId: string,
+  massScheduleId: string,
   zoneId: string
 ): Promise<boolean> {
   try {
@@ -619,7 +706,7 @@ export async function deactivateMassZone(
       .update(mass_zone)
       .set({ active: 0 })
       .where(and(
-        eq(mass_zone.mass, massId),
+        eq(mass_zone.massSchedule, massScheduleId),
         eq(mass_zone.zone, zoneId)
       ))
       .returning();
@@ -630,41 +717,41 @@ export async function deactivateMassZone(
   }
 }
 
-// Query only active mass-zone associations
-export async function listActivePositionsByMass(
+// Query only active stations by mass schedule
+export async function listActiveStationsByMassSchedule(
   db: ReturnType<typeof drizzle>,
   churchId: string,
-  massId: string
-): Promise<ChurchPosition[]> {
+  massScheduleId: string
+): Promise<Station[]> {
   const result = await db
     .select()
-    .from(church_position)
-    .leftJoin(church_zone, eq(church_position.zone, church_zone.id))
-    .leftJoin(mass_zone, eq(mass_zone.zone, church_zone.id))
+    .from(station)
+    .leftJoin(zone, eq(station.zoneId, zone.id))
+    .leftJoin(mass_zone, eq(mass_zone.zone, zone.id))
     .where(and(
-      eq(mass_zone.mass, massId),
-      eq(mass_zone.active, 1), // Only active associations
-      eq(church_position.active, 1), // Only active positions
-      eq(church_zone.active, 1) // Only active zones
+      eq(mass_zone.massSchedule, massScheduleId),
+      eq(mass_zone.active, 1),    // Only active associations
+      eq(station.active, 1),      // Only active stations
+      eq(zone.active, 1)          // Only active zones
     ));
   
-  return result.map(mapToChurchPosition);
+  return result.map(mapToStation);
 }
 ```
 
 **Impact on Existing Data:**
 
-1. **Deactivated Positions:**
-   - Existing usher assignments (event_usher) remain in database
+1. **Deactivated Stations:**
+   - Existing `roster_usher` assignments remain in database
    - Historical assignments are preserved
-   - Deactivated positions do not appear in position selection lists for new assignments
-   - Queries for active positions filter by `active = 1`
+   - Deactivated stations do not appear in station selection lists for new assignments
+   - Queries for active stations filter by `active = 1`
 
-2. **Deactivated Mass-Zone Associations:**
-   - Existing events remain in database
-   - Historical event data is preserved
-   - New events use only active mass-zone associations
-   - Position queries for new events filter by `mass_zone.active = 1`
+2. **Deactivated MassSchedule-Zone Associations:**
+   - Existing celebrations remain in database
+   - Historical celebration data is preserved
+   - New celebrations use only active mass-zone associations
+   - Station queries for new celebrations filter by `mass_zone.active = 1`
 
 **Key Principles:**
 - Always filter by `active = 1` when querying for available/current data
@@ -740,20 +827,22 @@ export function requireRole(session: Session | null, requiredRole: UserRole): vo
 
 ### Usher Position Assignment Algorithm
 
-The QueueManager implements a constrained bipartite matching problem with role-based constraints.
+The QueueManager implements a constrained bipartite matching problem with `MinistryRole`-based constraints.
 
 **Algorithm Steps:**
 
-1. **Separate ushers by role**: PPG vs non-PPG
-2. **Separate positions by type**: PPG vs non-PPG
-3. **Filter available positions**: Exclude already assigned
+1. **Separate `RosterUsher` rows by `MinistryRole.code`**: `PPG`, `PPKG`, `Kolekte` vs `Regular`/`Processional`
+2. **Separate `Station` rows by `ministry` + `MinistryRole`**: special-collection stations vs regular stations
+3. **Filter available stations**: Exclude already assigned
 4. **Apply distribution strategy**:
    - **Round-robin**: Cyclic assignment with rotation tracking
    - **Sequential**: First-come-first-served until exhaustion
-5. **Assign positions**: Respect role constraints
-6. **Update database**: Persist assignments
+5. **Assign stations**: Match `RosterUsher.ministryRoleId` to compatible `Station.ministryId`
+6. **Update database**: Persist assignments to `roster_usher`
 
-**Complexity**: O(|E| × |U| × |P|) where E=events, U=ushers, P=positions
+**Key change from legacy**: Role constraints are read from `MinistryRole.code` (catalog row) instead of `is_ppg` / `is_kolekte` boolean columns. Adding a new role (e.g. `Processional`) requires only a catalog insert — no code change.
+
+**Complexity**: O(|E| × |U| × |P|) where E=events, U=ushers, P=stations
 
 **Implementation Location**: `src/core/service/QueueManager.ts`
 
@@ -1003,44 +1092,46 @@ sequenceDiagram
     end
 ```
 
-### Usher Assignment Flow
+### Roster Submission Flow
 
 ```mermaid
 sequenceDiagram
-    participant User
+    participant Community
     participant UI
     participant PageServer
-    participant UsherService
+    participant RosterService
     participant QueueManager
     participant Repository
     participant Database
 
-    User->>UI: Confirm task assignment
-    UI->>PageServer: POST /lingkungan (ushers)
+    Community->>UI: Submit usher names via /f/tatib
+    UI->>PageServer: POST /f/tatib (ushers + ministryRoleCode per usher)
     PageServer->>PageServer: Authenticate
     PageServer->>PageServer: Validate input
-    PageServer->>UsherService: assignEventUshers()
-    UsherService->>Repository: persistEventUshers()
-    Repository->>Database: INSERT event_usher
-    Database->>Repository: Return created count
-    alt Lingkungan already submitted
-        Repository->>UsherService: Return 0
-        UsherService->>PageServer: Throw ServiceError.validation
+    PageServer->>RosterService: submitEntry(cmd)
+    RosterService->>RosterService: applyTransition(entry, SUBMIT) — pure fn, no I/O
+    alt Entry not in draft status
+        RosterService->>PageServer: Throw ServiceError.validation
         PageServer->>UI: Return error
-    else Success
-        Repository->>UsherService: Return created timestamp
-        UsherService->>QueueManager: submitConfirmationQueue()
+    else Entry is draft
+        RosterService->>Repository: submitEntry (roster_usher rows + status=submitted)
+        Repository->>Database: INSERT roster_usher; UPDATE roster_entry.status
+        Database->>Repository: Return updated entry
+        Repository->>RosterService: Return submitted RosterEntry
+        RosterService->>QueueManager: submitConfirmationQueue()
         QueueManager->>QueueManager: Add to queue
         QueueManager->>QueueManager: processQueue() (async)
-        QueueManager->>Repository: Get positions & ushers
-        QueueManager->>QueueManager: distributePositionsByRole()
-        QueueManager->>Repository: editEventUshers()
-        Repository->>Database: UPDATE event_usher
-        UsherService->>PageServer: Return success
+        QueueManager->>Repository: Get stations & roster_usher rows
+        QueueManager->>QueueManager: distributeStationsByMinistryRole()
+        QueueManager->>Repository: updateRosterUsherStations()
+        Repository->>Database: UPDATE roster_usher.station_id
+        RosterService->>PageServer: Return success
         PageServer->>UI: Return success
-        UI->>User: Show confirmation
+        UI->>Community: Show confirmation
     end
 ```
+
+**Note on roles:** `distributeStationsByMinistryRole()` reads `MinistryRole.code` (`PPG`, `PPKG`, `Kolekte`, `Regular`) to apply constraints — replacing the legacy `is_ppg` / `is_kolekte` boolean columns.
 
 ### Authentication Flow
 

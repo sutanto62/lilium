@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 
 	const menuItems = [
-		{ label: 'Konfigurasi Misa', href: '/admin/settings/data-misa' },
+		{ label: 'Misa', href: '/admin/settings/data-misa' },
 		{ label: 'Zona', href: '/admin/settings/data-zona' },
 		{ label: 'Group Zona', href: '/admin/settings/data-zona-group' },
 		{ label: 'Posisi', href: '/admin/settings/data-posisi' },

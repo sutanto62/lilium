@@ -3,6 +3,7 @@ export enum ServiceErrorType {
     DUPLICATE_ERROR = 'DUPLICATE_ERROR',
     DATABASE_ERROR = 'DATABASE_ERROR',
     NOT_FOUND_ERROR = 'NOT_FOUND_ERROR',
+    CONFLICT_ERROR = 'CONFLICT_ERROR',
     UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 }
 
@@ -31,6 +32,10 @@ export class ServiceError extends Error {
 
     static notFound(message: string, details?: Record<string, unknown>): ServiceError {
         return new ServiceError(message, ServiceErrorType.NOT_FOUND_ERROR, details);
+    }
+
+    static conflict(message: string, details?: Record<string, unknown>): ServiceError {
+        return new ServiceError(message, ServiceErrorType.CONFLICT_ERROR, details);
     }
 
     static unknown(message: string, details?: Record<string, unknown>): ServiceError {

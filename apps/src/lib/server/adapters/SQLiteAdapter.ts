@@ -1,4 +1,8 @@
 import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
+import type { ParishRepository } from '$core/repositories/ParishRepository';
+import type { FacilityRepository } from '$core/repositories/FacilityRepository';
+import type { MinistryRepository } from '$core/repositories/MinistryRepository';
+import type { RosterRepository } from '$core/repositories/RosterRepository';
 import { drizzle } from 'drizzle-orm/libsql';
 import {
 	createEvent,
@@ -55,7 +59,38 @@ import {
 	findMasses,
 	updateMass as updateMassDb
 } from './SQLiteDbMass';
-import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from './SQLiteDbRegion';
+import {
+	findLingkunganById,
+	listLingkunganByChurch,
+	listWilayahByChurch,
+	findParishHierarchy,
+	listCommunities,
+	findCommunityById,
+	listWilayahsByParish,
+	listCommunitiesByWilayah
+} from './SQLiteDbRegion';
+import {
+	listSectionsByChurch,
+	listZonesByChurch,
+	listNewZonesByEvent,
+	listStationsByZone,
+	findChurchFacility
+} from './SQLiteDbFacility';
+import {
+	listMinistries,
+	listRolesByMinistry,
+	findRoleByCode,
+	findMinistryByCode
+} from './SQLiteDbMinistry';
+import {
+	createRoster,
+	loadRoster,
+	findRosterById,
+	submitEntry,
+	confirmEntry,
+	reopenEntry,
+	listByCommunity
+} from './SQLiteDbRoster';
 
 import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone, ChurchZoneGroup, Lingkungan } from '$core/entities/Schedule';
@@ -66,7 +101,8 @@ import { findUserByEmail, findUsersByChurch, updateUserFeaturePreference } from 
 // Future implementation can be changed to different database type.
 // For example, PostgreSQL, MySQL, etc.
 
-export class SQLiteAdapter implements ScheduleRepository {
+export class SQLiteAdapter
+	implements ScheduleRepository, ParishRepository, FacilityRepository, MinistryRepository, RosterRepository {
 	private db: ReturnType<typeof drizzle>;
 
 	constructor(db: ReturnType<typeof drizzle>) {
@@ -173,5 +209,40 @@ export class SQLiteAdapter implements ScheduleRepository {
 
 	// Report
 	// findUshersByEvent = (eventId: string, date: string) => findUshersByEvent(this.db, eventId, date)dd
+
+	// ── ParishRepository ────────────────────────────────────────────────────────
+	findParishHierarchy = (parishId: string) => findParishHierarchy(this.db, parishId);
+	listCommunities = (parishId: string) => listCommunities(this.db, parishId);
+	findCommunityById = (id: string) => findCommunityById(this.db, id);
+	listWilayahsByParish = (parishId: string) => listWilayahsByParish(this.db, parishId);
+	listCommunitiesByWilayah = (wilayahId: string) => listCommunitiesByWilayah(this.db, wilayahId);
+
+	// ── FacilityRepository ──────────────────────────────────────────────────────
+	findChurchFacility = (churchId: string) => findChurchFacility(this.db, churchId);
+	listSectionsByChurch = (churchId: string) => listSectionsByChurch(this.db, churchId);
+	listZonesByChurch = (churchId: string, sectionId?: string) =>
+		listZonesByChurch(this.db, churchId, sectionId);
+	listZonesByEvent = (eventId: string) => listNewZonesByEvent(this.db, eventId);
+	listStationsByZone = (zoneId: string) => listStationsByZone(this.db, zoneId);
+
+	// ── MinistryRepository ──────────────────────────────────────────────────────
+	listMinistries = () => listMinistries(this.db);
+	listRolesByMinistry = (ministryId: string) => listRolesByMinistry(this.db, ministryId);
+	findRoleByCode = (ministryCode: string, roleCode: string) =>
+		findRoleByCode(this.db, ministryCode, roleCode);
+	findMinistryByCode = (code: string) => findMinistryByCode(this.db, code);
+
+	// ── RosterRepository ────────────────────────────────────────────────────────
+	createRoster = (cmd: import('$core/entities/Roster').CreateRosterCommand) =>
+		createRoster(this.db, cmd);
+	loadRoster = (eventId: string) => loadRoster(this.db, eventId);
+	findRosterById = (rosterId: string) => findRosterById(this.db, rosterId);
+	submitEntry = (cmd: import('$core/entities/Roster').SubmitRosterEntryCommand) =>
+		submitEntry(this.db, cmd);
+	confirmEntry = (cmd: import('$core/entities/Roster').ConfirmRosterEntryCommand) =>
+		confirmEntry(this.db, cmd);
+	reopenEntry = (rosterId: string, communityId: string) =>
+		reopenEntry(this.db, rosterId, communityId);
+	listByCommunity = (communityId: string) => listByCommunity(this.db, communityId);
 }
 

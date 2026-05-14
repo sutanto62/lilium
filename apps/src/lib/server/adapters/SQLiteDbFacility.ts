@@ -1,5 +1,18 @@
 import type { Church, ChurchPosition, ChurchZone, ChurchZoneGroup, MassZone } from '$core/entities/Schedule';
-import { church, church_position, church_zone, church_zone_group, event, mass, mass_zone } from '$src/lib/server/db/schema';
+import type { Section, Zone, Station } from '$core/entities/Facility';
+import type { ChurchFacility } from '$core/entities/Parish';
+import {
+	church,
+	church_position,
+	church_zone,
+	church_zone_group,
+	event,
+	mass,
+	mass_zone,
+	section,
+	zone,
+	station
+} from '$src/lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
@@ -661,5 +674,174 @@ export async function deactivateMassZone(
 		.where(eq(mass_zone.id, massZoneId))
 		.returning();
 	return result.length > 0;
+}
+
+// ─── New physical hierarchy methods (FacilityRepository) ──────────────────────
+
+/** List active sections for a church ordered by sequence. */
+export async function listSectionsByChurch(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<Section[]> {
+	const rows = await db
+		.select()
+		.from(section)
+		.where(and(eq(section.churchId, churchId), eq(section.active, 1)))
+		.orderBy(section.sequence);
+
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		code: r.code ?? null,
+		description: r.description ?? null,
+		sequence: r.sequence ?? null,
+		churchId: r.churchId,
+		active: r.active
+	}));
+}
+
+/** List active zones for a church, optionally filtered by section. */
+export async function listZonesByChurch(
+	db: ReturnType<typeof drizzle>,
+	churchId: string,
+	sectionId?: string
+): Promise<Zone[]> {
+	const conditions = [eq(zone.churchId, churchId), eq(zone.active, 1)] as ReturnType<typeof eq>[];
+	if (sectionId) conditions.push(eq(zone.sectionId, sectionId));
+
+	const rows = await db
+		.select()
+		.from(zone)
+		.where(and(...conditions))
+		.orderBy(zone.sequence);
+
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		code: r.code ?? null,
+		description: r.description ?? null,
+		sequence: r.sequence ?? null,
+		churchId: r.churchId,
+		sectionId: r.sectionId ?? null,
+		active: r.active
+	}));
+}
+
+/**
+ * List zones associated with an event's church (new zone table).
+ * The new `zone` table does not yet have a mass_zone relationship.
+ * Returns all active zones for the church associated with the event.
+ * TODO: wire up new mass_zone → zone FK in Phase 6/7.
+ */
+export async function listNewZonesByEvent(
+	db: ReturnType<typeof drizzle>,
+	eventId: string
+): Promise<Zone[]> {
+	const eventRows = await db
+		.select({ churchId: event.church_id })
+		.from(event)
+		.where(eq(event.id, eventId))
+		.limit(1);
+
+	if (!eventRows[0]) return [];
+
+	return listZonesByChurch(db, eventRows[0].churchId);
+}
+
+/** List active stations within a zone ordered by sequence. */
+export async function listStationsByZone(
+	db: ReturnType<typeof drizzle>,
+	zoneId: string
+): Promise<Station[]> {
+	const rows = await db
+		.select()
+		.from(station)
+		.where(and(eq(station.zoneId, zoneId), eq(station.active, 1)))
+		.orderBy(station.sequence);
+
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		code: r.code ?? null,
+		description: r.description ?? null,
+		sequence: r.sequence ?? null,
+		churchId: r.churchId,
+		zoneId: r.zoneId,
+		ministryId: r.ministryId,
+		defaultRoleId: r.defaultRoleId ?? null,
+		active: r.active
+	}));
+}
+
+/**
+ * Load the full physical hierarchy for one church.
+ * Returns pre-built Maps (zonesBySection, stationsByZone) to avoid N+1 queries.
+ */
+export async function findChurchFacility(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<ChurchFacility> {
+	const churchRows = await db
+		.select()
+		.from(church)
+		.where(eq(church.id, churchId))
+		.limit(1);
+
+	if (!churchRows[0]) {
+		throw new Error(`Church not found: ${churchId}`);
+	}
+
+	const [sections, zones, allStations] = await Promise.all([
+		listSectionsByChurch(db, churchId),
+		listZonesByChurch(db, churchId),
+		db
+			.select()
+			.from(station)
+			.where(and(eq(station.churchId, churchId), eq(station.active, 1)))
+			.orderBy(station.sequence)
+	]);
+
+	// Build zonesBySection Map
+	const zonesBySection = new Map<string, Zone[]>();
+	for (const z of zones) {
+		const sectionKey = z.sectionId ?? '__none__';
+		const arr = zonesBySection.get(sectionKey) ?? [];
+		arr.push(z);
+		zonesBySection.set(sectionKey, arr);
+	}
+
+	// Build stationsByZone Map
+	const stationsByZone = new Map<string, Station[]>();
+	for (const s of allStations) {
+		const arr = stationsByZone.get(s.zoneId) ?? [];
+		arr.push({
+			id: s.id,
+			name: s.name,
+			code: s.code ?? null,
+			description: s.description ?? null,
+			sequence: s.sequence ?? null,
+			churchId: s.churchId,
+			zoneId: s.zoneId,
+			ministryId: s.ministryId,
+			defaultRoleId: s.defaultRoleId ?? null,
+			active: s.active
+		});
+		stationsByZone.set(s.zoneId, arr);
+	}
+
+	const row = churchRows[0];
+	return {
+		church: {
+			id: row.id,
+			name: row.name,
+			code: row.code,
+			parishId: row.parishId ?? '',
+			requiresSpecialCollection: row.requirePpg ?? 0,
+			active: row.active
+		},
+		sections,
+		zonesBySection,
+		stationsByZone
+	};
 }
 

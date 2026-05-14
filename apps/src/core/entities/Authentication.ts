@@ -16,5 +16,6 @@ export interface User {
 	image?: string;
 	role?: string;
 	churchId?: string;
-	lingkunganId?: string;
+	lingkunganId?: string | null;
+	featurePreference?: string | null;
 }

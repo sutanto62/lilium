@@ -59,7 +59,7 @@ import { findLingkunganById, listLingkunganByChurch, listWilayahByChurch } from 
 
 import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone, ChurchZoneGroup, Lingkungan } from '$core/entities/Schedule';
-import { findUserByEmail, findUsersByChurch } from './SQLiteDbUser';
+import { findUserByEmail, findUsersByChurch, updateUserFeaturePreference } from './SQLiteDbUser';
 
 // Adapter
 // It is used to abstract the database implementation.
@@ -168,6 +168,8 @@ export class SQLiteAdapter implements ScheduleRepository {
 	getUserByEmail = (email: string) => findUserByEmail(this.db, email);
 	getUsers = (churchId: string) => findUsersByChurch(this.db, churchId);
 	findUsersByChurch = (churchId: string) => findUsersByChurch(this.db, churchId);
+	updateUserFeaturePreference = (email: string, preference: string | null) =>
+		updateUserFeaturePreference(this.db, email, preference);
 
 	// Report
 	// findUshersByEvent = (eventId: string, date: string) => findUshersByEvent(this.db, eventId, date)dd

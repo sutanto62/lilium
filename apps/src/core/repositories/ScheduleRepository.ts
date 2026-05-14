@@ -113,6 +113,7 @@ export interface ScheduleRepository {
 	// Authentication
 	getUserByEmail(email: string): Promise<User>;
 	findUsersByChurch(churchId: string): Promise<User[]>;
+	updateUserFeaturePreference(email: string, preference: string | null): Promise<void>;
 
 	// Report
 	// findUshersByEvent(eventId: string, date: string): Promise<any[]>;

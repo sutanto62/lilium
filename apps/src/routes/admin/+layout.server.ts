@@ -1,5 +1,6 @@
 import { hasRole } from '$src/auth';
 import { statsigService } from '$src/lib/application/StatsigService';
+import { repo } from '$src/lib/server/db';
 import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
@@ -24,5 +25,15 @@ export const load: LayoutServerLoad = async (event) => {
 		throw redirect(302, '/');
 	}
 
-	return { session };
+	// Load user preference from DB and sync to Statsig
+	const dbUser = await repo.getUserByEmail(session.user?.email ?? '');
+	const featurePreference = dbUser?.featurePreference ?? null;
+
+	if (session.user?.name) {
+		await statsigService.updateUser(session.user.name, {
+			featurePreference: featurePreference ?? undefined
+		});
+	}
+
+	return { session, featurePreference };
 };

@@ -82,7 +82,8 @@ describe('PositionService', () => {
 
 			// Authentication
 			getUserByEmail: vi.fn(),
-			findUsersByChurch: vi.fn()
+			findUsersByChurch: vi.fn(),
+			updateUserFeaturePreference: vi.fn()
 		};
 	});
 

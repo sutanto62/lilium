@@ -3,6 +3,7 @@ import { user } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 
+
 export async function findUserByEmail(
 	db: ReturnType<typeof drizzle>,
 	email: string
@@ -20,4 +21,15 @@ export async function findUsersByChurch(
 		.from(user)
 		.where(and(eq(user.cid, churchId), eq(user.role, 'admin')));
 	return result;
+}
+
+export async function updateUserFeaturePreference(
+	db: ReturnType<typeof drizzle>,
+	email: string,
+	preference: string | null
+): Promise<void> {
+	await db
+		.update(user)
+		.set({ featurePreference: preference })
+		.where(eq(user.email, email));
 }

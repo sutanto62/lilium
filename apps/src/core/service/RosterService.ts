@@ -71,8 +71,11 @@ export class RosterService {
 	 * Returns null when no roster has been created for this event yet.
 	 */
 	async loadRoster(eventId: string): Promise<Roster | null> {
+		logger.debug('RosterService.loadRoster', { eventId });
 		try {
-			return await this.repo.loadRoster(eventId);
+			const roster = await this.repo.loadRoster(eventId);
+			logger.debug('RosterService.loadRoster: OK', { eventId, found: !!roster, entries: roster?.entries.length ?? 0 });
+			return roster;
 		} catch (err) {
 			logger.error('RosterService.loadRoster: Failed', { err, eventId });
 			if (err instanceof ServiceError) throw err;
@@ -95,8 +98,11 @@ export class RosterService {
 			});
 		}
 
+		logger.debug('RosterService.createRoster', { eventId: cmd.eventId, communityCount: cmd.communityIds.length });
 		try {
-			return await this.repo.createRoster(cmd);
+			const roster = await this.repo.createRoster(cmd);
+			logger.info('RosterService.createRoster: OK', { rosterId: roster.id, eventId: cmd.eventId });
+			return roster;
 		} catch (err) {
 			logger.error('RosterService.createRoster: Failed', { err, eventId: cmd.eventId });
 			if (err instanceof ServiceError) throw err;
@@ -117,8 +123,11 @@ export class RosterService {
 			throw ServiceError.validation('Minimal satu petugas harus diisi', { field: 'ushers' });
 		}
 
+		logger.debug('RosterService.submitEntry', { rosterId: cmd.rosterId, communityId: cmd.communityId, usherCount: cmd.ushers.length });
 		try {
-			return await this.repo.submitEntry(cmd);
+			const entry = await this.repo.submitEntry(cmd);
+			logger.info('RosterService.submitEntry: draft→submitted', { rosterId: cmd.rosterId, communityId: cmd.communityId, entryId: entry.id });
+			return entry;
 		} catch (err) {
 			logger.error('RosterService.submitEntry: Failed', { err, rosterId: cmd.rosterId });
 			if (err instanceof ServiceError) throw err;
@@ -141,8 +150,11 @@ export class RosterService {
 			});
 		}
 
+		logger.debug('RosterService.confirmEntry', { rosterId: cmd.rosterId, communityId: cmd.communityId, confirmedBy: cmd.confirmedByUserId });
 		try {
-			return await this.repo.confirmEntry(cmd);
+			const entry = await this.repo.confirmEntry(cmd);
+			logger.info('RosterService.confirmEntry: submitted→confirmed', { rosterId: cmd.rosterId, communityId: cmd.communityId, entryId: entry.id, confirmedBy: cmd.confirmedByUserId });
+			return entry;
 		} catch (err) {
 			logger.error('RosterService.confirmEntry: Failed', { err, rosterId: cmd.rosterId });
 			if (err instanceof ServiceError) throw err;
@@ -160,8 +172,11 @@ export class RosterService {
 			throw ServiceError.validation('Community ID wajib diisi', { field: 'communityId' });
 		}
 
+		logger.debug('RosterService.reopenEntry', { rosterId, communityId });
 		try {
-			return await this.repo.reopenEntry(rosterId, communityId);
+			const entry = await this.repo.reopenEntry(rosterId, communityId);
+			logger.info('RosterService.reopenEntry: →draft', { rosterId, communityId, entryId: entry.id, previousStatus: entry.status });
+			return entry;
 		} catch (err) {
 			logger.error('RosterService.reopenEntry: Failed', { err, rosterId, communityId });
 			if (err instanceof ServiceError) throw err;
@@ -173,8 +188,11 @@ export class RosterService {
 	 * List all rosters for a community (history view).
 	 */
 	async listByCommunity(communityId: string): Promise<Roster[]> {
+		logger.debug('RosterService.listByCommunity', { communityId });
 		try {
-			return await this.repo.listByCommunity(communityId);
+			const rosters = await this.repo.listByCommunity(communityId);
+			logger.debug('RosterService.listByCommunity: OK', { communityId, count: rosters.length });
+			return rosters;
 		} catch (err) {
 			logger.error('RosterService.listByCommunity: Failed', { err, communityId });
 			if (err instanceof ServiceError) throw err;

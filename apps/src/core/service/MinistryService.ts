@@ -15,8 +15,11 @@ export class MinistryService {
 	 * List all active ministries ordered by name.
 	 */
 	async listMinistries(): Promise<Ministry[]> {
+		logger.debug('MinistryService.listMinistries');
 		try {
-			return await this.repo.listMinistries();
+			const ministries = await this.repo.listMinistries();
+			logger.debug('MinistryService.listMinistries: OK', { count: ministries.length });
+			return ministries;
 		} catch (err) {
 			logger.error('MinistryService.listMinistries: Failed', { err });
 			if (err instanceof ServiceError) throw err;
@@ -28,8 +31,11 @@ export class MinistryService {
 	 * List all active roles for a given ministry.
 	 */
 	async listRolesByMinistry(ministryId: string): Promise<MinistryRole[]> {
+		logger.debug('MinistryService.listRolesByMinistry', { ministryId });
 		try {
-			return await this.repo.listRolesByMinistry(ministryId);
+			const roles = await this.repo.listRolesByMinistry(ministryId);
+			logger.debug('MinistryService.listRolesByMinistry: OK', { ministryId, count: roles.length });
+			return roles;
 		} catch (err) {
 			logger.error('MinistryService.listRolesByMinistry: Failed', { err, ministryId });
 			if (err instanceof ServiceError) throw err;
@@ -42,14 +48,17 @@ export class MinistryService {
 	 * Throws ServiceError.notFound when the code pair does not exist.
 	 */
 	async resolveRoleByCode(ministryCode: string, roleCode: string): Promise<MinistryRole> {
+		logger.debug('MinistryService.resolveRoleByCode', { ministryCode, roleCode });
 		try {
 			const role = await this.repo.findRoleByCode(ministryCode, roleCode);
 			if (!role) {
+				logger.warn('MinistryService.resolveRoleByCode: Not found', { ministryCode, roleCode });
 				throw ServiceError.notFound(
 					`Peran kementerian tidak ditemukan: ${ministryCode}/${roleCode}`,
 					{ ministryCode, roleCode }
 				);
 			}
+			logger.debug('MinistryService.resolveRoleByCode: OK', { ministryCode, roleCode, roleId: role.id });
 			return role;
 		} catch (err) {
 			if (err instanceof ServiceError) throw err;

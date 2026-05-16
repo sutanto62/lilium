@@ -41,9 +41,11 @@ export const load: PageServerLoad = async (event) => {
 
 	// ── Gate check: new roster flow ────────────────────────────────────────────
 	const isNewRosterFlow = await checkServerGate(event.locals, 'new_roster_flow');
+	logger.debug('admin_jadwal_detail.load: gate check', { eventId, isNewRosterFlow });
 
 	if (isNewRosterFlow) {
 		// New domain model path — load Roster aggregate
+		logger.debug('admin_jadwal_detail.load: new roster flow path', { eventId, churchId });
 		const rosterService = new RosterService(repo);
 		const eventService = new EventService(churchId);
 
@@ -51,6 +53,7 @@ export const load: PageServerLoad = async (event) => {
 			eventService.retrieveEventSchedule(eventId),
 			rosterService.loadRoster(eventId)
 		]);
+		logger.debug('admin_jadwal_detail.load: roster loaded', { eventId, hasRoster: !!roster, entryCount: roster?.entries.length ?? 0 });
 
 		const metadata = {
 			event_id: eventId,
@@ -139,10 +142,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'Roster ID dan Community ID wajib diisi' });
 		}
 
+		logger.debug('admin_roster_confirm_entry: confirming entry', { rosterId, communityId, confirmedByUserId });
 		const rosterService = new RosterService(repo);
 
 		try {
 			await rosterService.confirmEntry({ rosterId, communityId, confirmedByUserId });
+			logger.info('admin_roster_confirm_entry: success', { rosterId, communityId });
 
 			await Promise.all([
 				statsigService.logEvent('admin_roster_confirm_entry', 'submit', session || undefined, {
@@ -195,10 +200,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'Roster ID dan Community ID wajib diisi' });
 		}
 
+		logger.debug('admin_roster_reopen_entry: reopening entry', { rosterId, communityId });
 		const rosterService = new RosterService(repo);
 
 		try {
 			await rosterService.reopenEntry(rosterId, communityId);
+			logger.info('admin_roster_reopen_entry: success →draft', { rosterId, communityId });
 
 			await Promise.all([
 				statsigService.logEvent('admin_roster_reopen_entry', 'submit', session || undefined, {

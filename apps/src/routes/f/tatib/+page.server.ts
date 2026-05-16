@@ -82,27 +82,31 @@ export const load: PageServerLoad = async (event) => {
 	const communityId = event.url?.searchParams?.get('communityId') ?? null;
 	const hasNewFlowParams = !!rosterId && !!communityId;
 
+	logger.debug('tatib.load: gate check', { isNewRosterFlow, hasNewFlowParams, rosterId, communityId });
+
 	// ── New roster flow path ────────────────────────────────────────────────────
 	if (isNewRosterFlow && hasNewFlowParams) {
+		logger.debug('tatib.load: new roster flow — validating token', { rosterId, communityId });
 		// Load roster entry — validate token (rosterId + communityId) against DB
 		let rosterEntry: RosterEntry | null = null;
 		let ministryRoles: MinistryRole[] = [];
 
 		try {
-			const rosterService = new RosterService(repo);
-			const roster = await rosterService.loadRoster(''); // load by rosterId below
-
 			// We load by rosterId directly via findRosterById
 			const fullRoster = await repo.findRosterById(rosterId);
 			if (!fullRoster) {
+				logger.warn('tatib.load: roster not found', { rosterId });
 				throw error(404, 'Roster tidak ditemukan');
 			}
 
 			// Find the entry for this community
 			rosterEntry = fullRoster.entries.find((e) => e.communityId === communityId) ?? null;
 			if (!rosterEntry) {
+				logger.warn('tatib.load: community entry not found in roster', { rosterId, communityId });
 				throw error(404, 'Data komunitas tidak ditemukan dalam roster ini');
 			}
+
+			logger.debug('tatib.load: token valid', { rosterId, communityId, entryStatus: rosterEntry.status });
 
 			// Load USHER ministry roles for the form
 			const ministryService = new MinistryService(repo);
@@ -110,6 +114,8 @@ export const load: PageServerLoad = async (event) => {
 			const usherMinistry = ministries.find((m) => m.code === 'USHER');
 			if (usherMinistry) {
 				ministryRoles = await ministryService.listRolesByMinistry(usherMinistry.id);
+			} else {
+				logger.warn('tatib.load: USHER ministry not found — role selector will be empty');
 			}
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err) throw err; // re-throw SvelteKit errors
@@ -152,6 +158,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	// ── Legacy path ────────────────────────────────────────────────────────────
+	logger.debug('tatib.load: legacy path');
 	// Get church ID from cookie
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 
@@ -259,6 +266,8 @@ export const actions = {
 		const communityId = (formData.get('communityId') as string)?.trim();
 		const ushersJson = (formData.get('ushers') as string)?.trim();
 
+		logger.debug('tatib.submitRosterEntry: received', { rosterId, communityId, hasUshers: !!ushersJson });
+
 		if (!rosterId || !communityId) {
 			return fail(400, { error: 'Data roster tidak lengkap. Silakan akses ulang halaman ini.' });
 		}
@@ -289,19 +298,24 @@ export const actions = {
 			}
 		}
 
+		logger.debug('tatib.submitRosterEntry: validating token and entry status', { rosterId, communityId, usherCount: parsedUshers.length });
 		const rosterService = new RosterService(repo);
 
 		try {
 			// Verify the roster entry exists (token validation against DB)
 			const roster = await repo.findRosterById(rosterId);
 			if (!roster) {
+				logger.warn('tatib.submitRosterEntry: roster not found', { rosterId });
 				return fail(404, { error: 'Roster tidak ditemukan.' });
 			}
 
 			const entry = roster.entries.find((e) => e.communityId === communityId);
 			if (!entry) {
+				logger.warn('tatib.submitRosterEntry: community not in roster', { rosterId, communityId });
 				return fail(404, { error: 'Data komunitas tidak ditemukan dalam roster ini.' });
 			}
+
+			logger.debug('tatib.submitRosterEntry: token OK, entry status', { rosterId, communityId, status: entry.status });
 
 			if (entry.status !== 'draft') {
 				// Community already submitted — show read-only validation error (not a 500)

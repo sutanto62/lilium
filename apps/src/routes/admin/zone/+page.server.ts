@@ -11,9 +11,11 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event) => {
 	// Gate check: new_domain_model enables the Church Facility hierarchy view
 	const isNewDomainModel = await checkServerGate(event.locals, 'new_domain_model');
+	logger.debug('admin_zone_v2.load: gate check', { isNewDomainModel });
 
 	if (!isNewDomainModel) {
 		// Old behaviour: redirect to admin home (zone config is in settings sub-pages)
+		logger.debug('admin_zone_v2.load: gate off → redirect /admin');
 		throw redirect(301, '/admin');
 	}
 
@@ -29,6 +31,7 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	const startTime = Date.now();
+	logger.debug('admin_zone_v2.load: loading ChurchFacility', { churchId });
 	let facility: ChurchFacility;
 
 	try {
@@ -51,6 +54,7 @@ export const load: PageServerLoad = async (event) => {
 		station_count: stationCount,
 		load_time_ms: Date.now() - startTime
 	};
+	logger.info('admin_zone_v2.load: OK', metadata);
 
 	await Promise.all([
 		statsigService.logEvent('admin_zone_v2_view', 'load', session, metadata),

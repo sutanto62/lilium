@@ -81,10 +81,16 @@ if (!browser) {
 		const { format, transports } = winston;
 		const { combine, timestamp, label, printf, errors } = format;
 
-		const myFormat = printf(({ level, message, label, timestamp, stack }: any) => {
+		const myFormat = printf(({ level, message, label, timestamp, stack, ...meta }: any) => {
+			// Render any extra metadata fields passed as the second argument to logger calls.
+			// Exclude Winston-internal symbols so the output stays readable.
+			const metaKeys = Object.keys(meta).filter(
+				(k) => k !== 'splat' && !k.startsWith('[Symbol')
+			);
+			const metaStr = metaKeys.length ? ` ${JSON.stringify(meta, null, 0)}` : '';
 			// Include stack trace for errors
 			const stackTrace = stack ? `\n${stack}` : '';
-			return `\x1b[90m${timestamp}\x1b[0m [${label}] ${level}: ${message}${stackTrace}`;
+			return `\x1b[90m${timestamp}\x1b[0m [${label}] ${level}: ${message}${metaStr}${stackTrace}`;
 		});
 
 		const shortTimestamp = timestamp({

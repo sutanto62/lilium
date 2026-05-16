@@ -1,7 +1,7 @@
 # Plan: Rebuild Web App with Feature-Flagged Architecture Migration
 
-> Status: **In Progress** — Phase 4 next
-> Last updated: 2026-05-14
+> Status: **In Progress** — Phase 6 complete, Phase 5 + Phase 7 next
+> Last updated: 2026-05-16
 > Author: Claude Code (planning session)
 
 ---
@@ -358,8 +358,8 @@ In `+layout.svelte`:
 - Show old nav items (`Misa`, `Zona`, `Group Zona`, `Posisi`, `Zona Misa`) when `isNewUX = false`
 
 **Acceptance criteria:**
-- [ ] No layout shift — both nav variants render correctly
-- [ ] Gate check does not add >50ms to layout load time
+- [x] No layout shift — both nav variants render correctly
+- [x] Gate check does not add >50ms to layout load time
 
 ### Task 6.2 — Celebration settings page (replaces data-misa)
 
@@ -369,8 +369,8 @@ Route: `admin/settings/celebration/` (new; old `data-misa` remains)
 - Feature flag guard: redirect to `/admin/settings/data-misa` if gate is off
 
 **Acceptance criteria:**
-- [ ] CRUD: create, list, edit, delete Celebration
-- [ ] Redirects correctly based on gate value
+- [x] CRUD: create, list, edit, delete Celebration
+- [x] Redirects correctly based on gate value
 
 ### Task 6.3 — Section + Zone settings pages (replaces data-zona + data-zona-group)
 
@@ -380,8 +380,8 @@ Routes: `admin/settings/section/`, `admin/settings/zone/`
 - `zone` page: CRUD, requires selecting a Section parent
 
 **Acceptance criteria:**
-- [ ] Section list shows with Church context
-- [ ] Zone list filtered by Section
+- [x] Section list shows with Church context
+- [x] Zone list filtered by Section
 
 ### Task 6.4 — Station settings page (replaces data-posisi)
 
@@ -391,8 +391,8 @@ Route: `admin/settings/station/`
 - Replaces boolean `isPpg` with `MinistryRole` dropdown
 
 **Acceptance criteria:**
-- [ ] Ministry dropdown populated from `ministry` table (not hardcoded enum)
-- [ ] Old `data-posisi` route still works when gate is off
+- [x] Ministry dropdown populated from `ministry` table (not hardcoded enum)
+- [x] Old `data-posisi` route still works when gate is off
 
 ---
 

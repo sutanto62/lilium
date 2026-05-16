@@ -99,11 +99,11 @@
 
 ## Phase 7 — Feature-Flagged Core Pages
 
-- [ ] **7.1** Update `admin/tatib/[id]/+page.server.ts` — gate `new_roster_flow` → use `RosterService`
-- [ ] **7.2** Update `admin/tatib/[id]/+page.svelte` — render `RosterEntry` list with status badges
-- [ ] **7.3** Update `f/tatib/+page.server.ts` — gate `new_roster_flow` → `RosterService.submitEntry` (public form, no auth guard — D4)
-- [ ] **7.4** Update `admin/zone/+page.server.ts` — gate `new_domain_model` → use `ChurchFacility`
-- [ ] **7.5** Smoke test all four routes with gate on + gate off
+- [x] **7.1** Update `admin/tatib/[id]/+page.server.ts` — gate `new_roster_flow` → use `RosterService`
+- [x] **7.2** Update `admin/tatib/[id]/+page.svelte` — render `RosterEntry` list with status badges
+- [x] **7.3** Update `f/tatib/+page.server.ts` — gate `new_roster_flow` → `RosterService.submitEntry` (public form, no auth guard — D4)
+- [x] **7.4** Update `admin/zone/+page.server.ts` — gate `new_domain_model` → use `ChurchFacility`
+- [x] **7.5** Smoke test all four routes with gate on + gate off
 
 **⏸ CHECKPOINT B** — QA sign-off, raise opt-in to 50% in Statsig
 

@@ -1,6 +1,6 @@
 # Plan: Rebuild Web App with Feature-Flagged Architecture Migration
 
-> Status: **In Progress** — Phase 6 complete, Phase 5 + Phase 7 next
+> Status: **In Progress** — Phase 7 complete, Phase 8 blocked (14-day stability gate)
 > Last updated: 2026-05-16
 > Author: Claude Code (planning session)
 
@@ -409,9 +409,9 @@ Route: `admin/tatib/[id]/` — gate `new_roster_flow`
 - Action: `confirmEntry` calls `RosterService.confirmEntry`
 
 **Acceptance criteria:**
-- [ ] Roster loads with all entries and usher names
-- [ ] Confirm action transitions entry from `submitted → confirmed`
-- [ ] Optimistic lock error shows user-friendly message (not a 500)
+- [x] Roster loads with all entries and usher names
+- [x] Confirm action transitions entry from `submitted → confirmed`
+- [x] Optimistic lock error shows user-friendly message (not a 500)
 
 ### Task 7.2 — New community usher submission page
 
@@ -423,10 +423,10 @@ Route: `f/tatib/` — gate `new_roster_flow`
 - Action: `RosterService.submitEntry(cmd)` — validates token, then transitions entry `draft → submitted`
 
 **Acceptance criteria:**
-- [ ] Page loads without a logged-in session
-- [ ] Invalid or expired token returns a 404, not a 500
-- [ ] Community can submit ushers only for `draft` entries (submitted/confirmed entries show read-only view)
-- [ ] Duplicate submission shows validation error (not a 500)
+- [x] Page loads without a logged-in session
+- [x] Invalid or expired token returns a 404, not a 500
+- [x] Community can submit ushers only for `draft` entries (submitted/confirmed entries show read-only view)
+- [x] Duplicate submission shows validation error (not a 500)
 
 ### Task 7.3 — Zone assignment page update
 
@@ -436,8 +436,8 @@ Route: `admin/zone/` — gate `new_domain_model`
 - Replaces flat `church_zone` + `church_zone_group` queries
 
 **Acceptance criteria:**
-- [ ] Section/Zone/Station hierarchy renders without N+1 queries
-- [ ] Performance: page load < 200ms on dev DB
+- [x] Section/Zone/Station hierarchy renders without N+1 queries
+- [x] Performance: page load < 200ms on dev DB
 
 ---
 

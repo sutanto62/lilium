@@ -1,24 +1,59 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import Regional from '$components/Regional.svelte';
 	import type { ChurchEvent as MassEvent } from '$core/entities/Event';
 	import type { Lingkungan, Usher, Wilayah } from '$core/entities/Schedule';
+	import type { MinistryRole } from '$core/entities/Ministry';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { tracker } from '$src/lib/utils/analytics';
-	import { Alert, Breadcrumb, BreadcrumbItem, Button } from 'flowbite-svelte';
-	import { ClipboardCleanSolid, FloppyDiskSolid } from 'flowbite-svelte-icons';
+	import { Alert, Badge, Breadcrumb, BreadcrumbItem, Button, Label, Select } from 'flowbite-svelte';
+	import { ClipboardCleanSolid, FloppyDiskSolid, CirclePlusSolid, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import UshersList from './UshersList.svelte';
 	import { shouldRequirePpg } from '../../../lib/utils/ppgUtils';
 
 	// Props
-	// const { data = $bindable(), form = $bindable() } = $props<{
-	// 	data: PageData;
-	// 	form: ActionData;
-	// }>();
 	let { data, form } = $props();
 
-	// Data
+	// ── New roster flow state ─────────────────────────────────────────────────
+
+	type NewUsherInput = { name: string; ministryRoleCode: string };
+
+	let newUshers = $state<NewUsherInput[]>([{ name: '', ministryRoleCode: '' }]);
+	let isNewFlowSubmitting = $state(false);
+
+	function addNewUsher() {
+		newUshers = [...newUshers, { name: '', ministryRoleCode: '' }];
+	}
+
+	function removeNewUsher(index: number) {
+		if (newUshers.length <= 1) return;
+		newUshers = newUshers.filter((_, i) => i !== index);
+	}
+
+	function isNewFlowValid(): boolean {
+		return newUshers.every((u) => u.name.trim() !== '' && u.ministryRoleCode !== '');
+	}
+
+	function roleOptions(roles: MinistryRole[]): { value: string; name: string }[] {
+		return roles.map((r) => ({ value: r.code, name: r.name }));
+	}
+
+	function statusLabel(status: string): string {
+		if (status === 'confirmed') return 'Dikonfirmasi';
+		if (status === 'submitted') return 'Tersubmit — menunggu konfirmasi admin';
+		return 'Draft';
+	}
+
+	function statusBadgeColor(status: string): 'gray' | 'yellow' | 'green' {
+		if (status === 'confirmed') return 'green';
+		if (status === 'submitted') return 'yellow';
+		return 'gray';
+	}
+
+	// ── Legacy state ──────────────────────────────────────────────────────────
+
 	let selectedEventDate = $state<string | null>(null);
 	let selectedEventId = $state<string | null>(null);
 	let selectedWilayahId = $state<string | null>(null);
@@ -284,12 +319,12 @@
 	/>
 </svelte:head>
 
-<Breadcrumb class="mb-4	">
+<Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem>Konfirmasi</BreadcrumbItem>
 </Breadcrumb>
 
-<!-- On error  -->
+<!-- ── Error / success alerts (shared by both flows) ──────────────────────── -->
 {#if form?.error}
 	<Alert color="red" class="mb-4">
 		<span class="font-medium">Kesalahan:</span>
@@ -297,77 +332,214 @@
 	</Alert>
 {/if}
 
-<!-- On success -->
-{#if form?.success}
-	<Alert color="green" class="mb-4 text-gray-900 dark:bg-green-900/20 dark:border-green-800 dark:text-green-100">
-		<div id="copy-usher">
-			<p class="font-medium">
-				Konfirmasi lingkungan: <strong>{form?.json.lingkungan} ({form?.json.wilayahName})</strong>
-				<br />
-				Misa: <strong>{form?.json.mass}</strong><br />
-				Tanggal Tugas: <strong>{form?.json.event}</strong>
-			</p>
-			<p class="font-medium">Petugas:</p>
-			{#if form?.json.ushers.length === 0}
-				<p>Hubungi admin untuk penentuan posisi petugas secara manual.</p>
-			{:else}
-				<ol class="list-inside list-none">
-					{#each form?.json.ushers as usher}
-						<li>- {usher.name} (<strong>{usher.zone}-{usher.positionName}</strong>)</li>
-					{/each}
-				</ol>
-			{/if}
-			<br />
-			Tanggal konfirmasi: {form?.json.submitted} <br />
-		</div>
-		<Button color="blue" class="mr-2 mt-4" onclick={() => copyToClipboard('copy-usher')}>
-			<ClipboardCleanSolid class="mr-2 h-5 w-5" />
-			Salin ke Clipboard
-		</Button>
-	</Alert>
-{/if}
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- NEW ROSTER FLOW (gate: new_roster_flow + rosterId + communityId params) -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+{#if data.isNewRosterFlow}
+	{@const entry = data.rosterEntry}
 
-{#if showForm}
-	<h1 class="mb-6 text-xl font-semibold dark:text-white">Konfirmasi Petugas Tata Tertib</h1>
-	<p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-		Hari ini: <strong>{data.currentDay}</strong> • {data.formAvailabilityReason}
-	</p>
-	<form method="POST" class="mb-6" onsubmit={handleSubmit}>
-		<input type="hidden" name="churchId" value={data.church.id} />
-		<input type="hidden" name="eventDate" value={selectedEventDate} />
-		<input type="hidden" name="eventId" value={selectedEventId || ''} />
-		<input type="hidden" name="wilayahId" value={selectedWilayahId || ''} />
-		<input type="hidden" name="lingkunganId" value={selectedLingkunganId || ''} />
-		<input type="hidden" name="ushers" value={JSON.stringify(ushers)} />
+	{#if !entry}
+		<Alert color="red" class="mb-4">
+			<span class="font-medium">Tidak ditemukan:</span> Data komunitas untuk roster ini tidak tersedia.
+			Silakan hubungi admin.
+		</Alert>
+	{:else}
+		<h1 class="mb-2 text-xl font-semibold dark:text-white">Konfirmasi Petugas Tata Tertib</h1>
+		<p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+			Komunitas: <strong>{entry.communityName}</strong> ({entry.wilayahName})
+		</p>
 
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-			<section class="rounded-lg border bg-white p-6 dark:border-gray-700 dark:bg-gray-800 md:col-span-1">
-				<Regional
-					eventsDate={data.eventsDate}
-					events={data.events}
-					wilayahs={data.wilayahs}
-					lingkungans={data.lingkungans}
-					bind:selectedEventDate
-					bind:selectedEventId
-					bind:selectedWilayahId
-					bind:selectedLingkunganId
-				/>
-			</section>
-			<section class="rounded-lg border bg-white p-6 dark:border-gray-700 dark:bg-gray-800 md:col-span-3">
-				<UshersList bind:ushers bind:isSubmitable={isUshersValid} requirePpg={data.requirePpg} />
-			</section>
+		<!-- Status badge -->
+		<div class="mb-4 flex items-center gap-2">
+			<span class="text-sm text-gray-500">Status:</span>
+			<Badge color={statusBadgeColor(entry.status)}>{statusLabel(entry.status)}</Badge>
 		</div>
-		<div class="flex justify-end gap-4 px-0 py-4">
-			<Button type="submit" id="save-button" color="primary" disabled={isSubmitDisable}>
-				<FloppyDiskSolid class="mr-2" />Simpan
-			</Button>
-		</div>
-	</form>
+
+		{#if form?.success && form?.rosterEntry}
+			<!-- Success state after submit -->
+			<Alert
+				color="green"
+				class="mb-4 text-gray-900 dark:border-green-800 dark:bg-green-900/20 dark:text-green-100"
+			>
+				<p class="font-medium">
+					Konfirmasi berhasil untuk komunitas <strong>{form.communityName}</strong> ({form.wilayahName}).
+				</p>
+				<p class="mt-1 text-sm">Jumlah petugas: {form.ushersCount}</p>
+				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+					Menunggu konfirmasi dari admin.
+				</p>
+			</Alert>
+		{:else if entry.status === 'draft'}
+			<!-- Submission form -->
+			<form
+				method="POST"
+				action="?/submitRosterEntry"
+				use:enhance={() => {
+					isNewFlowSubmitting = true;
+					return async ({ update }) => {
+						isNewFlowSubmitting = false;
+						await update({ reset: false });
+					};
+				}}
+			>
+				<input type="hidden" name="rosterId" value={data.rosterId} />
+				<input type="hidden" name="communityId" value={data.communityId} />
+				<input type="hidden" name="ushers" value={JSON.stringify(newUshers)} />
+
+				<div class="mb-4 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+					<h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">
+						Daftar Petugas
+					</h2>
+
+					<div class="flex flex-col gap-3">
+						{#each newUshers as usher, i (i)}
+							<div class="flex items-end gap-2">
+								<div class="flex-1">
+									<Label for="usher-name-{i}" class="mb-1 text-xs">Nama</Label>
+									<input
+										id="usher-name-{i}"
+										type="text"
+										class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+										placeholder="Nama petugas"
+										required
+										bind:value={usher.name}
+									/>
+								</div>
+								<div class="w-36 shrink-0">
+									<Label for="usher-role-{i}" class="mb-1 text-xs">Peran</Label>
+									<Select
+										id="usher-role-{i}"
+										class="text-sm"
+										items={roleOptions(data.ministryRoles)}
+										bind:value={usher.ministryRoleCode}
+										placeholder="Pilih peran"
+										required
+									/>
+								</div>
+								{#if newUshers.length > 1}
+									<Button
+										type="button"
+										size="xs"
+										color="light"
+										class="mb-0.5 shrink-0"
+										onclick={() => removeNewUsher(i)}
+									>
+										<TrashBinOutline class="size-4" />
+									</Button>
+								{/if}
+							</div>
+						{/each}
+					</div>
+
+					<Button type="button" size="xs" color="alternative" class="mt-3" onclick={addNewUsher}>
+						<CirclePlusSolid class="me-1 size-3" /> Tambah petugas
+					</Button>
+				</div>
+
+				<div class="flex justify-end">
+					<Button
+						type="submit"
+						color="primary"
+						disabled={isNewFlowSubmitting || !isNewFlowValid()}
+					>
+						<FloppyDiskSolid class="mr-2" />
+						{isNewFlowSubmitting ? 'Menyimpan...' : 'Simpan Konfirmasi'}
+					</Button>
+				</div>
+			</form>
+		{:else}
+			<!-- Read-only view for submitted / confirmed entries -->
+			<div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+				<h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Daftar Petugas</h2>
+				{#if entry.ushers.length === 0}
+					<p class="text-sm text-gray-400">Belum ada petugas yang terdaftar.</p>
+				{:else}
+					<ul class="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+						{#each entry.ushers as usher (usher.id)}
+							<li>• {usher.name}</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		{/if}
+	{/if}
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- LEGACY FLOW                                                              -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
 {:else}
-	<h2 class="mb-6 text-2xl font-bold dark:text-white">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
-	<p class="text-gray-700 dark:text-gray-300">Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
-	<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-		Hari ini: <strong>{data.currentDay}</strong><br />
-		{data.formAvailabilityReason}
-	</p>
+	<!-- Success alert (legacy) -->
+	{#if form?.success}
+		<Alert color="green" class="mb-4 text-gray-900 dark:bg-green-900/20 dark:border-green-800 dark:text-green-100">
+			<div id="copy-usher">
+				<p class="font-medium">
+					Konfirmasi lingkungan: <strong>{form?.json?.lingkungan} ({form?.json?.wilayahName})</strong>
+					<br />
+					Misa: <strong>{form?.json?.mass}</strong><br />
+					Tanggal Tugas: <strong>{form?.json?.event}</strong>
+				</p>
+				<p class="font-medium">Petugas:</p>
+				{#if !form?.json?.ushers || form.json.ushers.length === 0}
+					<p>Hubungi admin untuk penentuan posisi petugas secara manual.</p>
+				{:else}
+					<ol class="list-inside list-none">
+						{#each form.json.ushers as usher}
+							<li>- {usher.name} (<strong>{usher.zone}-{usher.positionName}</strong>)</li>
+						{/each}
+					</ol>
+				{/if}
+				<br />
+				Tanggal konfirmasi: {form?.json?.submitted} <br />
+			</div>
+			<Button color="blue" class="mr-2 mt-4" onclick={() => copyToClipboard('copy-usher')}>
+				<ClipboardCleanSolid class="mr-2 h-5 w-5" />
+				Salin ke Clipboard
+			</Button>
+		</Alert>
+	{/if}
+
+	{#if showForm}
+		<h1 class="mb-6 text-xl font-semibold dark:text-white">Konfirmasi Petugas Tata Tertib</h1>
+		<p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+			Hari ini: <strong>{data.currentDay}</strong> • {data.formAvailabilityReason}
+		</p>
+		<form method="POST" class="mb-6" onsubmit={handleSubmit}>
+			<input type="hidden" name="churchId" value={data.church?.id} />
+			<input type="hidden" name="eventDate" value={selectedEventDate} />
+			<input type="hidden" name="eventId" value={selectedEventId || ''} />
+			<input type="hidden" name="wilayahId" value={selectedWilayahId || ''} />
+			<input type="hidden" name="lingkunganId" value={selectedLingkunganId || ''} />
+			<input type="hidden" name="ushers" value={JSON.stringify(ushers)} />
+
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+				<section class="rounded-lg border bg-white p-6 dark:border-gray-700 dark:bg-gray-800 md:col-span-1">
+					<Regional
+						eventsDate={data.eventsDate}
+						events={data.events}
+						wilayahs={data.wilayahs}
+						lingkungans={data.lingkungans}
+						bind:selectedEventDate
+						bind:selectedEventId
+						bind:selectedWilayahId
+						bind:selectedLingkunganId
+					/>
+				</section>
+				<section class="rounded-lg border bg-white p-6 dark:border-gray-700 dark:bg-gray-800 md:col-span-3">
+					<UshersList bind:ushers bind:isSubmitable={isUshersValid} requirePpg={data.requirePpg} />
+				</section>
+			</div>
+			<div class="flex justify-end gap-4 px-0 py-4">
+				<Button type="submit" id="save-button" color="primary" disabled={isSubmitDisable}>
+					<FloppyDiskSolid class="mr-2" />Simpan
+				</Button>
+			</div>
+		</form>
+	{:else}
+		<h2 class="mb-6 text-2xl font-bold dark:text-white">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
+		<p class="text-gray-700 dark:text-gray-300">Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
+		<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+			Hari ini: <strong>{data.currentDay}</strong><br />
+			{data.formAvailabilityReason}
+		</p>
+	{/if}
 {/if}

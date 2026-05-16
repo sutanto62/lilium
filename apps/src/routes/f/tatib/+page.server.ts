@@ -1,11 +1,16 @@
 import type { EventUsher } from '$core/entities/Event';
 import type { Church } from '$core/entities/Schedule';
+import type { MinistryRole } from '$core/entities/Ministry';
+import type { RosterEntry } from '$core/entities/Roster';
 import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
+import { MinistryService } from '$core/service/MinistryService';
+import { RosterService } from '$core/service/RosterService';
 import { QueueManager } from '$core/service/QueueManager';
 import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
+import { checkServerGate } from '$lib/server/featureFlags';
 import { formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { shouldRequirePpg } from '$lib/utils/ppgUtils';
@@ -55,11 +60,13 @@ function getCurrentDayName(): string {
 /**
  * PageServerLoad function for the form-tatib page.
  *
- * This function asynchronously fetches events, wilayahs, and lingkungans
- * using Promise.all for concurrent execution. It then returns these
- * data to be used in the page.
+ * When the `new_roster_flow` gate is on AND `rosterId` + `communityId` query
+ * params are present, loads the specific RosterEntry for the community to display
+ * the new public submission form (D4: no login required).
  *
- * @returns {Promise<{events: any, wilayahs: any, lingkungans: any}>}
+ * When the gate is off or params are absent, falls back to the legacy form.
+ *
+ * @returns Combined data for both old and new form variants
  */
 export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
@@ -67,6 +74,84 @@ export const load: PageServerLoad = async (event) => {
 	// Get session if available (public page, but users might be logged in)
 	const session = await event.locals.auth();
 
+	// Check new_roster_flow gate
+	const isNewRosterFlow = await checkServerGate(event.locals, 'new_roster_flow');
+
+	// Extract optional new-flow params from query string (defensive access for test compatibility)
+	const rosterId = event.url?.searchParams?.get('rosterId') ?? null;
+	const communityId = event.url?.searchParams?.get('communityId') ?? null;
+	const hasNewFlowParams = !!rosterId && !!communityId;
+
+	// ── New roster flow path ────────────────────────────────────────────────────
+	if (isNewRosterFlow && hasNewFlowParams) {
+		// Load roster entry — validate token (rosterId + communityId) against DB
+		let rosterEntry: RosterEntry | null = null;
+		let ministryRoles: MinistryRole[] = [];
+
+		try {
+			const rosterService = new RosterService(repo);
+			const roster = await rosterService.loadRoster(''); // load by rosterId below
+
+			// We load by rosterId directly via findRosterById
+			const fullRoster = await repo.findRosterById(rosterId);
+			if (!fullRoster) {
+				throw error(404, 'Roster tidak ditemukan');
+			}
+
+			// Find the entry for this community
+			rosterEntry = fullRoster.entries.find((e) => e.communityId === communityId) ?? null;
+			if (!rosterEntry) {
+				throw error(404, 'Data komunitas tidak ditemukan dalam roster ini');
+			}
+
+			// Load USHER ministry roles for the form
+			const ministryService = new MinistryService(repo);
+			const ministries = await ministryService.listMinistries();
+			const usherMinistry = ministries.find((m) => m.code === 'USHER');
+			if (usherMinistry) {
+				ministryRoles = await ministryService.listRolesByMinistry(usherMinistry.id);
+			}
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err) throw err; // re-throw SvelteKit errors
+			logger.error('tatib_new_view.load: Error loading roster entry', { err, rosterId, communityId });
+			throw error(500, 'Gagal memuat data roster');
+		}
+
+		const loadMetadata = {
+			load_time_ms: Date.now() - startTime,
+			roster_id: rosterId,
+			community_id: communityId,
+			entry_status: rosterEntry?.status ?? 'unknown'
+		};
+
+		await Promise.all([
+			statsigService.logEvent('tatib_new_view', 'load', session || undefined, loadMetadata),
+			posthogService.trackEvent('tatib_new_view', { event_type: 'page_load', ...loadMetadata }, session || undefined)
+		]);
+
+		return {
+			isNewRosterFlow: true,
+			rosterEntry,
+			ministryRoles,
+			rosterId,
+			communityId,
+			// Legacy fields — not used in new flow but required for type compatibility
+			church: null,
+			wilayahs: [],
+			lingkungans: [],
+			events: [],
+			eventsDate: [],
+			success: false,
+			assignedUshers: [],
+			formData: null,
+			showForm: true,
+			requirePpg: false,
+			currentDay: getCurrentDayName(),
+			formAvailabilityReason: 'Form tersedia'
+		};
+	}
+
+	// ── Legacy path ────────────────────────────────────────────────────────────
 	// Get church ID from cookie
 	const churchId = event.cookies.get('cid') as string || import.meta.env.VITE_CHURCH_ID;
 
@@ -120,12 +205,17 @@ export const load: PageServerLoad = async (event) => {
 			}, session || undefined)
 		]);
 
-		const returnData = {
+		return {
+			isNewRosterFlow: false,
+			rosterEntry: null,
+			ministryRoles: [],
+			rosterId: null,
+			communityId: null,
 			church,
 			wilayahs,
 			lingkungans,
 			events,
-			eventsDate: eventsDate,
+			eventsDate,
 			success: false,
 			assignedUshers: [],
 			formData: null,
@@ -134,7 +224,6 @@ export const load: PageServerLoad = async (event) => {
 			currentDay: getCurrentDayName(),
 			formAvailabilityReason: showForm ? 'Form tersedia' : 'Form hanya tersedia pada hari kerja (Senin-Kamis)'
 		};
-		return returnData;
 	} catch (err) {
 		logger.error('tatib_view_server: Error fetching data', err);
 
@@ -155,25 +244,136 @@ export const load: PageServerLoad = async (event) => {
 	}
 };
 
-/**
- * Actions for the tatib (tata tertib/ushers) form.
- * 
- * The default action handles form submission for confirming ushers for a church event.
- * It validates the submitted data, processes the ushers information, and assigns positions
- * to the ushers based on their roles and sequence.
- * 
- * The flow includes:
- * 1. Validating form data including church, event, wilayah and lingkungan
- * 2. Parsing and validating ushers information (names, roles)
- * 3. Assigning positions based on business rules
- * 4. Saving the confirmed ushers to the database
- * 
- * @returns {Promise<ActionFailure<{error: string, formData: any}> | {success: boolean, json: any}>}
- *          Returns a success object with the processed data if successful,
- *          or an ActionFailure with error details if validation fails
- */
-
 export const actions = {
+	/**
+	 * New roster flow action: submit usher names for a community's roster entry.
+	 * Transitions the entry from draft → submitted.
+	 * Public form — D4: no auth guard.
+	 */
+	submitRosterEntry: async ({ request, url, locals }) => {
+		const startTime = Date.now();
+		const session = await locals.auth();
+
+		const formData = await request.formData();
+		const rosterId = (formData.get('rosterId') as string)?.trim();
+		const communityId = (formData.get('communityId') as string)?.trim();
+		const ushersJson = (formData.get('ushers') as string)?.trim();
+
+		if (!rosterId || !communityId) {
+			return fail(400, { error: 'Data roster tidak lengkap. Silakan akses ulang halaman ini.' });
+		}
+
+		if (!ushersJson) {
+			return fail(422, { error: 'Mohon masukkan nama petugas.' });
+		}
+
+		// Validate token: rosterId + communityId must exist in DB
+		let parsedUshers: Array<{ name: string; ministryRoleCode: string }>;
+		try {
+			parsedUshers = JSON.parse(ushersJson);
+		} catch {
+			return fail(422, { error: 'Format data petugas tidak valid.' });
+		}
+
+		if (!Array.isArray(parsedUshers) || parsedUshers.length === 0) {
+			return fail(422, { error: 'Mohon masukkan minimal satu nama petugas.' });
+		}
+
+		// Validate each usher has a name and a role code
+		for (const usher of parsedUshers) {
+			if (!usher.name?.trim()) {
+				return fail(422, { error: 'Semua petugas harus memiliki nama.' });
+			}
+			if (!usher.ministryRoleCode?.trim()) {
+				return fail(422, { error: 'Semua petugas harus memiliki peran.' });
+			}
+		}
+
+		const rosterService = new RosterService(repo);
+
+		try {
+			// Verify the roster entry exists (token validation against DB)
+			const roster = await repo.findRosterById(rosterId);
+			if (!roster) {
+				return fail(404, { error: 'Roster tidak ditemukan.' });
+			}
+
+			const entry = roster.entries.find((e) => e.communityId === communityId);
+			if (!entry) {
+				return fail(404, { error: 'Data komunitas tidak ditemukan dalam roster ini.' });
+			}
+
+			if (entry.status !== 'draft') {
+				// Community already submitted — show read-only validation error (not a 500)
+				return fail(422, {
+					error: `Konfirmasi petugas sudah ${entry.status === 'submitted' ? 'tersubmit' : 'dikonfirmasi'}. Tidak dapat disubmit ulang.`
+				});
+			}
+
+			const updatedEntry = await rosterService.submitEntry({
+				rosterId,
+				communityId,
+				ushers: parsedUshers
+			});
+
+			const successMetadata = {
+				processing_time_ms: Date.now() - startTime,
+				community_name: entry.communityName,
+				wilayah_name: entry.wilayahName,
+				roster_id: rosterId,
+				ushers_count: parsedUshers.length
+			};
+
+			await Promise.all([
+				statsigService.logEvent('tatib_new_submit', 'success', session || undefined, successMetadata),
+				posthogService.trackEvent('tatib_new_submit', {
+					event_type: 'success',
+					...successMetadata
+				}, session || undefined)
+			]);
+
+			return {
+				success: true,
+				rosterEntry: updatedEntry,
+				communityName: entry.communityName,
+				wilayahName: entry.wilayahName,
+				ushersCount: parsedUshers.length
+			};
+		} catch (err) {
+			if (err instanceof ServiceError) {
+				const errMetadata = { error_type: err.type, error_message: err.message };
+
+				switch (err.type) {
+					case ServiceErrorType.VALIDATION_ERROR:
+						await Promise.all([
+							statsigService.logEvent('tatib_new_error', 'validation_error', session || undefined, errMetadata),
+							posthogService.trackEvent('tatib_new_error', { event_type: 'validation_error', ...errMetadata }, session || undefined)
+						]);
+						return fail(422, { error: err.message });
+					case ServiceErrorType.CONFLICT_ERROR:
+						await Promise.all([
+							statsigService.logEvent('tatib_new_error', 'conflict', session || undefined, errMetadata),
+							posthogService.trackEvent('tatib_new_error', { event_type: 'conflict', ...errMetadata }, session || undefined)
+						]);
+						return fail(409, {
+							error: 'Data sedang diperbarui oleh pengguna lain. Silakan muat ulang halaman dan coba lagi.'
+						});
+					case ServiceErrorType.NOT_FOUND_ERROR:
+						return fail(404, { error: err.message });
+					default:
+						logger.error('tatib_new_error: Service error', { err });
+						return fail(500, { error: 'Terjadi kesalahan sistem. Silakan coba lagi.' });
+				}
+			}
+
+			logger.error('tatib_new_error: Unexpected error', { err });
+			return fail(500, { error: 'Terjadi kesalahan internal.' });
+		}
+	},
+
+	/**
+	 * Legacy default action: handles form submission for confirming ushers for a church event.
+	 */
 	default: async ({ request, cookies, locals }) => {
 		const startTime = Date.now();
 
@@ -247,7 +447,7 @@ export const actions = {
 			});
 		}
 
-		// Validate mandatory input 
+		// Validate mandatory input
 		if ((!scheduledEventId) || !wilayahId || !lingkunganId || !ushersJson) {
 			const errorMetadata = {
 				error_type: 'validation_error',

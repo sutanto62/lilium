@@ -2,6 +2,7 @@ import type { EventUsher } from '$core/entities/Event';
 import type { ChurchPosition, Lingkungan } from '$core/entities/Schedule';
 import { QueueManager } from '$core/service/QueueManager';
 import { EventService } from '$core/service/EventService';
+import { ChurchService } from '$core/service/ChurchService';
 import { UsherService } from '$core/service/UsherService';
 import { repo } from '$lib/server/db';
 import { mass } from '$lib/server/db/schema';
@@ -69,6 +70,29 @@ vi.mock('$src/lib/application/PostHogService', () => ({
 	posthogService: {
 		trackEvent: vi.fn()
 	}
+}));
+
+// Mocks for Phase 7 additions
+vi.mock('$lib/server/featureFlags', () => ({
+	checkServerGate: vi.fn().mockResolvedValue(false)
+}));
+
+vi.mock('$core/service/RosterService', () => ({
+	RosterService: vi.fn().mockImplementation(() => ({
+		loadRoster: vi.fn().mockResolvedValue(null),
+		submitEntry: vi.fn(),
+		confirmEntry: vi.fn(),
+		reopenEntry: vi.fn(),
+		listByCommunity: vi.fn().mockResolvedValue([])
+	}))
+}));
+
+vi.mock('$core/service/MinistryService', () => ({
+	MinistryService: vi.fn().mockImplementation(() => ({
+		listMinistries: vi.fn().mockResolvedValue([]),
+		listRolesByMinistry: vi.fn().mockResolvedValue([]),
+		resolveRoleByCode: vi.fn()
+	}))
 }));
 
 const createMockRequestEvent = (formData: FormData) => ({
@@ -386,6 +410,20 @@ describe('validateUsherNames', () => {
 });
 
 describe('load function', () => {
+	beforeEach(() => {
+		// vi.clearAllMocks() in the outer beforeEach resets mockImplementation in Vitest 2.x;
+		// re-apply class constructor mocks so new EventService() / new ChurchService() return
+		// objects with the expected methods.
+		vi.mocked(EventService).mockImplementation(() => ({
+			retrieveEventsByWeekRange: vi.fn().mockResolvedValue([]),
+			retrieveEventById: vi.fn()
+		}) as any);
+		vi.mocked(ChurchService).mockImplementation(() => ({
+			retrieveWilayahs: vi.fn().mockResolvedValue([]),
+			retrieveLingkungans: vi.fn().mockResolvedValue([])
+		}) as any);
+	});
+
 	test('should return showForm true when no_saturday_sunday gate is disabled', async () => {
 		vi.mocked(statsigService.checkGate).mockResolvedValue(false); // Feature flag disabled = always show
 		vi.mocked(repo.findChurchById).mockResolvedValue({ id: 'church1', code: 'CH1', requirePpg: 0 } as any);

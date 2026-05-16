@@ -1,17 +1,23 @@
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { logger } from '$src/lib/utils/logger';
-import { error, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad, RequestEvent } from './$types';
 
 // Services
-import { ServiceError } from '$core/errors/ServiceError';
+import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
+import { RosterService } from '$core/service/RosterService';
 import { hasRole } from '$src/auth';
 import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
+import { checkServerGate } from '$lib/server/featureFlags';
+import { repo } from '$lib/server/db';
 
-async function getAuthContext(event: RequestEvent): Promise<{ churchId: string; session: Awaited<ReturnType<typeof event.locals.auth>> }> {
+async function getAuthContext(event: RequestEvent): Promise<{
+	churchId: string;
+	session: Awaited<ReturnType<typeof event.locals.auth>>;
+}> {
 	const session = await event.locals.auth();
 	const churchId = session?.user?.cid ?? '';
 	if (!churchId) {
@@ -33,6 +39,46 @@ export const load: PageServerLoad = async (event) => {
 	const churchId = session.user?.cid ?? '';
 	const eventId = event.params.id;
 
+	// ── Gate check: new roster flow ────────────────────────────────────────────
+	const isNewRosterFlow = await checkServerGate(event.locals, 'new_roster_flow');
+
+	if (isNewRosterFlow) {
+		// New domain model path — load Roster aggregate
+		const rosterService = new RosterService(repo);
+		const eventService = new EventService(churchId);
+
+		const [eventDetail, roster] = await Promise.all([
+			eventService.retrieveEventSchedule(eventId),
+			rosterService.loadRoster(eventId)
+		]);
+
+		const metadata = {
+			event_id: eventId,
+			has_roster: !!roster,
+			entry_count: roster?.entries.length ?? 0,
+			load_time_ms: Date.now() - startTime
+		};
+
+		await Promise.all([
+			statsigService.logEvent('admin_jadwal_detail_view', 'load', session || undefined, metadata),
+			posthogService.trackEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		]);
+
+		return {
+			eventDetail,
+			roster,
+			isNewRosterFlow: true,
+			zones: [],
+			wilayahs: [],
+			lingkungans: [],
+			events: [],
+			eventsDate: [],
+			success: false,
+			assignedUshers: []
+		};
+	}
+
+	// ── Legacy path ────────────────────────────────────────────────────────────
 	const eventService = new EventService(churchId);
 	const [eventDetail] = await Promise.all([eventService.retrieveEventSchedule(eventId)]);
 
@@ -55,6 +101,8 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		eventDetail,
+		roster: null,
+		isNewRosterFlow: false,
 		zones: zoneGroups,
 		wilayahs: [],
 		lingkungans: [],
@@ -68,10 +116,121 @@ export const load: PageServerLoad = async (event) => {
 /** @satisfies {import('./$types').Actions} */
 export const actions: Actions = {
 	/**
-	 * Deactivates (soft deletes) an event
-	 * @param event The request event containing session data and params
-	 * @throws {error} 404 if church ID is not found in session
-	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
+	 * Confirm a community's submitted usher list (submitted → confirmed).
+	 * Only available when new_roster_flow gate is on.
+	 */
+	confirmEntry: async (event: RequestEvent) => {
+		const { churchId: _churchId, session } = await getAuthContext(event);
+
+		if (!hasRole(session, 'admin')) {
+			throw error(403, 'Tidak memiliki akses');
+		}
+
+		const confirmedByUserId = session?.user?.email ?? session?.user?.name ?? '';
+		if (!confirmedByUserId) {
+			throw error(401, 'Sesi tidak valid');
+		}
+
+		const formData = await event.request.formData();
+		const rosterId = (formData.get('rosterId') as string)?.trim();
+		const communityId = (formData.get('communityId') as string)?.trim();
+
+		if (!rosterId || !communityId) {
+			return fail(400, { error: 'Roster ID dan Community ID wajib diisi' });
+		}
+
+		const rosterService = new RosterService(repo);
+
+		try {
+			await rosterService.confirmEntry({ rosterId, communityId, confirmedByUserId });
+
+			await Promise.all([
+				statsigService.logEvent('admin_roster_confirm_entry', 'submit', session || undefined, {
+					roster_id: rosterId,
+					community_id: communityId
+				}),
+				posthogService.trackEvent('admin_roster_confirm_entry', {
+					event_type: 'confirm_entry',
+					roster_id: rosterId,
+					community_id: communityId
+				}, session || undefined)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			if (err instanceof ServiceError) {
+				if (err.type === ServiceErrorType.CONFLICT_ERROR) {
+					return fail(409, {
+						error: 'Data telah diubah oleh pengguna lain. Silakan muat ulang halaman dan coba lagi.'
+					});
+				}
+				if (err.type === ServiceErrorType.VALIDATION_ERROR) {
+					return fail(422, { error: err.message });
+				}
+				if (err.type === ServiceErrorType.NOT_FOUND_ERROR) {
+					return fail(404, { error: err.message });
+				}
+			}
+			logger.error('admin_roster_confirm_entry: Unexpected error', { err });
+			return fail(500, { error: 'Terjadi kesalahan internal. Silakan coba lagi.' });
+		}
+	},
+
+	/**
+	 * Reopen a submitted/confirmed entry back to draft.
+	 * Only available when new_roster_flow gate is on.
+	 */
+	reopenEntry: async (event: RequestEvent) => {
+		const { churchId: _churchId, session } = await getAuthContext(event);
+
+		if (!hasRole(session, 'admin')) {
+			throw error(403, 'Tidak memiliki akses');
+		}
+
+		const formData = await event.request.formData();
+		const rosterId = (formData.get('rosterId') as string)?.trim();
+		const communityId = (formData.get('communityId') as string)?.trim();
+
+		if (!rosterId || !communityId) {
+			return fail(400, { error: 'Roster ID dan Community ID wajib diisi' });
+		}
+
+		const rosterService = new RosterService(repo);
+
+		try {
+			await rosterService.reopenEntry(rosterId, communityId);
+
+			await Promise.all([
+				statsigService.logEvent('admin_roster_reopen_entry', 'submit', session || undefined, {
+					roster_id: rosterId,
+					community_id: communityId
+				}),
+				posthogService.trackEvent('admin_roster_reopen_entry', {
+					event_type: 'reopen_entry',
+					roster_id: rosterId,
+					community_id: communityId
+				}, session || undefined)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			if (err instanceof ServiceError) {
+				if (err.type === ServiceErrorType.CONFLICT_ERROR) {
+					return fail(409, {
+						error: 'Data telah diubah oleh pengguna lain. Silakan muat ulang halaman dan coba lagi.'
+					});
+				}
+				if (err.type === ServiceErrorType.VALIDATION_ERROR) {
+					return fail(422, { error: err.message });
+				}
+			}
+			logger.error('admin_roster_reopen_entry: Unexpected error', { err });
+			return fail(500, { error: 'Terjadi kesalahan internal. Silakan coba lagi.' });
+		}
+	},
+
+	/**
+	 * Deactivates (soft deletes) an event.
 	 */
 	deactivate: async (event: RequestEvent) => {
 		const { churchId, session } = await getAuthContext(event);
@@ -90,18 +249,16 @@ export const actions: Actions = {
 				statsigService.logEvent('admin_jadwal_detail_deactivate', 'submit', session || undefined, { event_id: eventId }),
 				posthogService.trackEvent('admin_jadwal_detail_deactivate', { event_type: 'deactivate', event_id: eventId }, session || undefined)
 			]);
-		} catch (error) {
-			logger.error('Error deactivating event:', error);
+		} catch (err) {
+			logger.error('Error deactivating event:', err);
 			throw ServiceError.database('Gagal menonaktifkan jadwal');
 		}
 
 		return redirect(303, '/admin/tatib');
 	},
+
 	/**
-	 * Updates event's PIC
-	 * @param event The request event containing session data and params
-	 * @throws {error} 404 if church ID is not found in session
-	 * @throws {redirect} 303 redirect to jadwal page after successful deactivation
+	 * Updates event's PIC.
 	 */
 	updatePic: async (event: RequestEvent) => {
 		const { churchId, session } = await getAuthContext(event);
@@ -128,11 +285,9 @@ export const actions: Actions = {
 
 		return { success: true };
 	},
+
 	/**
-	 * Deletes event usher for a specific lingkungan
-	 * @param event The request event containing session data and params 
-	 * @throws {error} 404 if church ID is not found in session
-	 * @returns {success: true} on successful deletion
+	 * Deletes event usher for a specific lingkungan.
 	 */
 	deleteEventUsher: async (event: RequestEvent) => {
 		const { churchId, session } = await getAuthContext(event);
@@ -157,5 +312,5 @@ export const actions: Actions = {
 		]);
 
 		return { success: true };
-	},
+	}
 };

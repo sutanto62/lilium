@@ -202,7 +202,7 @@ export class ChurchService {
 		return await repo.deactivateMassZone(massZoneId);
 	}
 
-	// ─── New domain methods (Phase 5) ────────────────────────────────────────────
+// ─── New domain methods (Phase 5) ────────────────────────────────────────────
 
 	async retrieveParishHierarchy(parishId: string): Promise<ParishHierarchy> {
 		if (!this.parishRepo) {
@@ -211,10 +211,11 @@ export class ChurchService {
 		return this.parishRepo.findParishHierarchy(parishId);
 	}
 
-	async retrieveChurchFacility(churchId: string): Promise<ChurchFacility> {
+	async retrieveChurchFacility(): Promise<ChurchFacility> {
 		if (!this.facilityRepo) {
 			throw new Error('FacilityRepository not provided to ChurchService');
 		}
-		return this.facilityRepo.findChurchFacility(churchId);
+		return this.facilityRepo.findChurchFacility(this.churchId);
 	}
+}
 }

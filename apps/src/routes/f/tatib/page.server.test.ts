@@ -123,7 +123,7 @@ test('should return 422 if eventId is missing', async () => {
 	formData.append('lingkunganId', 'lingkungan1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error', 'Mohon lengkapi semua isian.');
@@ -137,7 +137,7 @@ test('should return 422 if wilayahId is missing', async () => {
 	formData.append('lingkunganId', 'lingkungan1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error', 'Mohon lengkapi semua isian.');
@@ -151,7 +151,7 @@ test('should return 422 if lingkunganId is missing', async () => {
 	formData.append('wilayahId', 'wilayah1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error', 'Mohon lengkapi semua isian.');
@@ -165,7 +165,7 @@ test('should return 422 if ushers is missing', async () => {
 	formData.append('wilayahId', 'wilayah1');
 	formData.append('lingkunganId', 'lingkungan1');
 
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error', 'Mohon lengkapi semua isian.');
@@ -174,7 +174,7 @@ test('should return 422 if ushers is missing', async () => {
 
 test('should return 422 if all fields are missing', async () => {
 	const formData = new FormData();
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error', 'Mohon lengkapi semua isian.');
@@ -194,7 +194,7 @@ test('should reject submission on weekends when feature flag is enabled', async 
 	formData.append('lingkunganId', 'lingkungan1');
 	formData.append('ushers', JSON.stringify([{ name: 'John Doe' }]));
 
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error');
@@ -288,7 +288,7 @@ test('should handle queue processing errors', async () => {
 		{ name: 'Diana Miller', isPpg: false, isKolekte: false }
 	]));
 
-	const result = await actions.default(createMockRequestEvent(formData));
+	const result = await actions.confirmUshers(createMockRequestEvent(formData));
 	expect(result).toHaveProperty('status', 404);
 	if ('status' in result && 'data' in result && result.data) {
 		expect((result.data as any).error).toContain('Queue processing failed');

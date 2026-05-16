@@ -387,9 +387,11 @@ export const actions = {
 	},
 
 	/**
-	 * Legacy default action: handles form submission for confirming ushers for a church event.
+	 * Legacy action: handles form submission for confirming ushers for a church event.
+	 * Named "confirmUshers" (not "default") because SvelteKit disallows mixing
+	 * a default action with named actions in the same actions export.
 	 */
-	default: async ({ request, cookies, locals }) => {
+	confirmUshers: async ({ request, cookies, locals }) => {
 		const startTime = Date.now();
 
 		// Get session if available (public page, but users might be logged in)

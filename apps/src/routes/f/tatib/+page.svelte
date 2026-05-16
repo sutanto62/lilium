@@ -503,7 +503,7 @@
 		<p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
 			Hari ini: <strong>{data.currentDay}</strong> • {data.formAvailabilityReason}
 		</p>
-		<form method="POST" class="mb-6" onsubmit={handleSubmit}>
+		<form method="POST" action="?/confirmUshers" class="mb-6" onsubmit={handleSubmit}>
 			<input type="hidden" name="churchId" value={data.church?.id} />
 			<input type="hidden" name="eventDate" value={selectedEventDate} />
 			<input type="hidden" name="eventId" value={selectedEventId || ''} />

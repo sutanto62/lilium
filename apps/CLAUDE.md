@@ -1,353 +1,252 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code working in this SvelteKit 5 + TypeScript + Drizzle ORM + SQLite app.
 
-## Essential Commands
+## Commands
 
-### Development
 ```bash
-npm run dev              # Start development server
-npm run build            # Build for production
-npm run preview          # Preview production build
+npm run dev              # Dev server
+npm run build            # Production build
+npm run check            # Type-check (svelte-check)
+npm run lint             # ESLint + Prettier check
+npm run format           # Format code
+npm run scan:events      # Audit analytics events
 ```
 
 ### Database
 ```bash
-npm run db:generate      # Generate migrations (after schema changes)
-npm run db:migrate       # Apply migrations to database
-npm run db:studio        # Open Drizzle Studio (database GUI)
-npm run db:migrate:custom # Run custom migration script
-
-# Initial setup (first time only)
-make init                # Install dependencies and sqlpkg
-make db-create           # Create database with WAL mode
+npm run db:generate      # Generate migrations after schema changes
+npm run db:migrate       # Apply migrations
+npm run db:studio        # Drizzle Studio GUI
 ```
-
-IMPORTANT: When altering tables, use `npx drizzle-kit drop` to remove generated migrations if needed. Never delete migration files manually.
+> Never delete migration files manually. Use `npx drizzle-kit drop` to remove generated migrations.
 
 ### Testing
 ```bash
-npm run test             # Run all tests (integration + unit)
-npm run test:unit        # Run unit tests with Vitest
-npm run test:watch       # Run unit tests in watch mode
-npm run test:coverage    # Generate coverage report
-npm run test:integration # Run Playwright integration tests
+npm run test             # All tests (unit + integration)
+npm run test:unit        # Vitest only
+npm run test:coverage    # Coverage report
+npm run test:integration # Playwright only
 ```
 
-### Code Quality
-```bash
-npm run check            # Type-check with svelte-check
-npm run check:watch      # Type-check in watch mode
-npm run lint             # Run ESLint and Prettier checks
-npm run format           # Format code with Prettier
-```
+## Architecture
 
-### Analytics
-```bash
-npm run scan:events      # Scan codebase for analytics events
-```
-
-## Architecture Overview
-
-This is a **SvelteKit 5** application following **Clean Architecture** principles with a focus on separation of concerns and testability.
-
-### Layer Structure
+**Clean Architecture** — dependencies point inward; outer layers depend on inner, never the reverse.
 
 ```
 src/
-├── core/                    # Domain layer (business logic)
-│   ├── entities/           # Domain models (pure TypeScript)
-│   ├── repositories/       # Repository interfaces (ports)
-│   └── service/           # Business logic services
+├── core/                 # Domain (zero external dependencies)
+│   ├── entities/        # Domain models (pure TypeScript)
+│   ├── repositories/    # Repository interfaces (ports)
+│   └── service/        # Business logic
 ├── lib/
-│   ├── application/       # Application services (Statsig, PostHog, Analytics)
+│   ├── application/    # App services: Statsig, PostHog
 │   ├── server/
-│   │   ├── adapters/     # Repository implementations (adapters)
-│   │   └── db/           # Database setup and operations (Drizzle ORM)
-│   └── utils/            # Utility functions
-└── routes/               # Presentation layer (SvelteKit routes)
-    ├── admin/           # Admin pages (requires authentication + role)
-    └── f/               # Public frontend pages
+│   │   ├── adapters/  # Repository implementations (adapters)
+│   │   └── db/        # Drizzle schema + setup
+│   └── utils/
+└── routes/             # Presentation: admin/ (auth required), f/ (public)
 ```
 
-### Dependency Flow (Clean Architecture)
+**Dependency rule**: `routes/` → `service/` → `repositories/` ← `adapters/`. Core never imports from `lib/` or `routes/`.
 
-Dependencies point **inward**:
-- `routes/` → `core/service/` → `core/repositories/` ← `lib/server/adapters/`
-- Core layers never depend on outer layers
-- Repository interfaces defined in `core/repositories/`
-- Repository implementations in `lib/server/adapters/`
+**Path aliases**: `$core`, `$src`, `$components`, `$adapters`
 
-### Naming Conventions by Layer
+### Naming by Layer
 
-**Domain Layer** (`core/entities/`):
-- PascalCase, descriptive nouns
-- Example: `ChurchEvent`, `EventUsher`, `Mass`
-
-**Service Layer** (`core/service/`):
-- Service interface: `Entity + Action + Service` → `EventService`
-- Service methods: `action + Entity + detail` → `createEvent`, `retrieveEventById`
-- Use verbs: `create`, `retrieve`, `update`, `delete`, `list`, `search`
-
-**Repository Layer** (`core/repositories/`):
-- Interface: `Entity + Repository` → `ScheduleRepository`
-- Methods: `data_verb + Entity + Detail` → `findEventById`, `persistEvent`
-- Use verbs: `persist`, `find`, `query`, `list`, `update`, `remove`
-
-**Adapter Layer** (`lib/server/adapters/`):
-- Class: `Technology + Entity + Adapter` → `SQLiteAdapter`
-- Methods: Match repository interface methods
-- Private helpers: Database operation names
+| Layer | Convention | Example |
+|-------|-----------|---------|
+| `core/entities/` | PascalCase nouns | `ChurchEvent`, `Mass` |
+| `core/service/` | `EntityService`; verbs: `create`, `retrieve`, `list` | `EventService.retrieveEventById()` |
+| `core/repositories/` | `EntityRepository`; verbs: `persist`, `find`, `query` | `ScheduleRepository.findEventById()` |
+| `lib/server/adapters/` | `TechEntityAdapter` | `SQLiteAdapter` |
 
 ### Key Technologies
 
-- **Frontend**: Svelte 5 with runes (`$props`, `$state`, `$derived`, `$effect`)
-- **Backend**: SvelteKit with server-side rendering
-- **Database**: SQLite with Drizzle ORM (WAL mode for performance)
-- **Auth**: @auth/sveltekit (OAuth: Google, Microsoft Entra ID)
-- **Authorization**: CASL ability-based authorization
-- **Analytics**: Dual tracking (Statsig + PostHog)
-- **Styling**: Tailwind CSS + Flowbite components
-- **Testing**: Vitest (unit) + Playwright (integration)
+- **Svelte 5**: runes only — `$props`, `$state`, `$derived`, `$effect`
+- **Auth**: `@auth/sveltekit` (Google + Microsoft Entra ID) + CASL authorization
+- **DB**: SQLite + Drizzle ORM (WAL mode)
+- **Analytics**: Statsig (feature flags, server events) + PostHog (user analytics, autocapture)
+- **Testing**: Vitest (unit) + Playwright (e2e)
+
+### DRY & Reusability
+
+- Extract shared logic to services/utilities — never copy-paste across routes or components
+- Same entity → one repository interface + one adapter, not per-feature DB access
+- Similar code in 2+ places → shared abstraction in the appropriate layer
 
 ## Code Conventions
 
-### Svelte 5 Patterns
+### Svelte 5
 
-Always use Svelte 5 runes syntax:
+**Script section order**: imports → `$props()` → `$state()` → `$derived()` → functions → `$effect()`
 
+**Never use Svelte 4 patterns**: `export let`, `onMount`, stores. Replace with runes.
+
+**`$bindable()` for two-way binding**: `let { value = $bindable<Date | undefined>() } = $props()`
+
+**`$effect` not `onMount`** — `$effect` is reactive and re-runs when dependencies change.
+
+**`use:enhance` callbacks must be `async` when using `await`**:
 ```svelte
-<script lang="ts">
-  // 1. Imports
-  import { enhance } from '$app/forms';
-
-  // 2. Props with $props()
-  const { data, form } = $props<{
-    data: PageProps['data'];
-    form: PageProps['form'];
-  }>();
-
-  // 3. State with $state()
-  let selectedDate = $state<Date | undefined>(undefined);
-  let isSubmitting = $state(false);
-
-  // 4. Derived values with $derived()
-  const events = $derived(data.events);
-  const hasEvents = $derived(events.length > 0);
-
-  // 5. Functions
-  function handleSubmit() {
-    isSubmitting = true;
-    // ...
-  }
-
-  // 6. Effects with $effect()
-  $effect(() => {
-    // Reactive side effects
-  });
-</script>
-```
-
-**Never use Svelte 4 patterns**: `export let`, `onMount` (use `$effect`), stores (use runes instead).
-
-### TypeScript Conventions
-
-**No `any` — use `unknown` and narrow:**
-```typescript
-// ✅ Good
-function handleError(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return 'Unknown error occurred';
-}
-```
-
-**Explicit return types on public APIs:**
-```typescript
-async function retrieveEventById(id: string): Promise<ChurchEvent> { }
-```
-
-**`interface` for objects; `type` for unions, intersections, and utilities:**
-```typescript
-export interface ChurchEvent { id: string; church: string; }
-export type EventType = 'mass' | 'feast';
-export type CreateEventInput = Omit<ChurchEvent, 'id' | 'createdAt'>;
-```
-
-**`import type` for type-only imports:**
-```typescript
-import type { ChurchEvent } from '$core/entities/Event';
-```
-
-**Always handle null/undefined explicitly:**
-```typescript
-const event = await findEvent(id);
-if (!event) throw ServiceError.notFound('Event not found', { id });
-```
-
-**Functions using `await` must be declared `async`** (applies to arrow functions too):
-```typescript
-// ✅ Good
-const handleClick = async () => { await tracker.track(...); };
 use:enhance={() => { return async ({ update }) => { await update(); }; }}
-
-// ❌ Bad — will cause a compile error
-const handleClick = () => { await tracker.track(...); };
 ```
 
-**Boolean variable naming** — use `is`, `has`, `should`, `can` prefixes:
+### TypeScript
+
+- No `any` — use `unknown` and narrow with `instanceof` / type guards
+- Explicit return types on all public functions and methods
+- `interface` for object shapes; `type` for unions, intersections, and utility types
+- `import type` for type-only imports
+- Boolean names: `is`, `has`, `should`, `can` prefixes
+- Handle `null`/`undefined` explicitly — never assume a value is present
+
+**Import order**: external packages → internal modules → path aliases (`$core`, `$src`, etc.)
+
+### Database (Drizzle ORM)
+
+Never use raw SQL — always use Drizzle's type-safe query builder.
+
 ```typescript
-const isSubmitting = $state(false);
-const hasEvents = events.length > 0;
-const canEdit = user.role === 'admin';
+// Infer types from schema — don't duplicate definitions
+type EventRow    = typeof event.$inferSelect;
+type EventInsert = typeof event.$inferInsert;
+
+// Soft delete — never hard-delete records
+await db.update(event).set({ active: 0 }).where(eq(event.id, id));
+
+// Transactions for multiple related operations
+await db.transaction(async (tx) => {
+  const created = await createEvent(tx, eventData);
+  await persistEventUshers(tx, created.id, ushers);
+});
 ```
 
-### Database Operations
-
-Always use Drizzle ORM with type-safe queries:
-
-```typescript
-// Query
-const result = await db
-  .select()
-  .from(event)
-  .where(eq(event.id, eventId))
-  .limit(1);
-
-// Insert with returning
-const result = await db
-  .insert(event)
-  .values({ ...data })
-  .returning();
-
-// Update with where clause
-const result = await db
-  .update(event)
-  .set({ active: 0 })
-  .where(eq(event.id, eventId))
-  .returning();
-```
-
-**Never use raw SQL**. All database operations must use Drizzle's query builder.
+**Migration workflow**: edit schema → `db:generate` → `db:migrate`.
 
 ### Error Handling
 
-Transform database errors to domain errors:
+Use `ServiceError` factory methods from `$core/errors/ServiceError.ts`:
 
 ```typescript
-import { ServiceError } from '$core/errors/ServiceError';
+// Validation
+if (!event.church) throw ServiceError.validation('Church ID is required', { field: 'church' });
 
+// Not found
+if (!event) throw ServiceError.notFound('Event not found', { id });
+
+// Service boundary — transform DB errors to domain errors
 try {
-  const result = await repo.getEventById(id);
-  if (!result) {
-    throw ServiceError.notFound('Event not found', { id });
-  }
-  return result;
+  return await repo.insertEvent(newEvent);
 } catch (error) {
-  if (error instanceof DatabaseError) {
-    throw ServiceError.database('Failed to retrieve event', { id, originalError: error });
-  }
-  throw error;
+  logger.error('EventService.createEvent: Failed', { error });
+  if (error instanceof ServiceError) throw error;
+  throw ServiceError.unknown('System failed to record event', { originalError: error });
 }
 ```
 
-### Analytics Event Tracking
+**Log format**: `FileName.methodName: message` — e.g., `EventService.createEvent: Failed`.
+**Never log**: passwords, tokens, or full user objects.
 
-Follow the dual-tracking strategy (Statsig + PostHog):
+### Analytics
 
-**Server-side** (`+page.server.ts`):
+Dual tracking: **Statsig** (server-side + key events) + **PostHog** (client-side + autocapture).
+
+**Event naming**: `{page}_{action}_{context}` in `snake_case`. Metadata keys: `snake_case`.
+
 ```typescript
-const startTime = Date.now();
-// ... data fetching ...
-
-const metadata = {
-  total_events: events.length,
-  load_time_ms: Date.now() - startTime,
-  has_events: events.length > 0
-};
-
+// Server-side: always parallel
 await Promise.all([
   statsigService.logEvent('admin_jadwal_view', 'load', session, metadata),
-  posthogService.trackEvent('admin_jadwal_view', {
-    event_type: 'page_load',
-    ...metadata
-  }, session)
+  posthogService.trackEvent('admin_jadwal_view', { event_type: 'page_load', ...metadata }, session)
 ]);
-```
 
-**Client-side** (`+page.svelte`):
-```typescript
-import { statsigService } from '$src/lib/application/StatsigService.js';
-import { tracker } from '$src/lib/utils/analytics';
-
-// Key events
+// Client-side
 statsigService.logEvent('admin_jadwal_filter', 'change', session, metadata);
-
-// Business context
 await tracker.track('admin_jadwal_filter_change', metadata, session, page);
 ```
 
-**Event naming**: Use `{page}_{action}_{context}` pattern with snake_case.
-**Metadata keys**: Always use snake_case.
+**PostHog autocapture** handles button clicks, link clicks, page views, and form submissions — **do not manually track these**.
 
-Consult `doc/events-inventory.md` before adding new events. Run `npm run scan:events` to audit existing events.
+**Track manually**: filter changes (with before/after values), navigation with progress context, empty states, server-side errors and performance metrics.
 
-### Security Requirements
+Check `doc/events-inventory.md` before adding events. Run `npm run scan:events` to audit.
 
-**Authentication & Authorization**:
-- Always validate session in protected routes
-- Use `hasRole(session, 'admin')` for role checks
-- Public routes (`/f/*`, `/lingkungan`) still validate inputs
+### Security
 
-**Environment Variables**:
-- `VITE_*` variables are exposed to client (public config only)
-- Never use `VITE_` prefix for secrets
-- Server-only secrets use `process.env` (no prefix)
+- Validate session in all protected routes; redirect to `/signin` if missing
+- RBAC: `hasRole(session, 'admin')` — public routes (`/f/*`, `/lingkungan`) still require input validation
+- `VITE_*` is exposed to the browser — never use for secrets; server-only secrets via `process.env`
+- Prefer SvelteKit form actions over raw `fetch` POST — form actions have built-in CSRF protection
+- Error messages to users: Indonesian, never expose stack traces in production
+- `{@html}` only with sanitized input — Svelte auto-escapes interpolated values
 
-**Input Validation**:
-- Always validate and sanitize form inputs
-- Use parameterized queries (Drizzle ORM handles this)
-- Never expose sensitive data in error messages
+**HTTP security headers** in `src/hooks.server.ts`:
+```typescript
+response.headers.set('Content-Security-Policy',
+  "default-src 'self'; script-src 'self' 'unsafe-inline' https://statsig.com https://app.posthog.com; " +
+  "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; " +
+  "connect-src 'self' https://statsig.com https://app.posthog.com; frame-ancestors 'none';"
+);
+response.headers.set('X-Frame-Options', 'DENY');
+response.headers.set('X-Content-Type-Options', 'nosniff');
+response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+```
 
-**Error Messages**:
-- User-friendly messages in Indonesian
-- Never expose stack traces in production
-- Log errors with context but not sensitive data
+**Cookies**: `httpOnly: true, sameSite: 'strict', secure: true` always.
 
 ## Adding New Features
 
-1. **Define entity** in `core/entities/` (domain model)
-2. **Create repository interface** in `core/repositories/` (port)
-3. **Implement business logic** in `core/service/`
-4. **Create database adapter** in `lib/server/adapters/` (implementation)
-5. **Update database schema** in `lib/server/db/schema.ts`
-6. **Generate migration**: `npm run db:generate`
-7. **Create routes** in `routes/` (admin or frontend)
-8. **Add analytics tracking** (server + client)
-9. **Write tests** (unit tests in Vitest, integration in Playwright)
+1. Define entity in `core/entities/`
+2. Define repository interface in `core/repositories/`
+3. Implement service in `core/service/`
+4. Create DB adapter in `lib/server/adapters/`
+5. Update schema → `db:generate` → `db:migrate`
+6. Build routes in `routes/`
+7. Add analytics tracking (server + client)
+8. Write tests (unit: Vitest, e2e: Playwright)
 
-## Testing Strategy
+## Git Workflow
 
-- **Unit tests**: Business logic in `core/service/`
-- **Integration tests**: User flows with Playwright
-- **Test isolation**: Use `beforeEach` to reset state
-- **Mocking**: Mock repositories and external dependencies
-- **Coverage**: Focus on business logic and critical paths
+[Conventional Commits](https://www.conventionalcommits.org/) — imperative mood, lowercase, no trailing dot, ≤72 chars.
+
+| Type | Use for |
+|------|---------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `refactor` | No behaviour change |
+| `test` | Tests only |
+| `chore` | Config, scripts, deps |
+
+## Testing
+
+- **Unit** (`core/service/`): mock repositories with `vi.fn()`, reset with `vi.clearAllMocks()` in `beforeEach`
+- **E2E** (Playwright): `test.beforeEach` for navigation, assert with `expect(locator).toBeVisible()`
+- Focus coverage on business logic and error paths — don't test implementation details
+
+**Factory pattern** for test data:
+```typescript
+function createMockEvent(overrides?: Partial<ChurchEvent>): ChurchEvent {
+  return { id: '1', church: 'church-1', mass: 'mass-1', date: '2024-03-20', weekNumber: 12, active: 1, ...overrides };
+}
+```
 
 ## Common Gotchas
 
-1. **Database migrations**: After schema changes, always run `npm run db:generate` before `npm run db:migrate`
-2. **Svelte 5 runes**: State must use `$state()`, not plain `let` for reactivity
-3. **Analytics events**: Use snake_case for event names and metadata keys
-4. **Clean Architecture**: Never import from outer layers in core layers
-5. **Repository pattern**: Services use interfaces, not implementations directly
-6. **Environment variables**: `VITE_` prefix exposes to client, avoid for secrets
-7. **Soft deletes**: Use `active` field (0/1) instead of deleting records
+1. Schema change → `db:generate` → `db:migrate` (in that order, never skip generate)
+2. Reactive state requires `$state()` — plain `let` is not reactive in Svelte 5
+3. Never import from outer layers in `core/` — services depend on interfaces, not adapters directly
+4. `VITE_` prefix exposes values to the browser — no secrets
+5. Soft-delete with `active: 0`, never hard `DELETE`
+6. Analytics: `snake_case` for all event names and metadata keys
 
 ## Project Context
 
-This is a church service information system serving the Catholic community. Features include:
-- Church event management
-- Usher scheduling system
-- Role-based access control (admin, usher, visitor)
-- Dual analytics (Statsig for feature flags/A/B testing, PostHog for user analytics)
-- Public and admin interfaces
+Church service information system for the Catholic community.
+- **Features**: event management, usher scheduling, RSVP/confirmation
+- **Roles**: admin, usher, visitor
+- **Analytics**: Statsig (feature flags + A/B testing) + PostHog (user behaviour)
+- **Interfaces**: admin (`/admin/*`) + public (`/f/*`)
+- **User-facing text**: Indonesian

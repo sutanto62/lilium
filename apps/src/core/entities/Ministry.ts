@@ -11,7 +11,7 @@ export interface Ministry {
 	readonly code: string; // "USHER", "PRODIAKON", "PETA", "EMHC"
 	readonly description: string | null;
 	readonly requiresStation: boolean; // false for PETA (roster author, not station-bound)
-	readonly active: number;
+	readonly active: boolean;
 }
 
 /**
@@ -25,5 +25,5 @@ export interface MinistryRole {
 	readonly name: string; // "Regular", "Kolekte", "PPG", "PPKG"
 	readonly code: string; // "REGULAR", "KOLEKTE", "PPG", "PPKG"
 	readonly isSpecialCollection: boolean; // true for Kolekte, PPG, PPKG
-	readonly active: number;
+	readonly active: boolean;
 }

@@ -1116,3 +1116,16 @@ export async function listEventsByDateRange(
 			}) as ChurchEvent
 	);
 }
+
+
+/**
+ * Return the raw DB row for an event by id — satisfies ScheduleRepository.findEventByIdResponse.
+ * Callers that need the domain ChurchEvent shape should use findEventById instead.
+ */
+export async function findEventRawById(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<typeof event.$inferSelect | null> {
+	const rows = await db.select().from(event).where(eq(event.id, id)).limit(1);
+	return rows[0] ?? null;
+}

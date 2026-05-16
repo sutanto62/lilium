@@ -27,7 +27,7 @@ describe('SQLiteDbMinistry — integration', () => {
 				expect(typeof m.name).toBe('string');
 				expect(typeof m.code).toBe('string');
 				expect(typeof m.requiresStation).toBe('boolean');
-				expect(typeof m.active).toBe('number');
+				expect(typeof m.active).toBe('boolean');
 			}
 		});
 

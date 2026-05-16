@@ -81,7 +81,7 @@ export async function listWilayahsByParish(
 		code: r.code ?? null,
 		sequence: r.sequence ?? null,
 		parishId: r.parishId ?? parishId,
-		active: r.active
+		active: r.active === 1
 	}));
 }
 
@@ -112,7 +112,7 @@ export async function listCommunitiesByWilayah(
 		wilayahName: r.wilayahName ?? '',
 		sequence: r.sequence ?? null,
 		parishId: r.parishId ?? '',
-		active: r.active
+		active: r.active === 1
 	}));
 }
 
@@ -143,7 +143,7 @@ export async function listCommunities(
 		wilayahName: r.wilayahName ?? '',
 		sequence: r.sequence ?? null,
 		parishId: r.parishId ?? parishId,
-		active: r.active
+		active: r.active === 1
 	}));
 }
 
@@ -189,7 +189,7 @@ export async function findCommunityById(
 			wilayahName: r.community_wilayahName ?? '',
 			sequence: r.community_sequence ?? null,
 			parishId: r.community_parishId ?? '',
-			active: r.community_active
+			active: r.community_active === 1
 		},
 		wilayah: {
 			id: r.wilayah_id ?? '',
@@ -197,13 +197,13 @@ export async function findCommunityById(
 			code: r.wilayah_code ?? null,
 			sequence: r.wilayah_sequence ?? null,
 			parishId: r.wilayah_parishId ?? '',
-			active: r.wilayah_active ?? 1
+			active: (r.wilayah_active ?? 1) === 1
 		},
 		parish: {
 			id: r.parish_id ?? '',
 			name: r.parish_name ?? '',
 			code: r.parish_code ?? '',
-			active: r.parish_active ?? 1
+			active: (r.parish_active ?? 1) === 1
 		}
 	};
 }
@@ -260,7 +260,7 @@ export async function findParishHierarchy(
 			id: parishRows[0].id,
 			name: parishRows[0].name,
 			code: parishRows[0].code,
-			active: parishRows[0].active
+			active: parishRows[0].active === 1
 		},
 		wilayahs: wilayahRows,
 		communitiesByWilayah,

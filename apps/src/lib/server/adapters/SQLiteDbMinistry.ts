@@ -19,7 +19,7 @@ export async function listMinistries(db: ReturnType<typeof drizzle>): Promise<Mi
 		code: r.code,
 		description: r.description ?? null,
 		requiresStation: r.requiresStation === 1,
-		active: r.active
+		active: r.active === 1
 	}));
 }
 
@@ -40,7 +40,7 @@ export async function listRolesByMinistry(
 		name: r.name,
 		code: r.code,
 		isSpecialCollection: r.isSpecialCollection === 1,
-		active: r.active
+		active: r.active === 1
 	}));
 }
 
@@ -81,7 +81,7 @@ export async function findRoleByCode(
 		name: r.name,
 		code: r.code,
 		isSpecialCollection: r.isSpecialCollection === 1,
-		active: r.active
+		active: r.active === 1
 	};
 }
 
@@ -104,6 +104,6 @@ export async function findMinistryByCode(
 		code: r.code,
 		description: r.description ?? null,
 		requiresStation: r.requiresStation === 1,
-		active: r.active
+		active: r.active === 1
 	};
 }

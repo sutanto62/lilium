@@ -187,7 +187,8 @@ export async function createTestDb(): Promise<TestDb> {
 			wilayah_name TEXT NOT NULL,
 			status TEXT NOT NULL DEFAULT 'draft',
 			submitted_at INTEGER,
-			confirmed_at INTEGER
+			confirmed_at INTEGER,
+			confirmed_by_user_id TEXT REFERENCES "user"(id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS roster_usher (
 			id TEXT PRIMARY KEY NOT NULL,

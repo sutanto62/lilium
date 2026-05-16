@@ -295,7 +295,8 @@ export const roster_entry = sqliteTable('roster_entry', {
 		.notNull()
 		.default('draft'),
 	submittedAt: integer('submitted_at'),
-	confirmedAt: integer('confirmed_at')
+	confirmedAt: integer('confirmed_at'),
+	confirmedByUserId: text('confirmed_by_user_id').references(() => user.id)
 });
 
 export const roster_usher = sqliteTable('roster_usher', {

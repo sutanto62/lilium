@@ -8,7 +8,7 @@ import type {
 } from '$core/entities/Roster';
 import { ServiceError } from '$core/errors/ServiceError';
 import { community, ministry_role, roster, roster_entry, roster_usher, wilayah } from '$lib/server/db/schema';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -45,6 +45,7 @@ function mapEntry(
 		status: 'draft' | 'submitted' | 'confirmed';
 		submittedAt: number | null;
 		confirmedAt: number | null;
+		confirmedByUserId: string | null;
 	},
 	ushers: RosterUsher[]
 ): RosterEntry {
@@ -58,6 +59,7 @@ function mapEntry(
 		status: r.status,
 		submittedAt: r.submittedAt ?? null,
 		confirmedAt: r.confirmedAt ?? null,
+		confirmedByUserId: r.confirmedByUserId ?? null,
 		ushers
 	};
 }
@@ -134,7 +136,7 @@ export async function createRoster(
 			})
 			.from(community)
 			.leftJoin(wilayah, eq(community.wilayahId, wilayah.id))
-			.where(and(eq(community.active, 1)));
+			.where(and(eq(community.active, 1), inArray(community.id, cmd.communityIds)));
 
 		const communityMap = new Map(communityRows.map((c) => [c.id, c]));
 
@@ -168,6 +170,7 @@ export async function createRoster(
 				status: 'draft',
 				submittedAt: null,
 				confirmedAt: null,
+				confirmedByUserId: null,
 				ushers: []
 			});
 		}
@@ -298,22 +301,26 @@ export async function submitEntry(
 			);
 		}
 
-		// 2. Resolve ministryRoleCode → ministryRoleId for each usher
-		const resolvedRoleIds: string[] = [];
-		for (const usher of cmd.ushers) {
-			const roleRows = await tx
-				.select({ id: ministry_role.id })
-				.from(ministry_role)
-				.where(and(eq(ministry_role.code, usher.ministryRoleCode), eq(ministry_role.active, 1)))
-				.limit(1);
+		// 2. Resolve ministryRoleCode → ministryRoleId in a single batch query
+		const uniqueRoleCodes = [...new Set(cmd.ushers.map((u) => u.ministryRoleCode))];
+		const roleRows = uniqueRoleCodes.length > 0
+			? await tx
+					.select({ id: ministry_role.id, code: ministry_role.code })
+					.from(ministry_role)
+					.where(and(inArray(ministry_role.code, uniqueRoleCodes), eq(ministry_role.active, 1)))
+			: [];
 
-			if (!roleRows[0]) {
+		const roleMap = new Map(roleRows.map((r) => [r.code, r.id]));
+
+		for (const usher of cmd.ushers) {
+			if (!roleMap.has(usher.ministryRoleCode)) {
 				throw ServiceError.notFound(`Ministry role code not found: ${usher.ministryRoleCode}`, {
 					code: usher.ministryRoleCode
 				});
 			}
-			resolvedRoleIds.push(roleRows[0].id);
 		}
+
+		const resolvedRoleIds = cmd.ushers.map((u) => roleMap.get(u.ministryRoleCode)!);
 
 		const now = Math.floor(Date.now() / 1000);
 
@@ -342,10 +349,10 @@ export async function submitEntry(
 			});
 		}
 
-		// 5. Update entry status to 'submitted'
+		// 5. Update entry status to 'submitted' (confirmedByUserId stays null)
 		const updatedEntries = await tx
 			.update(roster_entry)
-			.set({ status: 'submitted', submittedAt: now })
+			.set({ status: 'submitted', submittedAt: now, confirmedByUserId: null })
 			.where(eq(roster_entry.id, entry.id))
 			.returning();
 
@@ -376,7 +383,8 @@ export async function submitEntry(
 				wilayahName: updated.wilayahName,
 				status: updated.status as 'draft' | 'submitted' | 'confirmed',
 				submittedAt: updated.submittedAt ?? null,
-				confirmedAt: updated.confirmedAt ?? null
+				confirmedAt: updated.confirmedAt ?? null,
+				confirmedByUserId: updated.confirmedByUserId ?? null
 			},
 			insertedUshers
 		);
@@ -421,10 +429,10 @@ export async function confirmEntry(
 
 		const now = Math.floor(Date.now() / 1000);
 
-		// 2. Update entry status to 'confirmed'
+		// 2. Update entry status to 'confirmed' — store who confirmed
 		const updatedEntries = await tx
 			.update(roster_entry)
-			.set({ status: 'confirmed', confirmedAt: now })
+			.set({ status: 'confirmed', confirmedAt: now, confirmedByUserId: cmd.confirmedByUserId })
 			.where(eq(roster_entry.id, entry.id))
 			.returning();
 
@@ -462,7 +470,8 @@ export async function confirmEntry(
 				wilayahName: updated.wilayahName,
 				status: updated.status as 'draft' | 'submitted' | 'confirmed',
 				submittedAt: updated.submittedAt ?? null,
-				confirmedAt: updated.confirmedAt ?? null
+				confirmedAt: updated.confirmedAt ?? null,
+				confirmedByUserId: updated.confirmedByUserId ?? null
 			},
 			usherRows.map(mapUsher)
 		);
@@ -501,21 +510,28 @@ export async function reopenEntry(
 		// Delete ushers
 		await tx.delete(roster_usher).where(eq(roster_usher.rosterEntryId, entry.id));
 
-		// Reset entry to draft
+		// Reset entry to draft — clear all confirmation state
 		const updatedEntries = await tx
 			.update(roster_entry)
-			.set({ status: 'draft', submittedAt: null, confirmedAt: null })
+			.set({ status: 'draft', submittedAt: null, confirmedAt: null, confirmedByUserId: null })
 			.where(eq(roster_entry.id, entry.id))
 			.returning();
 
-		// Increment roster version
-		await tx
+		// Increment roster version (with conflict guard — mirrors submitEntry/confirmEntry pattern)
+		const rosterUpdate = await tx
 			.update(roster)
 			.set({
 				version: sql`${roster.version} + 1`,
 				updatedAt: now
 			})
-			.where(eq(roster.id, rosterId));
+			.where(eq(roster.id, rosterId))
+			.returning();
+
+		if (!rosterUpdate[0]) {
+			throw ServiceError.conflict('Roster not found or version conflict during reopenEntry', {
+				rosterId
+			});
+		}
 
 		const updated = updatedEntries[0];
 		return mapEntry(
@@ -528,7 +544,8 @@ export async function reopenEntry(
 				wilayahName: updated.wilayahName,
 				status: updated.status as 'draft' | 'submitted' | 'confirmed',
 				submittedAt: updated.submittedAt ?? null,
-				confirmedAt: updated.confirmedAt ?? null
+				confirmedAt: updated.confirmedAt ?? null,
+				confirmedByUserId: null
 			},
 			[]
 		);
@@ -537,26 +554,74 @@ export async function reopenEntry(
 
 /**
  * List all rosters (with entries) where a given community has an assignment.
+ * Loads all rosters, entries, and ushers in three queries instead of N+1.
  */
 export async function listByCommunity(
 	db: ReturnType<typeof drizzle>,
 	communityId: string
 ): Promise<Roster[]> {
-	// Find all roster IDs that include this community
-	const entryRows = await db
+	// 1. Find all distinct roster IDs for this community
+	const entryRefs = await db
 		.select({ rosterId: roster_entry.rosterId })
 		.from(roster_entry)
 		.where(eq(roster_entry.communityId, communityId));
 
-	if (entryRows.length === 0) return [];
+	if (entryRefs.length === 0) return [];
 
-	const rosterIds = [...new Set(entryRows.map((e) => e.rosterId))];
-	const rosters: Roster[] = [];
+	const rosterIds = [...new Set(entryRefs.map((e) => e.rosterId))];
 
-	for (const rosterId of rosterIds) {
-		const r = await findRosterById(db, rosterId);
-		if (r) rosters.push(r);
+	// 2. Fetch all roster header rows in one query
+	const rosterRows = await db
+		.select()
+		.from(roster)
+		.where(inArray(roster.id, rosterIds));
+
+	// 3. Fetch all entries for those rosters in one query
+	const allEntryRows = await db
+		.select()
+		.from(roster_entry)
+		.where(inArray(roster_entry.rosterId, rosterIds))
+		.orderBy(roster_entry.communityName);
+
+	// 4. Fetch all ushers for those entries in one query
+	const allEntryIds = allEntryRows.map((e) => e.id);
+	const allUsherRows =
+		allEntryIds.length > 0
+			? await db
+					.select({
+						id: roster_usher.id,
+						name: roster_usher.name,
+						ministryRoleId: roster_usher.ministryRoleId,
+						stationId: roster_usher.stationId,
+						sequence: roster_usher.sequence,
+						rosterEntryId: roster_usher.rosterEntryId
+					})
+					.from(roster_usher)
+					.where(inArray(roster_usher.rosterEntryId, allEntryIds))
+					.orderBy(roster_usher.sequence)
+			: [];
+
+	// 5. Build lookup maps
+	const ushersByEntry = new Map<string, RosterUsher[]>();
+	for (const u of allUsherRows) {
+		const arr = ushersByEntry.get(u.rosterEntryId) ?? [];
+		arr.push(mapUsher(u));
+		ushersByEntry.set(u.rosterEntryId, arr);
 	}
 
-	return rosters;
+	const entriesByRoster = new Map<string, typeof allEntryRows>();
+	for (const e of allEntryRows) {
+		const arr = entriesByRoster.get(e.rosterId) ?? [];
+		arr.push(e);
+		entriesByRoster.set(e.rosterId, arr);
+	}
+
+	// 6. Assemble — preserves original roster ordering
+	return rosterRows.map((r) =>
+		assembleRoster(
+			r,
+			(entriesByRoster.get(r.id) ?? []) as Parameters<typeof assembleRoster>[1],
+			ushersByEntry
+		)
+	);
 }

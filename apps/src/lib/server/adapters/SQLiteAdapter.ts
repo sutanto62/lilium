@@ -15,6 +15,7 @@ import {
 	findEventByChurch,
 	findEventById,
 	findEventByIdResponse,
+	findEventRawById,
 	findEventSchedule,
 	findEventUshers,
 	findEventUshersPosition,
@@ -108,9 +109,7 @@ export class SQLiteAdapter
 	constructor(db: ReturnType<typeof drizzle>) {
 		this.db = db;
 	}
-	findEventByIdResponse(id: string): Promise<{ date: string; id: string; church_id: string; code: string | null; active: number; createdAt: number | null; created_at: number; mass_id: string; week_number: number | null; isComplete: number; type: 'mass' | 'feast'; description: string | null; } | null> {
-		throw new Error('Method not implemented.');
-	}
+	findEventByIdResponse = (id: string) => findEventRawById(this.db, id);
 
 	// SQLiteDbRegion
 	listWilayahByChurch = (churchId: string) => listWilayahByChurch(this.db, churchId);
@@ -131,7 +130,6 @@ export class SQLiteAdapter
 		listPositionByMass(this.db, churchId, massId);
 	getEventById = (id: string) => findEventById(this.db, id);
 	updateEventById = (id: string, event: ChurchEvent) => updateEventById(this.db, id, event);
-	getEventByIdResponse = (id: string) => findEventByIdResponse(this.db, id);
 	listEvents = (churchId: string, limit?: number) => listEvents(this.db, churchId, limit);
 	listEventsByWeekNumber = (churchId: string, weekNumber: number[], isToday: boolean, limit?: number) =>
 		listEventsByWeekNumber(this.db, churchId, weekNumber, isToday, limit);

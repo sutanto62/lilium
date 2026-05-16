@@ -23,6 +23,7 @@ export interface RosterEntry {
 	readonly status: RosterStatus;
 	readonly submittedAt: number | null;
 	readonly confirmedAt: number | null;
+	readonly confirmedByUserId: string | null; // FK to user — who confirmed this entry
 	readonly ushers: ReadonlyArray<RosterUsher>;
 }
 

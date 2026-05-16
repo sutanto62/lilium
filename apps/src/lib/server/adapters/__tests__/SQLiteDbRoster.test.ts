@@ -114,14 +114,26 @@ describe('SQLiteDbRoster — integration', () => {
 			}
 		});
 
-		it('throws when community does not exist', async () => {
+		it('throws notFound ServiceError for ghost community', async () => {
 			await expect(
 				createRoster(db, {
 					eventId,
 					createdByUserId: userId,
 					communityIds: ['ghost-community']
 				})
-			).rejects.toThrow();
+			).rejects.toMatchObject({ type: ServiceErrorType.NOT_FOUND_ERROR });
+		});
+
+		it('does not create entries for communities outside communityIds', async () => {
+			// Only request community1 — community2 must not appear in the result
+			const roster = await createRoster(db, {
+				eventId,
+				createdByUserId: userId,
+				communityIds: [communityId]
+			});
+
+			expect(roster.entries).toHaveLength(1);
+			expect(roster.entries[0].communityId).toBe(communityId);
 		});
 	});
 
@@ -352,6 +364,28 @@ describe('SQLiteDbRoster — integration', () => {
 				})
 			).rejects.toMatchObject({ type: ServiceErrorType.VALIDATION_ERROR });
 		});
+
+		it('stores confirmedByUserId on the entry', async () => {
+			const roster = await createRoster(db, {
+				eventId,
+				createdByUserId: userId,
+				communityIds: [communityId]
+			});
+
+			await submitEntry(db, {
+				rosterId: roster.id,
+				communityId,
+				ushers: [{ name: 'Tono', ministryRoleCode: 'REGULAR' }]
+			});
+
+			const confirmed = await confirmEntry(db, {
+				rosterId: roster.id,
+				communityId,
+				confirmedByUserId: userId
+			});
+
+			expect(confirmed.confirmedByUserId).toBe(userId);
+		});
 	});
 
 	// ── reopenEntry ───────────────────────────────────────────────────────────────
@@ -387,6 +421,33 @@ describe('SQLiteDbRoster — integration', () => {
 				type: ServiceErrorType.VALIDATION_ERROR
 			});
 		});
+
+		it('increments roster version after reopen', async () => {
+			const roster = await createRoster(db, {
+				eventId,
+				createdByUserId: userId,
+				communityIds: [communityId]
+			});
+
+			await submitEntry(db, {
+				rosterId: roster.id,
+				communityId,
+				ushers: [{ name: 'Budi', ministryRoleCode: 'REGULAR' }]
+			});
+
+			// version = 2 after submit
+			await reopenEntry(db, roster.id, communityId);
+
+			const updated = await findRosterById(db, roster.id);
+			// version must be 3 after reopen
+			expect(updated!.version).toBe(3);
+		});
+
+		it('throws notFound ServiceError when roster does not exist', async () => {
+			await expect(
+				reopenEntry(db, 'ghost-roster', 'ghost-community')
+			).rejects.toMatchObject({ type: ServiceErrorType.NOT_FOUND_ERROR });
+		});
 	});
 
 	// ── listByCommunity ───────────────────────────────────────────────────────────
@@ -407,6 +468,43 @@ describe('SQLiteDbRoster — integration', () => {
 		it('returns empty array when community has no roster assignments', async () => {
 			const result = await listByCommunity(db, 'ghost-community');
 			expect(result).toHaveLength(0);
+		});
+
+		it('returns rosters from multiple events for the same community', async () => {
+			const { event: eventTable, mass } = await import('$lib/server/db/schema');
+
+			// Seed a second mass + event
+			await db.insert(mass).values({
+				id: 'test-mass-2',
+				name: 'Evening Mass',
+				code: null,
+				sequence: 2,
+				church: 'test-church-1',
+				day: 'sunday',
+				time: '18:00',
+				briefingTime: null,
+				active: 1,
+				createdAt: null
+			});
+			const eventId2 = 'test-event-2';
+			await db.insert(eventTable).values({
+				id: eventId2,
+				church_id: 'test-church-1',
+				mass_id: 'test-mass-2',
+				date: '2026-06-08',
+				week_number: null,
+				isComplete: 0,
+				active: 1,
+				type: 'mass',
+				code: null,
+				description: null
+			});
+
+			await createRoster(db, { eventId, createdByUserId: userId, communityIds: [communityId] });
+			await createRoster(db, { eventId: eventId2, createdByUserId: userId, communityIds: [communityId] });
+
+			const result = await listByCommunity(db, communityId);
+			expect(result).toHaveLength(2);
 		});
 	});
 });

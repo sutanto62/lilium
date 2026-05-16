@@ -5,7 +5,7 @@ export interface Parish {
 	readonly id: string;
 	readonly name: string;
 	readonly code: string;
-	readonly active: number;
+	readonly active: boolean;
 }
 
 export interface Wilayah {
@@ -14,7 +14,7 @@ export interface Wilayah {
 	readonly code: string | null;
 	readonly sequence: number | null;
 	readonly parishId: string; // FK to Parish
-	readonly active: number;
+	readonly active: boolean;
 }
 
 export interface Community {
@@ -24,7 +24,7 @@ export interface Community {
 	readonly wilayahName: string; // denormalized via JOIN — avoids repeated lookups
 	readonly sequence: number | null;
 	readonly parishId: string; // FK to Parish (for direct parish-scoped queries)
-	readonly active: number;
+	readonly active: boolean;
 }
 
 /** Full ancestry of a Community — used in RosterEntry snapshots */

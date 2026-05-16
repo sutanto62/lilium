@@ -312,8 +312,8 @@ Delegate new repository interfaces to new adapter modules.
 Methods: `listMinistries()`, `resolveRoleByCode(ministryCode, roleCode)`
 
 **Acceptance criteria:**
-- [ ] Pure service, no Drizzle imports
-- [ ] Unit tests (mock repository)
+- [x] Pure service, no Drizzle imports
+- [x] Unit tests (mock repository)
 
 ### Task 5.2 — `RosterService.ts` (new)
 
@@ -325,17 +325,17 @@ Methods:
 - `loadRoster(eventId)` — returns full `Roster` aggregate
 
 **Acceptance criteria:**
-- [ ] `applyTransition` unit tests: all valid transitions pass; invalid ones throw `ServiceError.validation`
-- [ ] State guard tests: cannot `CONFIRM` a `draft` entry
-- [ ] Service integration test using in-memory SQLite
+- [x] `applyTransition` unit tests: all valid transitions pass; invalid ones throw `ServiceError.validation`
+- [x] State guard tests: cannot `CONFIRM` a `draft` entry
+- [x] Service integration test using in-memory SQLite
 
 ### Task 5.3 — Update `ChurchService.ts`
 
 Add: `retrieveParishHierarchy()`, `retrieveChurchFacility(churchId)` using new repository interfaces.
 
 **Acceptance criteria:**
-- [ ] Methods callable from new `load()` handlers
-- [ ] Old `ChurchService` methods remain for existing routes
+- [x] Methods callable from new `load()` handlers
+- [x] Old `ChurchService` methods remain for existing routes
 
 ---
 

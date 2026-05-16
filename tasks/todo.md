@@ -75,11 +75,11 @@
 
 ## Phase 5 — Service Layer
 
-- [ ] **5.1** Create `src/core/service/MinistryService.ts`
-- [ ] **5.2** Create `src/core/service/RosterService.ts` with `applyTransition` pure function
-- [ ] **5.3** Unit tests: `applyTransition` all valid + invalid transitions
-- [ ] **5.4** Update `ChurchService.ts` — add `retrieveParishHierarchy()`, `retrieveChurchFacility(churchId)`
-- [ ] **5.5** Integration test: `RosterService` with in-memory SQLite
+- [x] **5.1** Create `src/core/service/MinistryService.ts`
+- [x] **5.2** Create `src/core/service/RosterService.ts` with `applyTransition` pure function
+- [x] **5.3** Unit tests: `applyTransition` all valid + invalid transitions
+- [x] **5.4** Update `ChurchService.ts` — add `retrieveParishHierarchy()`, `retrieveChurchFacility(churchId)`
+- [x] **5.5** Integration test: `RosterService` with in-memory SQLite
 
 **⏸ CHECKPOINT A** — Backend complete, all tests green, team review
 

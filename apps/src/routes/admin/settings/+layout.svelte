@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 
-	const menuItems = [
+	const OLD_MENU_ITEMS = [
 		{ label: 'Misa', href: '/admin/settings/data-misa' },
 		{ label: 'Zona', href: '/admin/settings/data-zona' },
 		{ label: 'Group Zona', href: '/admin/settings/data-zona-group' },
@@ -10,7 +10,14 @@
 		{ label: 'Zona Misa', href: '/admin/settings/data-zona-misa' }
 	];
 
-	// Parent admin layout provides featurePreference and session
+	const NEW_MENU_ITEMS = [
+		{ label: 'Perayaan', href: '/admin/settings/celebration' },
+		{ label: 'Seksi', href: '/admin/settings/section' },
+		{ label: 'Zona', href: '/admin/settings/zone' },
+		{ label: 'Pos', href: '/admin/settings/station' }
+	];
+
+	// Parent admin layout provides featurePreference and session; layout server adds isNewUX
 	const { data, children } = $props<{
 		data: import('./$types').LayoutData;
 		children: import('svelte').Snippet;
@@ -19,6 +26,8 @@
 	const isAdmin = $derived(data.session?.user?.role === 'admin');
 	const featurePreference = $derived(data.featurePreference);
 	const isOptedIn = $derived(featurePreference === 'new_domain');
+	const isNewUX = $derived(data.isNewUX ?? false);
+	const menuItems = $derived(isNewUX ? NEW_MENU_ITEMS : OLD_MENU_ITEMS);
 
 	function isActive(href: string): boolean {
 		return page.url.pathname.startsWith(href);

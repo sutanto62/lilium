@@ -25,4 +25,19 @@ export interface FacilityRepository {
 
 	/** List all active stations within a zone, ordered by sequence. */
 	listStationsByZone(zoneId: string): Promise<Station[]>;
+
+	// ── Section CRUD ──────────────────────────────────────────────────────────
+	createSection(input: Omit<Section, 'id'>): Promise<Section>;
+	updateSection(id: string, patch: Partial<Pick<Section, 'name' | 'code' | 'description' | 'sequence'>>): Promise<boolean>;
+	deactivateSection(id: string): Promise<boolean>;
+
+	// ── Zone CRUD (new domain zone table) ─────────────────────────────────────
+	createNewZone(input: Omit<Zone, 'id'>): Promise<Zone>;
+	updateNewZone(id: string, patch: Partial<Pick<Zone, 'name' | 'code' | 'description' | 'sequence' | 'sectionId'>>): Promise<boolean>;
+	deactivateNewZone(id: string): Promise<boolean>;
+
+	// ── Station CRUD ──────────────────────────────────────────────────────────
+	createStation(input: Omit<Station, 'id'>): Promise<Station>;
+	updateStation(id: string, patch: Partial<Pick<Station, 'name' | 'code' | 'description' | 'sequence' | 'zoneId' | 'ministryId' | 'defaultRoleId'>>): Promise<boolean>;
+	deactivateStation(id: string): Promise<boolean>;
 }

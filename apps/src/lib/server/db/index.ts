@@ -1,10 +1,16 @@
 import type { ScheduleRepository } from '$core/repositories/ScheduleRepository';
+import type { ParishRepository } from '$core/repositories/ParishRepository';
+import type { FacilityRepository } from '$core/repositories/FacilityRepository';
+import type { MinistryRepository } from '$core/repositories/MinistryRepository';
+import type { RosterRepository } from '$core/repositories/RosterRepository';
 import { SQLiteAdapter } from '$src/lib/server/adapters/SQLiteAdapter';
 import { logger } from '$src/lib/utils/logger';
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 
-function createDatabase(): ScheduleRepository {
+type AppRepository = ScheduleRepository & ParishRepository & FacilityRepository & MinistryRepository & RosterRepository;
+
+function createDatabase(): AppRepository {
 	const databaseUrl = import.meta.env.VITE_DATABASE_URL;
 	const authToken = import.meta.env.VITE_DATABASE_AUTH_TOKEN;
 

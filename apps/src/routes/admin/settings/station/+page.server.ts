@@ -1,0 +1,181 @@
+import { hasRole } from '$src/auth';
+import type { Zone, Station } from '$core/entities/Facility';
+import type { Ministry } from '$core/entities/Ministry';
+import { checkServerGate } from '$lib/server/featureFlags';
+import { posthogService } from '$src/lib/application/PostHogService';
+import { statsigService } from '$src/lib/application/StatsigService';
+import { handlePageLoad } from '$src/lib/server/pageHandler';
+import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
+import { ServiceError } from '$core/errors/ServiceError';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async (event) => {
+	const startTime = Date.now();
+
+	// Gate guard
+	const isNewUX = await checkServerGate(event.locals, 'new_settings_pages');
+	if (!isNewUX) {
+		throw redirect(302, '/admin/settings/data-posisi');
+	}
+
+	const { session } = await handlePageLoad(event, 'station');
+	if (!session) {
+		logger.warn('admin_station.load: No session found');
+		throw redirect(302, '/signin');
+	}
+
+	if (!hasRole(session, 'admin')) {
+		logger.warn('admin_station.load: User does not have admin role');
+		throw redirect(302, '/');
+	}
+
+	const churchId = session.user?.cid;
+	if (!churchId) {
+		logger.error('admin_station.load: Church ID not found in session');
+		throw error(500, 'Invalid session data');
+	}
+
+	let zones: Zone[] = [];
+	let ministries: Ministry[] = [];
+	let stations: Station[] = [];
+
+	try {
+		[zones, ministries] = await Promise.all([
+			repo.listZonesByChurch(churchId),
+			repo.listMinistries()
+		]);
+
+		// Load stations for all zones in parallel
+		const stationsByZone = await Promise.all(zones.map((z) => repo.listStationsByZone(z.id)));
+		stations = stationsByZone.flat();
+	} catch (err) {
+		logger.error('admin_station.load: Error fetching data', { err, churchId });
+		throw error(500, 'Failed to fetch stations');
+	}
+
+	const metadata = {
+		total_stations: stations.length,
+		load_time_ms: Date.now() - startTime,
+		has_stations: stations.length > 0
+	};
+
+	await Promise.all([
+		statsigService.logEvent('admin_station_view', 'load', session || undefined, metadata),
+		posthogService.trackEvent('admin_station_view', { event_type: 'page_load', ...metadata }, session || undefined)
+	]);
+
+	return { stations, zones, ministries, churchId };
+};
+
+export const actions = {
+	create: async ({ request, locals }) => {
+		const session = await locals.auth();
+		if (!session) return fail(401, { error: 'Anda harus login' });
+		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
+
+		const churchId = session.user?.cid;
+		if (!churchId) return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
+
+		const formData = await request.formData();
+		const name = (formData.get('name') as string)?.trim();
+		const code = (formData.get('code') as string)?.trim() || null;
+		const description = (formData.get('description') as string)?.trim() || null;
+		const zoneId = (formData.get('zoneId') as string)?.trim();
+		const ministryId = (formData.get('ministryId') as string)?.trim();
+		const sequence = formData.get('sequence') ? Number(formData.get('sequence')) : null;
+
+		if (!name) return fail(400, { error: 'Nama pos wajib diisi' });
+		if (!zoneId) return fail(400, { error: 'Zona wajib dipilih' });
+		if (!ministryId) return fail(400, { error: 'Pelayanan wajib dipilih' });
+
+		try {
+			await repo.createStation({
+				name,
+				code,
+				description,
+				zoneId,
+				ministryId,
+				defaultRoleId: null,
+				sequence,
+				churchId,
+				active: 1
+			});
+
+			await Promise.all([
+				statsigService.logEvent('admin_station_create', 'create', session, { church_id: churchId }),
+				posthogService.trackEvent('admin_station_create', { event_type: 'station_created', church_id: churchId }, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_station.create: Error', { err });
+			if (err instanceof ServiceError) return fail(400, { error: err.message });
+			return fail(500, { error: 'Gagal membuat pos. Silakan coba lagi.' });
+		}
+	},
+
+	update: async ({ request, locals }) => {
+		const session = await locals.auth();
+		if (!session) return fail(401, { error: 'Anda harus login' });
+		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
+
+		const formData = await request.formData();
+		const stationId = formData.get('stationId') as string;
+		if (!stationId) return fail(400, { error: 'ID pos tidak ditemukan' });
+
+		const name = (formData.get('name') as string)?.trim();
+		const code = (formData.get('code') as string)?.trim() || null;
+		const description = (formData.get('description') as string)?.trim() || null;
+		const zoneId = (formData.get('zoneId') as string)?.trim();
+		const ministryId = (formData.get('ministryId') as string)?.trim();
+		const sequence = formData.get('sequence') ? Number(formData.get('sequence')) : null;
+
+		if (!name) return fail(400, { error: 'Nama pos wajib diisi' });
+		if (!zoneId) return fail(400, { error: 'Zona wajib dipilih' });
+		if (!ministryId) return fail(400, { error: 'Pelayanan wajib dipilih' });
+
+		try {
+			const ok = await repo.updateStation(stationId, { name, code, description, zoneId, ministryId, sequence });
+			if (!ok) return fail(404, { error: 'Pos tidak ditemukan' });
+
+			await Promise.all([
+				statsigService.logEvent('admin_station_update', 'update', session, { station_id: stationId }),
+				posthogService.trackEvent('admin_station_update', { event_type: 'station_updated', station_id: stationId }, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_station.update: Error', { err, stationId });
+			if (err instanceof ServiceError) return fail(400, { error: err.message });
+			return fail(500, { error: 'Gagal mengubah pos. Silakan coba lagi.' });
+		}
+	},
+
+	delete: async ({ request, locals }) => {
+		const session = await locals.auth();
+		if (!session) return fail(401, { error: 'Anda harus login' });
+		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
+
+		const formData = await request.formData();
+		const stationId = formData.get('stationId') as string;
+		if (!stationId) return fail(400, { error: 'ID pos tidak ditemukan' });
+
+		try {
+			const ok = await repo.deactivateStation(stationId);
+			if (!ok) return fail(404, { error: 'Pos tidak ditemukan' });
+
+			await Promise.all([
+				statsigService.logEvent('admin_station_delete', 'delete', session, { station_id: stationId }),
+				posthogService.trackEvent('admin_station_delete', { event_type: 'station_deleted', station_id: stationId }, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_station.delete: Error', { err, stationId });
+			if (err instanceof ServiceError) return fail(400, { error: err.message });
+			return fail(500, { error: 'Gagal menghapus pos. Silakan coba lagi.' });
+		}
+	}
+} satisfies Actions;

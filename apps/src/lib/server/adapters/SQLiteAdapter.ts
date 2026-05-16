@@ -75,7 +75,16 @@ import {
 	listZonesByChurch,
 	listNewZonesByEvent,
 	listStationsByZone,
-	findChurchFacility
+	findChurchFacility,
+	createSection,
+	updateSection,
+	deactivateSection,
+	createNewZone,
+	updateNewZone,
+	deactivateNewZone,
+	createStation,
+	updateStation,
+	deactivateStation
 } from './SQLiteDbFacility';
 import {
 	listMinistries,
@@ -222,6 +231,21 @@ export class SQLiteAdapter
 		listZonesByChurch(this.db, churchId, sectionId);
 	listZonesByEvent = (eventId: string) => listNewZonesByEvent(this.db, eventId);
 	listStationsByZone = (zoneId: string) => listStationsByZone(this.db, zoneId);
+	createSection = (input: Omit<import('$core/entities/Facility').Section, 'id'>) =>
+		createSection(this.db, input);
+	updateSection = (id: string, patch: Partial<Pick<import('$core/entities/Facility').Section, 'name' | 'code' | 'description' | 'sequence'>>) =>
+		updateSection(this.db, id, patch);
+	deactivateSection = (id: string) => deactivateSection(this.db, id);
+	createNewZone = (input: Omit<import('$core/entities/Facility').Zone, 'id'>) =>
+		createNewZone(this.db, input);
+	updateNewZone = (id: string, patch: Partial<Pick<import('$core/entities/Facility').Zone, 'name' | 'code' | 'description' | 'sequence' | 'sectionId'>>) =>
+		updateNewZone(this.db, id, patch);
+	deactivateNewZone = (id: string) => deactivateNewZone(this.db, id);
+	createStation = (input: Omit<import('$core/entities/Facility').Station, 'id'>) =>
+		createStation(this.db, input);
+	updateStation = (id: string, patch: Partial<Pick<import('$core/entities/Facility').Station, 'name' | 'code' | 'description' | 'sequence' | 'zoneId' | 'ministryId' | 'defaultRoleId'>>) =>
+		updateStation(this.db, id, patch);
+	deactivateStation = (id: string) => deactivateStation(this.db, id);
 
 	// ── MinistryRepository ──────────────────────────────────────────────────────
 	listMinistries = () => listMinistries(this.db);

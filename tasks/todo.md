@@ -87,13 +87,13 @@
 
 ## Phase 6 — Feature-Flagged Settings Pages
 
-- [ ] **6.1** Update `admin/settings/+layout.server.ts` — check `new_settings_pages` gate
-- [ ] **6.2** Update `admin/settings/+layout.svelte` — conditional nav (old vs new items)
-- [ ] **6.3** Create `admin/settings/celebration/` route (CRUD for Celebration/Mass)
-- [ ] **6.4** Create `admin/settings/section/` route (CRUD for Section)
-- [ ] **6.5** Create `admin/settings/zone/` route (CRUD for Zone with Section parent)
-- [ ] **6.6** Create `admin/settings/station/` route (CRUD for Station with Ministry dropdown)
-- [ ] **6.7** Verify old settings routes still work when gate is off
+- [x] **6.1** Update `admin/settings/+layout.server.ts` — check `new_settings_pages` gate
+- [x] **6.2** Update `admin/settings/+layout.svelte` — conditional nav (old vs new items)
+- [x] **6.3** Create `admin/settings/celebration/` route (CRUD for Celebration/Mass)
+- [x] **6.4** Create `admin/settings/section/` route (CRUD for Section)
+- [x] **6.5** Create `admin/settings/zone/` route (CRUD for Zone with Section parent)
+- [x] **6.6** Create `admin/settings/station/` route (CRUD for Station with Ministry dropdown)
+- [x] **6.7** Verify old settings routes still work when gate is off (gate-off redirects implemented in each route)
 
 ---
 

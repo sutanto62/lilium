@@ -845,3 +845,148 @@ export async function findChurchFacility(
 	};
 }
 
+// ─── Section CRUD ─────────────────────────────────────────────────────────────
+
+/** Create a new section for a church. */
+export async function createSection(
+	db: ReturnType<typeof drizzle>,
+	input: Omit<Section, 'id'>
+): Promise<Section> {
+	const id = uuidv4();
+	await db.insert(section).values({
+		id,
+		churchId: input.churchId,
+		name: input.name,
+		code: input.code ?? null,
+		description: input.description ?? null,
+		sequence: input.sequence ?? null,
+		active: input.active
+	});
+	return { id, ...input };
+}
+
+/** Update mutable fields on an existing section. */
+export async function updateSection(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<Pick<Section, 'name' | 'code' | 'description' | 'sequence'>>
+): Promise<boolean> {
+	const result = await db
+		.update(section)
+		.set({ ...patch })
+		.where(eq(section.id, id))
+		.returning({ id: section.id });
+	return result.length > 0;
+}
+
+/** Soft-delete a section (sets active = 0). */
+export async function deactivateSection(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<boolean> {
+	const result = await db
+		.update(section)
+		.set({ active: 0 })
+		.where(eq(section.id, id))
+		.returning({ id: section.id });
+	return result.length > 0;
+}
+
+// ─── Zone CRUD (new zone table, distinct from legacy church_zone) ──────────────
+
+/** Create a new zone in the new domain zone table. */
+export async function createNewZone(
+	db: ReturnType<typeof drizzle>,
+	input: Omit<Zone, 'id'>
+): Promise<Zone> {
+	const id = uuidv4();
+	await db.insert(zone).values({
+		id,
+		churchId: input.churchId,
+		sectionId: input.sectionId ?? null,
+		name: input.name,
+		code: input.code ?? null,
+		description: input.description ?? null,
+		sequence: input.sequence ?? null,
+		active: input.active
+	});
+	return { id, ...input };
+}
+
+/** Update mutable fields on a zone (new domain). */
+export async function updateNewZone(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<Pick<Zone, 'name' | 'code' | 'description' | 'sequence' | 'sectionId'>>
+): Promise<boolean> {
+	const result = await db
+		.update(zone)
+		.set({ ...patch })
+		.where(eq(zone.id, id))
+		.returning({ id: zone.id });
+	return result.length > 0;
+}
+
+/** Soft-delete a zone (new domain). */
+export async function deactivateNewZone(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<boolean> {
+	const result = await db
+		.update(zone)
+		.set({ active: 0 })
+		.where(eq(zone.id, id))
+		.returning({ id: zone.id });
+	return result.length > 0;
+}
+
+// ─── Station CRUD ─────────────────────────────────────────────────────────────
+
+/** Create a new station. */
+export async function createStation(
+	db: ReturnType<typeof drizzle>,
+	input: Omit<Station, 'id'>
+): Promise<Station> {
+	const id = uuidv4();
+	await db.insert(station).values({
+		id,
+		churchId: input.churchId,
+		zoneId: input.zoneId,
+		ministryId: input.ministryId,
+		defaultRoleId: input.defaultRoleId ?? null,
+		name: input.name,
+		code: input.code ?? null,
+		description: input.description ?? null,
+		sequence: input.sequence ?? null,
+		active: input.active
+	});
+	return { id, ...input };
+}
+
+/** Update mutable fields on an existing station. */
+export async function updateStation(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<Pick<Station, 'name' | 'code' | 'description' | 'sequence' | 'zoneId' | 'ministryId' | 'defaultRoleId'>>
+): Promise<boolean> {
+	const result = await db
+		.update(station)
+		.set({ ...patch })
+		.where(eq(station.id, id))
+		.returning({ id: station.id });
+	return result.length > 0;
+}
+
+/** Soft-delete a station. */
+export async function deactivateStation(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<boolean> {
+	const result = await db
+		.update(station)
+		.set({ active: 0 })
+		.where(eq(station.id, id))
+		.returning({ id: station.id });
+	return result.length > 0;
+}
+

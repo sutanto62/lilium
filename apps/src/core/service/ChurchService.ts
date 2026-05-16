@@ -9,6 +9,9 @@ import type {
 	MassZone,
 	Wilayah
 } from '$core/entities/Schedule';
+import type { ChurchFacility, ParishHierarchy } from '$core/entities/Parish';
+import type { ParishRepository } from '$core/repositories/ParishRepository';
+import type { FacilityRepository } from '$core/repositories/FacilityRepository';
 import { repo } from '$src/lib/server/db';
 
 /**
@@ -26,7 +29,11 @@ export class ChurchService {
 	wilayahs: Wilayah[]; // Array to hold wilayahs
 	lingkungans: Lingkungan[]; // Array to hold lingkungans
 
-	constructor(churchId: string) {
+	constructor(
+		churchId: string,
+		private readonly parishRepo?: ParishRepository,
+		private readonly facilityRepo?: FacilityRepository
+	) {
 		this.churchId = churchId;
 		this.church = {
 			id: '',
@@ -193,5 +200,21 @@ export class ChurchService {
 
 	async deactivateMassZone(massZoneId: string): Promise<boolean> {
 		return await repo.deactivateMassZone(massZoneId);
+	}
+
+	// ─── New domain methods (Phase 5) ────────────────────────────────────────────
+
+	async retrieveParishHierarchy(parishId: string): Promise<ParishHierarchy> {
+		if (!this.parishRepo) {
+			throw new Error('ParishRepository not provided to ChurchService');
+		}
+		return this.parishRepo.findParishHierarchy(parishId);
+	}
+
+	async retrieveChurchFacility(churchId: string): Promise<ChurchFacility> {
+		if (!this.facilityRepo) {
+			throw new Error('FacilityRepository not provided to ChurchService');
+		}
+		return this.facilityRepo.findChurchFacility(churchId);
 	}
 }

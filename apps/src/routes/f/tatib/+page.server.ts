@@ -77,9 +77,10 @@ export const load: PageServerLoad = async (event) => {
 	// Check new_roster_flow gate
 	const isNewRosterFlow = await checkServerGate(event.locals, 'new_roster_flow');
 
-	// Extract optional new-flow params from query string (defensive access for test compatibility)
-	const rosterId = event.url?.searchParams?.get('rosterId') ?? null;
-	const communityId = event.url?.searchParams?.get('communityId') ?? null;
+	// Extract optional new-flow params from the query string.
+	// Both must be present to enter the new roster flow; absence falls back to the legacy path.
+	const rosterId = event.url.searchParams.get('rosterId');
+	const communityId = event.url.searchParams.get('communityId');
 	const hasNewFlowParams = !!rosterId && !!communityId;
 
 	logger.debug('tatib.load: gate check', { isNewRosterFlow, hasNewFlowParams, rosterId, communityId });

@@ -430,7 +430,8 @@ describe('load function', () => {
 
 		const result = await load({
 			cookies: { get: () => 'church1' },
-			locals: { auth: vi.fn().mockResolvedValue(null) }
+			locals: { auth: vi.fn().mockResolvedValue(null) },
+			url: new URL('http://localhost/f/tatib')
 		} as any) as PageData;
 
 		expect(result.showForm).toBe(true);
@@ -447,7 +448,8 @@ describe('load function', () => {
 
 		const result = await load({
 			cookies: { get: () => 'church1' },
-			locals: { auth: vi.fn().mockResolvedValue(null) }
+			locals: { auth: vi.fn().mockResolvedValue(null) },
+			url: new URL('http://localhost/f/tatib')
 		} as any) as PageData;
 
 		expect(result.showForm).toBe(true);
@@ -464,7 +466,8 @@ describe('load function', () => {
 
 		const result = await load({
 			cookies: { get: () => 'church1' },
-			locals: { auth: vi.fn().mockResolvedValue(null) }
+			locals: { auth: vi.fn().mockResolvedValue(null) },
+			url: new URL('http://localhost/f/tatib')
 		} as any) as PageData;
 
 		expect(result.showForm).toBe(false);

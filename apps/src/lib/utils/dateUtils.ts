@@ -396,9 +396,50 @@ export function formatDateWithPattern(
 }
 
 /**
+ * Parse an Indonesian date string like "Sabtu, 23 Mei" combined with a year
+ * into an ISO YYYY-MM-DD string.
+ *
+ * Handles optional day-of-week prefix and optional suffix (e.g. "23 Mei - SPMBG").
+ * Returns null if the string cannot be parsed.
+ *
+ * @param str  - Date string from the XLSX, e.g. "Sabtu, 23 Mei" or "Minggu, 24 Mei - SPMBG"
+ * @param year - The calendar year (e.g. 2026)
+ * @returns ISO date string "YYYY-MM-DD" or null
+ */
+export function parseIndonesianDate(str: string, year: number): string | null {
+	const MONTHS: Record<string, number> = {
+		januari: 1, februari: 2, maret: 3, april: 4,
+		mei: 5, juni: 6, juli: 7, agustus: 8,
+		september: 9, oktober: 10, november: 11, desember: 12
+	};
+
+	if (!str || !str.trim()) return null;
+
+	// Strip optional day-of-week prefix ("Sabtu, ") and any suffix after " - "
+	const cleaned = str
+		.replace(/^(senin|selasa|rabu|kamis|jumat|sabtu|minggu),?\s*/i, '')
+		.split(' - ')[0]
+		.trim();
+
+	// Expect "DD MonthName" e.g. "23 Mei"
+	const match = cleaned.match(/^(\d{1,2})\s+([a-zA-Z]+)$/i);
+	if (!match) return null;
+
+	const day = parseInt(match[1], 10);
+	const monthName = match[2].toLowerCase();
+	const month = MONTHS[monthName];
+
+	if (!month || day < 1 || day > 31) return null;
+
+	const mm = String(month).padStart(2, '0');
+	const dd = String(day).padStart(2, '0');
+	return `${year}-${mm}-${dd}`;
+}
+
+/**
  * Format date as YYYY-MM-DD string using local timezone.
  * This avoids timezone issues when converting dates to ISO strings.
- * 
+ *
  * @param date - Date to format
  * @returns Date string in YYYY-MM-DD format
  */

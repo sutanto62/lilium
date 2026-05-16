@@ -5,7 +5,7 @@ import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { logger } from '../../../../../lib/utils/logger';
+import { logger } from '$src/lib/utils/logger';
 
 export const load: PageServerLoad = async (event) => {
     const startTime = Date.now();
@@ -19,11 +19,13 @@ export const load: PageServerLoad = async (event) => {
     const churchId = session.user?.cid ?? '';
     const eventId = event.params.id;
 
+    logger.debug('admin_jadwal_cetak.load: fetching church and event', { churchId, eventId });
     const churchService = new ChurchService(churchId);
     const church = await churchService.retrieveChurch();
 
     const eventService = new EventService(churchId);
     const [jadwalDetail] = await Promise.all([eventService.retrieveEventPrintSchedule(eventId)]);
+    logger.debug('admin_jadwal_cetak.load: data fetched', { eventId, hasJadwal: !!jadwalDetail });
 
     const metadata = { event_id: eventId, load_time_ms: Date.now() - startTime };
     await Promise.all([

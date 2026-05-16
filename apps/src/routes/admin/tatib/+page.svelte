@@ -166,7 +166,7 @@
 </Breadcrumb>
 
 <!-- <Button onclick={switchListEvents}>Switch</Button> -->
-<div class="mb-4">
+<div class="mb-4 flex items-center justify-between">
 	<ButtonGroup class="*:ring-primary-700!">
 		<Button onclick={() => setFilter('all')} color={currentFilter === 'all' ? 'primary' : 'light'}>
 			Semua
@@ -190,6 +190,9 @@
 			Belum Konfirmasi
 		</Button>
 	</ButtonGroup>
+	<Button href="/admin/roster" size="xs" color="alternative">
+		Upload Roster Bulanan
+	</Button>
 </div>
 
 <Table striped={true} shadow>

@@ -17,6 +17,14 @@ vi.mock('$src/lib/application/StatsigService', () => ({
 	statsigService: { logEvent: vi.fn() }
 }));
 
+vi.mock('$src/lib/application/PostHogService', () => ({
+	posthogService: { trackEvent: vi.fn() }
+}));
+
+vi.mock('$lib/server/db', () => ({
+	repo: {}
+}));
+
 function createMockRequestEvent(formData: FormData, params: { id: string }): RequestEvent<RouteParams, '/admin/tatib/[id]'> {
 	return {
 		request: { formData: async () => formData },

@@ -409,6 +409,138 @@ Route: `admin/settings/station/`
 - [x] Ministry dropdown populated from `ministry` table (not hardcoded enum)
 - [x] Old `data-posisi` route still works when gate is off
 
+### Task 6.5 — Community (Lingkungan) settings page
+
+Route: `admin/settings/lingkungan/`
+
+**Context:** The `community` table was created in Phase 2 (starts empty — D3). This page provides the admin UI to populate it under the `new_settings_pages` gate. Community is the new-domain equivalent of old `lingkungan`; it requires a Wilayah parent.
+
+**Dependency graph (all within this task):**
+
+```
+L1: ParishRepository — add createCommunity / updateCommunity / deactivateCommunity signatures
+    └─ L2: SQLiteDbRegion — implement the three mutations + getParishIdByChurch helper
+        └─ L3: SQLiteAdapter — delegate new methods
+            └─ L5: +page.server.ts — load + 3 actions
+                └─ L6: +page.svelte — table + modals
+L4: +layout.svelte — add "Lingkungan" to NEW_MENU_ITEMS (independent)
+```
+
+**Design decisions:**
+
+- Gate: `new_settings_pages` (same as section/zone/station). Redirect to `/admin/settings` on gate-off (no legacy direct equivalent).
+- Load data: `listWilayahByChurch(churchId)` for the dropdown; `listCommunitiesForChurch(churchId)` for the table. Both are keyed by `churchId` from `session.user?.cid` — no raw `parishId` needed in the route.
+- `parishId` for new rows: resolved from `church.parishId` via a `getParishIdByChurch(db, churchId)` helper in `SQLiteDbRegion.ts`.
+- Table shows `wilayahName` (denormalized via JOIN — already in the `Community` entity).
+- Soft-delete only (`active = 0`). No hard deletes.
+- `CreateCommunityInput` type defined in `ParishRepository.ts` (keeps it co-located with the interface).
+
+**Slice L1 — Repository interface**
+
+File: `src/core/repositories/ParishRepository.ts`
+
+Add:
+```typescript
+type CreateCommunityInput = {
+  name: string;
+  wilayahId: string;
+  parishId: string;
+  sequence: number | null;
+  active: number;
+};
+
+createCommunity(input: CreateCommunityInput): Promise<Community>;
+updateCommunity(id: string, patch: Partial<Pick<Community, 'name' | 'wilayahId' | 'sequence'>>): Promise<boolean>;
+deactivateCommunity(id: string): Promise<boolean>;
+```
+
+**Acceptance criteria:**
+- [ ] File compiles with no Drizzle imports
+- [ ] `Community` return type matches `$core/entities/Parish.ts`
+
+**Slice L2 — Adapter implementation**
+
+File: `src/lib/server/adapters/SQLiteDbRegion.ts`
+
+Add at end of file:
+- `getParishIdByChurch(db, churchId)` — `SELECT parishId FROM church WHERE id = ?`; throws `ServiceError.notFound` if church has no parishId
+- `createCommunity(db, input)` — `INSERT` with `uuidv4()` id; returns `Community` with wilayahName resolved via JOIN
+- `updateCommunity(db, id, patch)` — `UPDATE ... RETURNING`; returns `boolean`
+- `deactivateCommunity(db, id)` — `UPDATE SET active=0 RETURNING`; returns `boolean`
+
+**Acceptance criteria:**
+- [ ] `createCommunity` returns a `Community` with `wilayahName` populated (JOIN on wilayah)
+- [ ] `deactivateCommunity` does not hard-delete
+
+**Slice L3 — Adapter facade**
+
+File: `src/lib/server/adapters/SQLiteAdapter.ts`
+
+Import and delegate: `createCommunity`, `updateCommunity`, `deactivateCommunity`, `getParishIdByChurch`.
+
+**Slice L4 — Nav item (independent)**
+
+File: `src/routes/admin/settings/+layout.svelte`
+
+Add `{ label: 'Lingkungan', href: '/admin/settings/lingkungan' }` to `NEW_MENU_ITEMS` (after Zona/Zone, before Pos/Station or at the end — territorial items together).
+
+**Slice L5 — Server load + actions**
+
+File: `src/routes/admin/settings/lingkungan/+page.server.ts`
+
+```
+load():
+  checkServerGate('new_settings_pages') → redirect /admin/settings if false
+  handlePageLoad → redirect /signin if no session
+  hasRole('admin') → redirect / if false
+  session.user?.cid → error 500 if missing
+  [wilayahs, communities] = await Promise.all([
+    repo.listWilayahByChurch(churchId),
+    repo.listCommunitiesForChurch(churchId)
+  ])
+  analytics (statsig + posthog)
+  return { wilayahs, communities, churchId }
+
+actions: create / update / delete
+  create: name (required), wilayahId (required), sequence (optional)
+    → repo.getParishIdByChurch(churchId) to resolve parishId
+    → repo.createCommunity(...)
+  update: communityId (required), name, wilayahId, sequence
+    → repo.updateCommunity(...)
+  delete: communityId (required)
+    → repo.deactivateCommunity(...)
+```
+
+**Acceptance criteria:**
+- [ ] Gate-off → redirect `/admin/settings`
+- [ ] Gate-on, no session → redirect `/signin`
+- [ ] Gate-on, non-admin → redirect `/`
+- [ ] Load returns both `wilayahs` and `communities`
+- [ ] `create` fails with 400 if `name` or `wilayahId` missing
+- [ ] `delete` is soft-delete only
+- [ ] Analytics fired on load + each mutation
+
+**Slice L6 — Svelte page**
+
+File: `src/routes/admin/settings/lingkungan/+page.svelte`
+
+UI spec:
+- Breadcrumb: Beranda → Admin → Pengaturan → Lingkungan
+- Heading: "Pengaturan Lingkungan" + "Tambah" button (top-right)
+- Empty state: descriptive text when `communities.length === 0`
+- Table columns: Wilayah | Nama | Urutan | Aksi (⋮ dropdown: Edit / Hapus)
+- Create/Edit modal: Nama (required text), Wilayah (required select from `wilayahs`), Urutan (optional number)
+- Delete confirmation modal: shows community name, warns wilayah membership
+
+**Acceptance criteria:**
+- [ ] Wilayah dropdown populated from `data.wilayahs`
+- [ ] Table rows show `wilayahName` (not `wilayahId`)
+- [ ] `isSubmitting` disables form controls during submit
+- [ ] Success clears modal; error shows `<Alert color="red">`
+- [ ] `use:enhance` with `await invalidateAll()` on all forms
+
+**CHECKPOINT 6.x:** `npm run check` passes. Gate-on shows page with communities table and wilayah dropdown. Gate-off redirects cleanly to `/admin/settings`. No regressions on section/zone/station.
+
 ---
 
 ## Phase 7 — Feature-Flagged Core Pages

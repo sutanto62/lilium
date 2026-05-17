@@ -96,6 +96,17 @@
 - [x] **6.6** Create `admin/settings/station/` route (CRUD for Station with Ministry dropdown)
 - [x] **6.7** Verify old settings routes still work when gate is off (gate-off redirects implemented in each route)
 
+### Phase 6.5 — Community (Lingkungan) Settings Page
+
+- [ ] **L1** Add `CreateCommunityInput` type + `createCommunity`, `updateCommunity`, `deactivateCommunity` signatures to `src/core/repositories/ParishRepository.ts`
+- [ ] **L2** Implement `getParishIdByChurch`, `createCommunity`, `updateCommunity`, `deactivateCommunity` in `src/lib/server/adapters/SQLiteDbRegion.ts`
+- [ ] **L3** Delegate four new methods in `src/lib/server/adapters/SQLiteAdapter.ts` + import from `SQLiteDbRegion`
+- [ ] **L4** Add `{ label: 'Lingkungan', href: '/admin/settings/lingkungan' }` to `NEW_MENU_ITEMS` in `src/routes/admin/settings/+layout.svelte`
+- [ ] **L5** Create `src/routes/admin/settings/lingkungan/+page.server.ts` — gate guard + load + create/update/delete actions
+- [ ] **L6** Create `src/routes/admin/settings/lingkungan/+page.svelte` — table (wilayah | nama | urutan | aksi) + create/edit modal + delete modal
+
+**⏸ CHECKPOINT 6.x** — `npm run check` passes; gate-on shows page; gate-off redirects to `/admin/settings`
+
 ---
 
 ## Phase 7 — Feature-Flagged Core Pages

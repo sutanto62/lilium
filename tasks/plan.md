@@ -1,7 +1,7 @@
 # Plan: Rebuild Web App with Feature-Flagged Architecture Migration
 
 > Status: **In Progress** — Phase 7 complete, Phase 8 blocked (14-day stability gate)
-> Last updated: 2026-05-16
+> Last updated: 2026-05-17
 > Author: Claude Code (planning session)
 
 ---
@@ -35,7 +35,7 @@
 
 1. The existing SQLite database is kept; new tables are **added alongside** old tables.
 2. Old routes remain fully functional until the feature flag is 100% rolled out.
-3. A user can explicitly opt in/out via a toggle in the admin UI (persisted in `user` table or `localStorage`).
+3. A user can explicitly opt in/out via a toggle in the admin UI (persisted in `user` table) — the toggle is only visible when `new_domain_model` gate is true for that user.
 4. Statsig gates are the _mechanism_ for rollout; user preference is the _trigger_ for opt-in.
 5. Data migration (copying old rows to new schema) is a **separate follow-up task** after the new schema is fully verified.
 6. No Go API changes are in scope (`api/` is read-only for this plan).
@@ -45,24 +45,39 @@
 ## Architecture: Feature Flag Strategy
 
 ```
-User opts in (toggle)
+Statsig enables new_domain_model for eligible users (by role, user list, or % rollout)
     │
-    ├─ Sets `featureFlag = 'new_domain'` in localStorage / user metadata
-    │
-    └─ StatsigService.updateUser({ custom: { featureFlag: 'new_domain' } })
+    └─ Server-side load() checks new_domain_model gate
            │
-           └─ Statsig gate `new_domain_model = true` for that user
-                  │
-                  └─ load() checks gate → serves new or old route handler
+           ├─ false → old domain always; toggle hidden in /admin/settings
+           │
+           └─ true  → toggle shown in /admin/settings
+                          │
+                          ├─ featurePreference = 'new_domain'  → new domain UX
+                          │       child gates (new_settings_pages, new_roster_flow) open
+                          │
+                          └─ featurePreference ≠ 'new_domain' → old domain UX
+                                  (eligible but not yet opted in)
 ```
+
+Access pattern enforced in every protected load():
+```
+can_access = checkServerGate(gate) AND featurePreference === 'new_domain'
+```
+
+> **`new_domain` vs `new_domain_model`:**
+> - `new_domain` — the string value stored in `user.featurePreference`. It is the user's explicit opt-in choice, set via the toggle.
+> - `new_domain_model` — a Statsig gate controlled by Statsig rules (role, user list, % rollout). It is the **eligibility ceiling**, evaluated independently of `featurePreference`.
+>
+> The two are **not coupled** in Statsig's rule evaluation. Code must check both: `checkServerGate('new_domain_model') AND featurePreference === 'new_domain'`. Never use `new_domain` as a gate name.
 
 Three Statsig gates used across phases:
 
-| Gate | Controls |
-|---|---|
-| `new_domain_model` | New entity interfaces + adapters (server-side only, no UI change) |
-| `new_settings_pages` | Settings CRUD pages (data-misa, data-zona → Celebration, Section/Zone/Station) |
-| `new_roster_flow` | Admin tatib + f/tatib using Roster aggregate |
+| Gate | Parent | Controls |
+|---|---|---|
+| `new_domain_model` | — (root) | New entity interfaces + adapters; community table as authoritative source |
+| `new_settings_pages` | `new_domain_model` | Settings CRUD pages (data-misa, data-zona → Celebration, Section/Zone/Station) |
+| `new_roster_flow` | `new_domain_model` | Roster creation, admin tatib, and public usher submission |
 
 ---
 
@@ -399,6 +414,23 @@ Route: `admin/settings/station/`
 ## Phase 7 — Feature-Flagged Core Pages
 
 **Goal:** New roster flow for the `tatib` and `zone` admin pages.
+
+### Task 7.0 — Roster creation page
+
+Route: `admin/roster/` — gate `new_roster_flow`
+
+- `load()`: gates on `new_roster_flow` → redirect `/admin` if off
+- Two modes (tabs): manual (event picker + community checklist) and XLSX bulk upload
+- Community table is authoritative — no lingkungan fallback (guaranteed by parent gate `new_domain_model`)
+- `uploadRoster` action: also gates on `new_roster_flow`; resolves community names from community table only
+
+**Acceptance criteria:**
+- [x] Page redirects to `/admin` when `new_roster_flow` is off
+- [x] Manual creation: duplicate roster for same event returns 409
+- [x] XLSX upload: skips existing rosters (idempotent), reports created/skipped counts
+- [x] No lingkungan fallback in either load or uploadRoster
+
+---
 
 ### Task 7.1 — New tatib (roster) admin page
 

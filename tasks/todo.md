@@ -23,6 +23,7 @@
 - [x] **0.4** On layout load: call `statsigService.updateUser` with `featurePreference`
 - [x] **0.5** Create `src/lib/server/featureFlags.ts` — `checkServerGate(locals, gate)` helper
 - [x] **0.6** Unit test for `checkServerGate` fallback behaviour
+- [x] **0.7** Gate the featurePreference toggle visibility on `new_domain_model` — toggle shown only when gate is true; currently shows to all admins regardless of eligibility
 
 **⏸ CHECKPOINT 0** — Gate check works end-to-end, preference persists
 
@@ -99,11 +100,12 @@
 
 ## Phase 7 — Feature-Flagged Core Pages
 
+- [x] **7.0** Create/align `admin/roster/+page.server.ts` — gate `new_roster_flow`; community table authoritative (no lingkungan fallback); manual + XLSX creation modes
 - [x] **7.1** Update `admin/tatib/[id]/+page.server.ts` — gate `new_roster_flow` → use `RosterService`
 - [x] **7.2** Update `admin/tatib/[id]/+page.svelte` — render `RosterEntry` list with status badges
 - [x] **7.3** Update `f/tatib/+page.server.ts` — gate `new_roster_flow` → `RosterService.submitEntry` (public form, no auth guard — D4)
 - [x] **7.4** Update `admin/zone/+page.server.ts` — gate `new_domain_model` → use `ChurchFacility`
-- [x] **7.5** Smoke test all four routes with gate on + gate off
+- [x] **7.5** Smoke test all five routes with gate on + gate off
 
 **⏸ CHECKPOINT B** — QA sign-off, raise opt-in to 50% in Statsig
 

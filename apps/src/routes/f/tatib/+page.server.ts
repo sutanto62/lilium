@@ -20,7 +20,6 @@ import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
-const queueManager = QueueManager.getInstance();
 
 /**
  * Determines if the usher confirmation form should be shown based on:
@@ -230,7 +229,7 @@ export const load: PageServerLoad = async (event) => {
 			showForm,
 			requirePpg,
 			currentDay: getCurrentDayName(),
-			formAvailabilityReason: showForm ? 'Form tersedia' : 'Form hanya tersedia pada hari kerja (Senin-Kamis)'
+			formAvailabilityReason: showForm ? 'Form tersedia' : 'Form hanya tersedia pada hari kerja (Senin-Jumat)'
 		};
 	} catch (err) {
 		logger.error('tatib_view_server: Error fetching data', err);
@@ -392,6 +391,11 @@ export const actions = {
 	 * a default action with named actions in the same actions export.
 	 */
 	confirmUshers: async ({ request, cookies, locals }) => {
+		const [isPpgEnabled, isRoundRobinEnabled] = await Promise.all([
+			statsigService.checkGate('ppg'),
+			statsigService.checkGate('round_robin')
+		]);
+		const queueManager = QueueManager.createInstance(repo, isPpgEnabled, isRoundRobinEnabled, shouldRequirePpg);
 		const startTime = Date.now();
 
 		// Get session if available (public page, but users might be logged in)
@@ -445,7 +449,7 @@ export const actions = {
 
 			const errorMetadata = {
 				error_type: 'closed_window',
-				error_message: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Kamis. Hari ini: ${currentDay}`,
+				error_message: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Jumat. Hari ini: ${currentDay}`,
 				current_day: currentDay,
 				lingkungan_id: lingkunganId
 			};
@@ -459,7 +463,7 @@ export const actions = {
 			]);
 
 			return fail(422, {
-				error: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Kamis. Hari ini: ${currentDay}`,
+				error: `Konfirmasi tugas hanya tersedia pada hari Senin s.d. Jumat. Hari ini: ${currentDay}`,
 				formData: formValues
 			});
 		}

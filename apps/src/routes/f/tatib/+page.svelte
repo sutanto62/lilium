@@ -11,7 +11,7 @@
 	import { ClipboardCleanSolid, FloppyDiskSolid, CirclePlusSolid, TrashBinOutline } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
 	import UshersList from './UshersList.svelte';
-	import { shouldRequirePpg } from '../../../lib/utils/ppgUtils';
+	import { shouldRequirePpg } from '$lib/utils/ppgUtils';
 
 	// Props
 	let { data, form } = $props();
@@ -153,55 +153,19 @@
 			.trim();
 	}
 
-	async function validateUshers(usherList: Usher[]): Promise<boolean> {
+	function validateUshers(usherList: Usher[]): boolean {
+		const requirePpg = data.requirePpg;
 		const numberOfPpg = usherList.filter((usher) => usher.isPpg).length;
 		const numberOfKolekte = usherList.filter((usher) => usher.isKolekte).length;
-		const requirePpg = data.requirePpg;
-		const hasValidPpg = requirePpg ? numberOfPpg === 2 : (numberOfPpg >= 0 && numberOfPpg <= 2);
+		const hasValidPpg = requirePpg ? numberOfPpg === 2 : numberOfPpg <= 2;
 		const hasExactKolekte = numberOfKolekte === 3;
 		const hasMinimumUshers = usherList.length >= 6;
-
-		const isValid = hasValidPpg && hasExactKolekte && hasMinimumUshers;
-
-		if (isSubmitted) {
-			const validationMetadata = {
-				require_ppg: requirePpg,
-				has_valid_ppg: hasValidPpg,
-				has_exact_kolekte: hasExactKolekte,
-				has_minimum_ushers: hasMinimumUshers,
-				number_of_ppg: numberOfPpg,
-				number_of_kolekte: numberOfKolekte,
-				total_ushers: usherList.length,
-				validation_status: isValid ? 'valid' : 'invalid'
-			};
-
-			await Promise.all([
-				statsigService.logEvent(
-					'tatib_validate_ushers',
-					isValid ? 'valid' : 'invalid',
-					page.data.session || undefined,
-					validationMetadata
-				),
-				tracker.track(
-					'tatib_validate_ushers',
-					{
-						event_type: isValid ? 'valid' : 'invalid',
-						...validationMetadata
-					},
-					page.data.session,
-					page
-				)
-			]);
-		}
-
-		return isValid;
+		return hasValidPpg && hasExactKolekte && hasMinimumUshers;
 	}
 
 	// Watch for changes in ushers list and validate
 	$effect(() => {
-		validateUshers(ushers).then((valid) => {
-			isUshersValid = valid;
-		});
+		isUshersValid = validateUshers(ushers);
 	});
 
 	async function copyToClipboard(id: string) {
@@ -277,17 +241,45 @@
 		}));
 		ushers = sanitizedUshers;
 
+		const requirePpg = data.requirePpg;
+		const numberOfPpg = sanitizedUshers.filter((u) => u.isPpg).length;
+		const numberOfKolekte = sanitizedUshers.filter((u) => u.isKolekte).length;
+		const isValid = validateUshers(sanitizedUshers);
+
+		const validationMetadata = {
+			require_ppg: requirePpg,
+			has_valid_ppg: requirePpg ? numberOfPpg === 2 : numberOfPpg <= 2,
+			has_exact_kolekte: numberOfKolekte === 3,
+			has_minimum_ushers: sanitizedUshers.length >= 6,
+			number_of_ppg: numberOfPpg,
+			number_of_kolekte: numberOfKolekte,
+			total_ushers: sanitizedUshers.length,
+			validation_status: isValid ? 'valid' : 'invalid'
+		};
+
 		const submitMetadata = {
 			lingkungan: data.lingkungans.find((l: Lingkungan) => l.id === selectedLingkunganId)?.name,
 			wilayah: data.wilayahs.find((w: Wilayah) => w.id === selectedWilayahId)?.name,
 			eventDate: selectedEventDate,
 			mass: data.events.find((e: MassEvent) => e.id === selectedEventId)?.mass,
 			total_ushers: sanitizedUshers.length,
-			number_of_ppg: sanitizedUshers.filter((u) => u.isPpg).length,
-			number_of_kolekte: sanitizedUshers.filter((u) => u.isKolekte).length
+			number_of_ppg: numberOfPpg,
+			number_of_kolekte: numberOfKolekte
 		};
 
 		await Promise.all([
+			statsigService.logEvent(
+				'tatib_validate_ushers',
+				isValid ? 'valid' : 'invalid',
+				page.data.session || undefined,
+				validationMetadata
+			),
+			tracker.track(
+				'tatib_validate_ushers',
+				{ event_type: isValid ? 'valid' : 'invalid', ...validationMetadata },
+				page.data.session,
+				page
+			),
 			statsigService.logEvent(
 				'tatib_confirm_ushers',
 				'submit',
@@ -296,10 +288,7 @@
 			),
 			tracker.track(
 				'tatib_confirm_ushers',
-				{
-					event_type: 'submit',
-					...submitMetadata
-				},
+				{ event_type: 'submit', ...submitMetadata },
 				page.data.session,
 				page
 			)
@@ -536,7 +525,7 @@
 		</form>
 	{:else}
 		<h2 class="mb-6 text-2xl font-bold dark:text-white">Pendaftaran Petugas Tata Tertib Telah Ditutup</h2>
-		<p class="text-gray-700 dark:text-gray-300">Konfirmasi Tata Tertib hanya pada hari Senin s/d Kamis.</p>
+		<p class="text-gray-700 dark:text-gray-300">Konfirmasi Tata Tertib hanya pada hari Senin s/d Jumat.</p>
 		<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
 			Hari ini: <strong>{data.currentDay}</strong><br />
 			{data.formAvailabilityReason}

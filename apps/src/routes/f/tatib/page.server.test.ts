@@ -54,7 +54,8 @@ vi.mock('$lib/utils/ppgUtils', () => ({
 
 vi.mock('$core/service/QueueManager', () => ({
 	QueueManager: {
-		getInstance: vi.fn()
+		getInstance: vi.fn(),
+		createInstance: vi.fn()
 	}
 }));
 
@@ -203,7 +204,7 @@ test('should reject submission on weekends when feature flag is enabled', async 
 	expect(result).toHaveProperty('status', 422);
 	if ('status' in result && 'data' in result && result.data) {
 		expect(result.data).toHaveProperty('error');
-		expect((result.data as any).error).toContain('Konfirmasi tugas hanya tersedia pada hari Senin s.d. Kamis');
+		expect((result.data as any).error).toContain('Konfirmasi tugas hanya tersedia pada hari Senin s.d. Jumat');
 	}
 });
 
@@ -266,7 +267,7 @@ test('should handle queue processing errors', async () => {
 		assignEventUshers: vi.fn().mockResolvedValue(Date.now())
 	};
 
-	vi.mocked(QueueManager.getInstance).mockReturnValue(mockQueueManager as unknown as QueueManager);
+	vi.mocked(QueueManager.createInstance).mockReturnValue(mockQueueManager as unknown as QueueManager);
 	vi.mocked(EventService).mockImplementation(() => mockEventService as any);
 	vi.mocked(UsherService).mockImplementation(() => mockUsherService as any);
 	vi.mocked(repo.getMassById).mockResolvedValue(mockMass);

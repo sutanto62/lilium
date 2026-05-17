@@ -233,6 +233,21 @@ function createMockEvent(overrides?: Partial<ChurchEvent>): ChurchEvent {
 }
 ```
 
+## UI Layout Decisions
+
+### Admin Dashboard (`routes/admin/+page.svelte`)
+
+Always use a **fixed 3-column grid** regardless of how many cards are visible:
+
+```svelte
+<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+```
+
+- Never switch to `md:grid-cols-2` when fewer cards are shown — cards left-align naturally in the empty column.
+- Card order (left → right): **Jadwal Misa** → **Roster** → **Tata Tertib**
+- **Roster** card is gated: only rendered when `isNewRosterFlow = true` (gate: `new_roster_flow`)
+- `isNewRosterFlow` is loaded in `admin/+page.server.ts` via `checkServerGate(event.locals, 'new_roster_flow')`
+
 ## Common Gotchas
 
 1. Schema change → `db:generate` → `db:migrate` (in that order, never skip generate)

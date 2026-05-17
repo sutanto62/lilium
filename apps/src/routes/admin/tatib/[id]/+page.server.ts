@@ -49,11 +49,12 @@ export const load: PageServerLoad = async (event) => {
 		const rosterService = new RosterService(repo);
 		const eventService = new EventService(churchId);
 
-		const [eventDetail, roster] = await Promise.all([
+		const [eventDetail, roster, communities] = await Promise.all([
 			eventService.retrieveEventSchedule(eventId),
-			rosterService.loadRoster(eventId)
+			rosterService.loadRoster(eventId),
+			repo.listCommunitiesForChurch(churchId)
 		]);
-		logger.debug('admin_jadwal_detail.load: roster loaded', { eventId, hasRoster: !!roster, entryCount: roster?.entries.length ?? 0 });
+		logger.debug('admin_jadwal_detail.load: roster loaded', { eventId, hasRoster: !!roster, entryCount: roster?.entries.length ?? 0, communityCount: communities.length });
 
 		const metadata = {
 			event_id: eventId,
@@ -70,6 +71,7 @@ export const load: PageServerLoad = async (event) => {
 		return {
 			eventDetail,
 			roster,
+			communities,
 			isNewRosterFlow: true,
 			zones: [],
 			wilayahs: [],
@@ -105,6 +107,7 @@ export const load: PageServerLoad = async (event) => {
 	return {
 		eventDetail,
 		roster: null,
+		communities: [],
 		isNewRosterFlow: false,
 		zones: zoneGroups,
 		wilayahs: [],
@@ -118,6 +121,66 @@ export const load: PageServerLoad = async (event) => {
 
 /** @satisfies {import('./$types').Actions} */
 export const actions: Actions = {
+	/**
+	 * Create a new Roster for an event with the selected communities.
+	 * Only available when new_roster_flow gate is on.
+	 */
+	createRoster: async (event: RequestEvent) => {
+		const { churchId: _churchId, session } = await getAuthContext(event);
+
+		if (!hasRole(session, 'admin')) {
+			throw error(403, 'Tidak memiliki akses');
+		}
+
+		const createdByUserId = session?.user?.email ?? session?.user?.name ?? '';
+		if (!createdByUserId) {
+			throw error(401, 'Sesi tidak valid');
+		}
+
+		const eventId = event.params.id;
+		const formData = await event.request.formData();
+		const communityIds = formData.getAll('communityIds').map(String).filter(Boolean);
+
+		if (!communityIds.length) {
+			return fail(400, { error: 'Pilih minimal satu lingkungan' });
+		}
+
+		logger.debug('admin_roster_create: creating roster', { eventId, communityCount: communityIds.length, createdByUserId });
+		const rosterService = new RosterService(repo);
+
+		try {
+			const roster = await rosterService.createRoster({ eventId, createdByUserId, communityIds });
+			logger.info('admin_roster_create: success', { rosterId: roster.id, eventId });
+
+			await Promise.all([
+				statsigService.logEvent('admin_roster_create', 'submit', session || undefined, {
+					event_id: eventId,
+					roster_id: roster.id,
+					community_count: communityIds.length
+				}),
+				posthogService.trackEvent('admin_roster_create', {
+					event_type: 'create_roster',
+					event_id: eventId,
+					roster_id: roster.id,
+					community_count: communityIds.length
+				}, session || undefined)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			if (err instanceof ServiceError) {
+				if (err.type === ServiceErrorType.VALIDATION_ERROR) {
+					return fail(422, { error: err.message });
+				}
+				if (err.type === ServiceErrorType.NOT_FOUND_ERROR) {
+					return fail(404, { error: err.message });
+				}
+			}
+			logger.error('admin_roster_create: Unexpected error', { err });
+			return fail(500, { error: 'Terjadi kesalahan internal. Silakan coba lagi.' });
+		}
+	},
+
 	/**
 	 * Confirm a community's submitted usher list (submitted → confirmed).
 	 * Only available when new_roster_flow gate is on.

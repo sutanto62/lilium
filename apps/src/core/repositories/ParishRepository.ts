@@ -24,4 +24,10 @@ export interface ParishRepository {
 
 	/** List all active communities belonging to a wilayah, ordered by sequence. */
 	listCommunitiesByWilayah(wilayahId: string): Promise<Community[]>;
+
+	/**
+	 * List all active communities that belong to the same parish as the given church.
+	 * Useful when only churchId is available (e.g. from session) and parishId is unknown.
+	 */
+	listCommunitiesForChurch(churchId: string): Promise<Community[]>;
 }

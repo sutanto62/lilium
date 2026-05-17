@@ -1,6 +1,7 @@
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { RosterService } from '$core/service/RosterService';
+import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
 import { posthogService } from '$src/lib/application/PostHogService';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$lib/server/db';
@@ -45,20 +46,90 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	const churchService = new ChurchService(churchId);
-	const [lingkungans, masses] = await Promise.all([
+	const eventService = new EventService(churchId);
+
+	// Upcoming events window: today → 60 days ahead (for manual creation dropdown)
+	const today = new Date();
+	const sixtyDaysLater = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+	const firstDay = today.toISOString().slice(0, 10);
+	const lastDay = sixtyDaysLater.toISOString().slice(0, 10);
+
+	const [lingkungans, masses, communitiesRaw, upcomingEvents] = await Promise.all([
 		churchService.retrieveLingkungans(),
-		churchService.retrieveMasses()
+		churchService.retrieveMasses(),
+		repo.listCommunitiesForChurch(churchId),
+		eventService.listEventsByDateRange(firstDay, lastDay)
 	]);
+
+	// Fall back to lingkungan list when community table is still empty (D3)
+	const communities = communitiesRaw.length > 0
+		? communitiesRaw
+		: lingkungans.map((l) => ({ id: l.id, name: l.name, wilayahId: l.wilayah ?? '', wilayahName: '', sequence: l.sequence ?? null, parishId: '', active: l.active === 1 }));
 
 	logger.debug('admin_roster_upload.load: loaded reference data', {
 		lingkunganCount: lingkungans.length,
-		massCount: masses.length
+		massCount: masses.length,
+		communityCount: communities.length,
+		upcomingEventCount: upcomingEvents.length,
+		communitySource: communitiesRaw.length > 0 ? 'community' : 'lingkungan'
 	});
 
-	return { lingkungans, masses };
+	return { lingkungans, masses, communities, upcomingEvents };
 };
 
 export const actions: Actions = {
+	/**
+	 * Manual roster creation: admin picks one event + selects communities.
+	 */
+	createRoster: async (event) => {
+		const session = await event.locals.auth();
+		if (!session) throw error(401, 'Sesi tidak valid');
+
+		const churchId = session.user?.cid ?? '';
+		if (!churchId) throw error(500, 'Invalid session data');
+
+		const createdByUserId = session.user?.email ?? session.user?.name ?? '';
+		if (!createdByUserId) throw error(401, 'Sesi tidak valid');
+
+		const formData = await event.request.formData();
+		const eventId = (formData.get('eventId') as string)?.trim();
+		const communityIds = formData.getAll('communityIds').map(String).filter(Boolean);
+
+		if (!eventId) return fail(422, { error: 'Pilih jadwal misa terlebih dahulu.' });
+		if (!communityIds.length) return fail(422, { error: 'Pilih minimal satu lingkungan.' });
+
+		const rosterService = new RosterService(repo);
+
+		// Prevent duplicate roster for the same event
+		const existing = await rosterService.loadRoster(eventId);
+		if (existing) {
+			return fail(409, { error: 'Roster untuk jadwal ini sudah ada. Buka halaman detail jadwal untuk mengelolanya.' });
+		}
+
+		try {
+			const roster = await rosterService.createRoster({ eventId, createdByUserId, communityIds });
+			logger.info('admin_roster_create: roster created manually', { rosterId: roster.id, eventId, communityCount: communityIds.length });
+
+			await Promise.all([
+				statsigService.logEvent('admin_roster_create_manual', 'submit', session || undefined, {
+					event_id: eventId, roster_id: roster.id, community_count: communityIds.length
+				}),
+				posthogService.trackEvent('admin_roster_create_manual', {
+					event_type: 'create_roster_manual', event_id: eventId, roster_id: roster.id, community_count: communityIds.length
+				}, session || undefined)
+			]);
+
+			return { success: true, created: 1, skipped: 0, errors: [], rosterId: roster.id, eventId };
+		} catch (err) {
+			if (err instanceof ServiceError) {
+				if (err.type === ServiceErrorType.VALIDATION_ERROR) return fail(422, { error: err.message });
+				if (err.type === ServiceErrorType.NOT_FOUND_ERROR) return fail(404, { error: err.message });
+			}
+			logger.error('admin_roster_create: Unexpected error', { err });
+			return fail(500, { error: 'Terjadi kesalahan internal. Silakan coba lagi.' });
+		}
+	},
+
 	uploadRoster: async (event) => {
 		const startTime = Date.now();
 		const session = await event.locals.auth();
@@ -129,15 +200,19 @@ export const actions: Actions = {
 		const eventService = new EventService(churchId);
 		const rosterService = new RosterService(repo);
 
-		const [lingkungans, masses] = await Promise.all([
+		const [lingkungans, masses, communitiesRaw] = await Promise.all([
 			churchService.retrieveLingkungans(),
-			churchService.retrieveMasses()
+			churchService.retrieveMasses(),
+			repo.listCommunitiesForChurch(churchId)
 		]);
 
-		// community name (normalised) → community.id
-		const communityMap = new Map<string, string>(
-			lingkungans.map((l) => [normalise(l.name), l.id])
-		);
+		// community name (normalised) → id
+		// Prefer new community table; fall back to lingkungan when community is still empty (D3)
+		const communitySource = communitiesRaw.length > 0 ? 'community' : 'lingkungan';
+		const communityMap = communitiesRaw.length > 0
+			? new Map<string, string>(communitiesRaw.map((c) => [normalise(c.name), c.id]))
+			: new Map<string, string>(lingkungans.map((l) => [normalise(l.name), l.id]));
+		logger.debug('admin_roster_upload: community map source', { communitySource, size: communityMap.size });
 
 		// mass time string (e.g. "17:00") → mass.id
 		const massMap = new Map<string, string>();

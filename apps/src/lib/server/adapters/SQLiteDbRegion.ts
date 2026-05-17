@@ -147,6 +147,41 @@ export async function listCommunities(
 	}));
 }
 
+/**
+ * List all active communities that belong to the same parish as the given church.
+ * Used when only churchId is available (e.g. from session) and parishId is unknown.
+ */
+export async function listCommunitiesForChurch(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<Community[]> {
+	const rows = await db
+		.select({
+			id: community.id,
+			name: community.name,
+			wilayahId: community.wilayahId,
+			wilayahName: wilayah.name,
+			sequence: community.sequence,
+			parishId: community.parishId,
+			active: community.active
+		})
+		.from(community)
+		.leftJoin(wilayah, eq(community.wilayahId, wilayah.id))
+		.innerJoin(church, eq(community.parishId, church.parishId))
+		.where(and(eq(church.id, churchId), eq(community.active, 1)))
+		.orderBy(wilayah.sequence, community.sequence);
+
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		wilayahId: r.wilayahId ?? '',
+		wilayahName: r.wilayahName ?? '',
+		sequence: r.sequence ?? null,
+		parishId: r.parishId ?? '',
+		active: r.active === 1
+	}));
+}
+
 /** Find a single community with its full ancestry (wilayah + parish snapshots). */
 export async function findCommunityById(
 	db: ReturnType<typeof drizzle>,

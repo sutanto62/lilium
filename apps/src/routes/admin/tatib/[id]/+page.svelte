@@ -35,10 +35,13 @@
 	let eventDetail = $derived(data.eventDetail);
 	let zones = $derived(data.zones);
 	let roster = $derived(data.roster);
+	let communities = $derived(data.communities ?? []);
 	let isNewRosterFlow = $derived(data.isNewRosterFlow);
 
 	let openRow = $state<number | null>(null);
 	let isDeleteConfirmation = $state(false);
+	let showCreateRosterModal = $state(false);
+	let selectedCommunityIds = $state<string[]>([]);
 	let defaultModalPicZone = $state(false);
 	let selectedZoneId = $state<string | null>(null);
 	let eventZonePic = $state('');
@@ -102,6 +105,33 @@
 
 	// ── Roster helpers ─────────────────────────────────────────────────────────
 
+	function openCreateRosterModal() {
+		selectedCommunityIds = communities.map((c: { id: string }) => c.id);
+		showCreateRosterModal = true;
+	}
+
+	function toggleCommunity(id: string) {
+		if (selectedCommunityIds.includes(id)) {
+			selectedCommunityIds = selectedCommunityIds.filter((x) => x !== id);
+		} else {
+			selectedCommunityIds = [...selectedCommunityIds, id];
+		}
+	}
+
+	// Group communities by wilayah for display
+	type CommunityGroup = { wilayahName: string; items: { id: string; name: string; wilayahId: string; wilayahName: string }[] };
+	const communitiesByWilayah = $derived(
+		communities.reduce(
+			(acc: Record<string, CommunityGroup>, c: { id: string; name: string; wilayahId: string; wilayahName: string }) => {
+				const key = c.wilayahId || '__none__';
+				if (!acc[key]) acc[key] = { wilayahName: c.wilayahName || '(Tanpa Wilayah)', items: [] };
+				acc[key].items.push(c);
+				return acc;
+			},
+			{} as Record<string, CommunityGroup>
+		)
+	);
+
 	function statusBadgeColor(status: string): 'gray' | 'yellow' | 'green' {
 		if (status === 'confirmed') return 'green';
 		if (status === 'submitted') return 'yellow';
@@ -161,7 +191,83 @@
 		{/if}
 
 		{#if !roster}
-			<p class="text-gray-500">Belum ada roster untuk misa ini.</p>
+			<div class="flex flex-col items-start gap-3">
+				<p class="text-gray-500">Belum ada roster untuk misa ini.</p>
+				{#if communities.length === 0}
+					<p class="text-sm text-yellow-600">
+						Belum ada data lingkungan. Tambahkan lingkungan di
+						<a href="/admin/settings/community" class="underline">pengaturan</a> terlebih dahulu.
+					</p>
+				{:else}
+					<Button size="sm" onclick={openCreateRosterModal}>
+						<UsersOutline class="me-2 h-4 w-4" /> Buat Roster
+					</Button>
+				{/if}
+			</div>
+
+			<!-- ── Create Roster Modal ────────────────────────────────────────── -->
+			<Modal bind:open={showCreateRosterModal} title="Buat Roster" size="md" autoclose={false}>
+				{#if communities.length > 0}
+					<form
+						method="POST"
+						action="?/createRoster"
+						use:enhance={() =>
+							async ({ update }) => {
+								await update({ reset: false });
+								showCreateRosterModal = false;
+							}}
+					>
+						<p class="mb-3 text-sm text-gray-600 dark:text-gray-400">
+							Pilih lingkungan yang akan dimasukkan dalam roster ini.
+						</p>
+
+						<div class="mb-4 max-h-72 overflow-y-auto rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+							{#each Object.entries(communitiesByWilayah) as [_key, group]}
+								<div class="mb-3">
+									<p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+										{group.wilayahName}
+									</p>
+									{#each group.items as community}
+										<label class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700">
+											<input
+												type="checkbox"
+												name="communityIds"
+												value={community.id}
+												checked={selectedCommunityIds.includes(community.id)}
+												onchange={() => toggleCommunity(community.id)}
+												class="h-4 w-4 rounded border-gray-300 text-blue-600"
+											/>
+											<span class="text-sm text-gray-800 dark:text-gray-200">{community.name}</span>
+										</label>
+									{/each}
+								</div>
+							{/each}
+						</div>
+
+						{#if actionError}
+							<p class="mb-3 text-sm text-red-600">{actionError}</p>
+						{/if}
+
+						<div class="flex justify-end gap-2">
+							<Button
+								type="button"
+								color="alternative"
+								size="sm"
+								onclick={() => (showCreateRosterModal = false)}
+							>
+								Batal
+							</Button>
+							<Button
+								type="submit"
+								size="sm"
+								disabled={selectedCommunityIds.length === 0}
+							>
+								Buat Roster ({selectedCommunityIds.length})
+							</Button>
+						</div>
+					</form>
+				{/if}
+			</Modal>
 		{:else}
 			<div class="flex flex-col gap-2">
 				<div class="mb-2 flex items-center gap-2 text-sm text-gray-500">

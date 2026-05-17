@@ -68,7 +68,8 @@ import {
 	listCommunities,
 	findCommunityById,
 	listWilayahsByParish,
-	listCommunitiesByWilayah
+	listCommunitiesByWilayah,
+	listCommunitiesForChurch
 } from './SQLiteDbRegion';
 import {
 	listSectionsByChurch,
@@ -223,6 +224,7 @@ export class SQLiteAdapter
 	findCommunityById = (id: string) => findCommunityById(this.db, id);
 	listWilayahsByParish = (parishId: string) => listWilayahsByParish(this.db, parishId);
 	listCommunitiesByWilayah = (wilayahId: string) => listCommunitiesByWilayah(this.db, wilayahId);
+	listCommunitiesForChurch = (churchId: string) => listCommunitiesForChurch(this.db, churchId);
 
 	// ── FacilityRepository ──────────────────────────────────────────────────────
 	findChurchFacility = (churchId: string) => findChurchFacility(this.db, churchId);

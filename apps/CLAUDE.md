@@ -152,13 +152,19 @@ try {
 
 Dual tracking: **Statsig** (server-side + key events) + **PostHog** (client-side + autocapture).
 
+- Server-side PostHog: `posthog-node` via `trackServerEvent` from `$src/lib/server/posthogNode`
+- Client-side PostHog: `tracker` from `$src/lib/utils/analytics` (browser-only)
+- ⚠️ `posthogService.trackEvent()` (from `PostHogService.ts`) is **browser-only** — never call it in `+page.server.ts`
+
 **Event naming**: `{page}_{action}_{context}` in `snake_case`. Metadata keys: `snake_case`.
 
 ```typescript
+import { trackServerEvent } from '$src/lib/server/posthogNode';
+
 // Server-side: always parallel
 await Promise.all([
   statsigService.logEvent('admin_jadwal_view', 'load', session, metadata),
-  posthogService.trackEvent('admin_jadwal_view', { event_type: 'page_load', ...metadata }, session)
+  trackServerEvent('admin_jadwal_view', { event_type: 'page_load', ...metadata }, session)
 ]);
 
 // Client-side

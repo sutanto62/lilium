@@ -58,7 +58,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_zone_v2_view', 'load', session, metadata),
-		posthogService.trackEvent('admin_zone_v2_view', { event_type: 'page_load', ...metadata }, session)
+		trackServerEvent('admin_zone_v2_view', { event_type: 'page_load', ...metadata }, session)
 	]);
 
 	return { facility };

@@ -114,7 +114,7 @@ export const actions: Actions = {
 				statsigService.logEvent('admin_roster_create_manual', 'submit', session || undefined, {
 					event_id: eventId, roster_id: roster.id, community_count: communityIds.length
 				}),
-				posthogService.trackEvent('admin_roster_create_manual', {
+				trackServerEvent('admin_roster_create_manual', {
 					event_type: 'create_roster_manual', event_id: eventId, roster_id: roster.id, community_count: communityIds.length
 				}, session || undefined)
 			]);
@@ -331,7 +331,7 @@ export const actions: Actions = {
 
 		await Promise.all([
 			statsigService.logEvent('admin_roster_upload', 'submit', session || undefined, metadata),
-			posthogService.trackEvent('admin_roster_upload', { event_type: 'upload', ...metadata }, session || undefined)
+			trackServerEvent('admin_roster_upload', { event_type: 'upload', ...metadata }, session || undefined)
 		]);
 
 		logger.info('admin_roster_upload: complete', metadata);

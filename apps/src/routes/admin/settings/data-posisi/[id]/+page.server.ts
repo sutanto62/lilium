@@ -2,7 +2,7 @@ import { hasRole } from '$src/auth';
 import { PositionService, type CreatePositionInput } from '$core/service/PositionService';
 import { ServiceError } from '$core/errors/ServiceError';
 import { statsigService } from '$src/lib/application/StatsigService';
-import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
 import { fail, redirect, error } from '@sveltejs/kit';
@@ -76,7 +76,7 @@ export const load: PageServerLoad = async (event) => {
 				...metadata,
 				ppg_enabled: requirePpg
 			}),
-			posthogService.trackEvent('admin_posisi_detail_view', {
+			trackServerEvent('admin_posisi_detail_view', {
 				event_type: 'page_load',
 				...metadata,
 				ppg_enabled: requirePpg
@@ -186,7 +186,7 @@ export const actions = {
 					position_name: name,
 					position_type: type
 				}),
-				posthogService.trackEvent('admin_posisi_detail_create', {
+				trackServerEvent('admin_posisi_detail_create', {
 					event_type: 'position_created',
 					mass_id: massId,
 					zone_id: zoneId,
@@ -312,7 +312,7 @@ export const actions = {
 				statsigService.logEvent('admin_posisi_detail_edit', 'update', session, {
 					position_id: positionId
 				}),
-				posthogService.trackEvent('admin_posisi_detail_edit', {
+				trackServerEvent('admin_posisi_detail_edit', {
 					event_type: 'position_updated',
 					position_id: positionId
 				}, session)
@@ -374,7 +374,7 @@ export const actions = {
 				statsigService.logEvent('admin_posisi_detail_delete', 'delete', session, {
 					position_id: positionId
 				}),
-				posthogService.trackEvent('admin_posisi_detail_delete', {
+				trackServerEvent('admin_posisi_detail_delete', {
 					event_type: 'position_deleted',
 					position_id: positionId
 				}, session)
@@ -461,7 +461,7 @@ export const actions = {
 					zone_id: zoneId,
 					item_count: items.length
 				}),
-				posthogService.trackEvent('admin_posisi_detail_reorder', {
+				trackServerEvent('admin_posisi_detail_reorder', {
 					event_type: 'positions_reordered',
 					zone_id: zoneId,
 					item_count: items.length

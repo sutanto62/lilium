@@ -52,7 +52,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_zone_misa_zona_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_zone_misa_zona_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_zone_misa_zona_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return { massZones, masses, zones };
@@ -80,7 +80,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_misa_zona_create', 'create', session, { mass_id: massId, zone_id: zoneId }),
-				posthogService.trackEvent('admin_zone_misa_zona_create', { event_type: 'mass_zone_created', mass_id: massId, zone_id: zoneId }, session)
+				trackServerEvent('admin_zone_misa_zona_create', { event_type: 'mass_zone_created', mass_id: massId, zone_id: zoneId }, session)
 			]);
 
 			return { success: true };
@@ -110,7 +110,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_misa_zona_delete', 'delete', session, { mass_zone_id: massZoneId }),
-				posthogService.trackEvent('admin_zone_misa_zona_delete', { event_type: 'mass_zone_deleted', mass_zone_id: massZoneId }, session)
+				trackServerEvent('admin_zone_misa_zona_delete', { event_type: 'mass_zone_deleted', mass_zone_id: massZoneId }, session)
 			]);
 
 			return { success: true };

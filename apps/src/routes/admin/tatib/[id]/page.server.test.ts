@@ -17,6 +17,10 @@ vi.mock('$src/lib/application/StatsigService', () => ({
 	statsigService: { logEvent: vi.fn() }
 }));
 
+vi.mock('$src/lib/server/posthogNode', () => ({
+	trackServerEvent: vi.fn().mockResolvedValue(undefined)
+}));
+
 vi.mock('$src/lib/application/PostHogService', () => ({
 	posthogService: { trackEvent: vi.fn() }
 }));

@@ -9,6 +9,7 @@ import { mass } from '$lib/server/db/schema';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { shouldRequirePpg } from '$lib/utils/ppgUtils';
 import type { RequestEvent } from '@sveltejs/kit';
 import { describe, expect, test, vi, beforeEach } from "vitest";
@@ -70,6 +71,10 @@ vi.mock('$src/lib/application/PostHogService', () => ({
 	posthogService: {
 		trackEvent: vi.fn()
 	}
+}));
+
+vi.mock('$src/lib/server/posthogNode', () => ({
+	trackServerEvent: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Mocks for Phase 7 additions
@@ -472,5 +477,41 @@ describe('load function', () => {
 
 		expect(result.showForm).toBe(false);
 		expect(statsigService.checkGate).toHaveBeenCalledWith('no_saturday_sunday');
+	});
+});
+
+describe('server-side analytics', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vi.mocked(statsigService.checkGate).mockResolvedValue(false);
+		vi.mocked(shouldRequirePpg).mockResolvedValue(false);
+		vi.mocked(EventService).mockImplementation(() => ({
+			retrieveEventsByWeekRange: vi.fn().mockResolvedValue([]),
+			retrieveEventById: vi.fn()
+		}) as any);
+		vi.mocked(ChurchService).mockImplementation(() => ({
+			retrieveWilayahs: vi.fn().mockResolvedValue([]),
+			retrieveLingkungans: vi.fn().mockResolvedValue([])
+		}) as any);
+	});
+
+	test('load() calls trackServerEvent with tatib_view_server and load_time_ms metadata', async () => {
+		vi.mocked(repo.findChurchById).mockResolvedValue({ id: 'church1', code: 'CH1', requirePpg: 0 } as any);
+
+		await load({
+			cookies: { get: () => 'church1' },
+			locals: { auth: vi.fn().mockResolvedValue(null) },
+			url: new URL('http://localhost/f/tatib')
+		} as any);
+
+		expect(vi.mocked(trackServerEvent)).toHaveBeenCalledWith(
+			'tatib_view_server',
+			expect.objectContaining({
+				event_type: 'page_load',
+				load_time_ms: expect.any(Number)
+			}),
+			// session is null from auth(), converted to undefined via `session || undefined`
+			undefined
+		);
 	});
 });

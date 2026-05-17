@@ -72,7 +72,7 @@ export const load: PageServerLoad = async (event) => {
 
 		await Promise.all([
 			statsigService.logEvent('admin_posisi_error', 'data_fetch_failed', session || undefined, errorMetadata),
-			posthogService.trackEvent('admin_posisi_error', {
+			trackServerEvent('admin_posisi_error', {
 				event_type: 'data_fetch_failed',
 				...errorMetadata
 			}, session || undefined)
@@ -92,7 +92,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_posisi_view', 'load', session || undefined, pageLoadMetadata),
-		posthogService.trackEvent('admin_posisi_view', {
+		trackServerEvent('admin_posisi_view', {
 			event_type: 'page_load',
 			...pageLoadMetadata
 		}, session || undefined)
@@ -172,7 +172,7 @@ export const actions = {
 				statsigService.logEvent('admin_posisi_delete', 'delete', session, {
 					mass_id: massId
 				}),
-				posthogService.trackEvent('admin_posisi_delete', {
+				trackServerEvent('admin_posisi_delete', {
 					event_type: 'mass_deleted',
 					mass_id: massId
 				}, session)

@@ -54,7 +54,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_celebration_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_celebration_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_celebration_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return { masses };
@@ -86,7 +86,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_celebration_create', 'create', session, { church_id: churchId }),
-				posthogService.trackEvent('admin_celebration_create', { event_type: 'celebration_created', church_id: churchId }, session)
+				trackServerEvent('admin_celebration_create', { event_type: 'celebration_created', church_id: churchId }, session)
 			]);
 
 			return { success: true };
@@ -124,7 +124,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_celebration_update', 'update', session, { mass_id: massId }),
-				posthogService.trackEvent('admin_celebration_update', { event_type: 'celebration_updated', mass_id: massId }, session)
+				trackServerEvent('admin_celebration_update', { event_type: 'celebration_updated', mass_id: massId }, session)
 			]);
 
 			return { success: true };
@@ -154,7 +154,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_celebration_delete', 'delete', session, { mass_id: massId }),
-				posthogService.trackEvent('admin_celebration_delete', { event_type: 'celebration_deleted', mass_id: massId }, session)
+				trackServerEvent('admin_celebration_delete', { event_type: 'celebration_deleted', mass_id: massId }, session)
 			]);
 
 			return { success: true };

@@ -29,7 +29,7 @@ export const load: PageServerLoad = async (event) => {
 
         await Promise.all([
             statsigService.logEvent('lingkungan_titik_tugas_view', 'load', session || undefined, pageLoadMetadata),
-            posthogService.trackEvent('lingkungan_titik_tugas_view', {
+            trackServerEvent('lingkungan_titik_tugas_view', {
                 event_type: 'page_load',
                 ...pageLoadMetadata
             }, session || undefined)
@@ -50,7 +50,7 @@ export const load: PageServerLoad = async (event) => {
 
         await Promise.all([
             statsigService.logEvent('lingkungan_titik_tugas_error', 'data_fetch_failed', session || undefined, errorMetadata),
-            posthogService.trackEvent('lingkungan_titik_tugas_error', {
+            trackServerEvent('lingkungan_titik_tugas_error', {
                 event_type: 'data_fetch_failed',
                 ...errorMetadata
             }, session || undefined)
@@ -97,7 +97,7 @@ export const actions = {
 
             await Promise.all([
                 statsigService.logEvent('lingkungan_titik_tugas_error', 'usher_fetch_failed', session || undefined, errorMetadata),
-                posthogService.trackEvent('lingkungan_titik_tugas_error', {
+                trackServerEvent('lingkungan_titik_tugas_error', {
                     event_type: 'usher_fetch_failed',
                     ...errorMetadata
                 }, session || undefined)

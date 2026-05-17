@@ -52,7 +52,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_section_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_section_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_section_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return { sections, churchId };
@@ -80,7 +80,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_section_create', 'create', session, { church_id: churchId }),
-				posthogService.trackEvent('admin_section_create', { event_type: 'section_created', church_id: churchId }, session)
+				trackServerEvent('admin_section_create', { event_type: 'section_created', church_id: churchId }, session)
 			]);
 
 			return { success: true };
@@ -113,7 +113,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_section_update', 'update', session, { section_id: sectionId }),
-				posthogService.trackEvent('admin_section_update', { event_type: 'section_updated', section_id: sectionId }, session)
+				trackServerEvent('admin_section_update', { event_type: 'section_updated', section_id: sectionId }, session)
 			]);
 
 			return { success: true };
@@ -139,7 +139,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_section_delete', 'delete', session, { section_id: sectionId }),
-				posthogService.trackEvent('admin_section_delete', { event_type: 'section_deleted', section_id: sectionId }, session)
+				trackServerEvent('admin_section_delete', { event_type: 'section_deleted', section_id: sectionId }, session)
 			]);
 
 			return { success: true };

@@ -24,7 +24,7 @@ export const load: PageServerLoad = async (event) => {
 
     await Promise.all([
         statsigService.logEvent('home_view_server', 'load', session || undefined, pageLoadMetadata),
-        posthogService.trackEvent('home_view_server', {
+        trackServerEvent('home_view_server', {
             event_type: 'page_load',
             ...pageLoadMetadata
         }, session || undefined)

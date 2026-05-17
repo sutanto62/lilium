@@ -14,7 +14,7 @@ import { checkServerGate } from '$lib/server/featureFlags';
 import { formatDate, getWeekNumber } from '$lib/utils/dateUtils';
 import { validateUsherNames } from '$lib/utils/usherValidation';
 import { shouldRequirePpg } from '$lib/utils/ppgUtils';
-import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
 import { error, fail } from '@sveltejs/kit';
@@ -133,7 +133,7 @@ export const load: PageServerLoad = async (event) => {
 
 		await Promise.all([
 			statsigService.logEvent('tatib_new_view', 'load', session || undefined, loadMetadata),
-			posthogService.trackEvent('tatib_new_view', { event_type: 'page_load', ...loadMetadata }, session || undefined)
+			trackServerEvent('tatib_new_view', { event_type: 'page_load', ...loadMetadata }, session || undefined)
 		]);
 
 		return {
@@ -207,7 +207,7 @@ export const load: PageServerLoad = async (event) => {
 
 		await Promise.all([
 			statsigService.logEvent('tatib_view_server', 'load', session || undefined, pageLoadMetadata),
-			posthogService.trackEvent('tatib_view_server', {
+			trackServerEvent('tatib_view_server', {
 				event_type: 'page_load',
 				...pageLoadMetadata
 			}, session || undefined)
@@ -242,7 +242,7 @@ export const load: PageServerLoad = async (event) => {
 
 		await Promise.all([
 			statsigService.logEvent('tatib_error', 'data_fetch_failed', session || undefined, errorMetadata),
-			posthogService.trackEvent('tatib_error', {
+			trackServerEvent('tatib_error', {
 				event_type: 'data_fetch_failed',
 				...errorMetadata
 			}, session || undefined)
@@ -341,7 +341,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('tatib_new_submit', 'success', session || undefined, successMetadata),
-				posthogService.trackEvent('tatib_new_submit', {
+				trackServerEvent('tatib_new_submit', {
 					event_type: 'success',
 					...successMetadata
 				}, session || undefined)
@@ -362,13 +362,13 @@ export const actions = {
 					case ServiceErrorType.VALIDATION_ERROR:
 						await Promise.all([
 							statsigService.logEvent('tatib_new_error', 'validation_error', session || undefined, errMetadata),
-							posthogService.trackEvent('tatib_new_error', { event_type: 'validation_error', ...errMetadata }, session || undefined)
+							trackServerEvent('tatib_new_error', { event_type: 'validation_error', ...errMetadata }, session || undefined)
 						]);
 						return fail(422, { error: err.message });
 					case ServiceErrorType.CONFLICT_ERROR:
 						await Promise.all([
 							statsigService.logEvent('tatib_new_error', 'conflict', session || undefined, errMetadata),
-							posthogService.trackEvent('tatib_new_error', { event_type: 'conflict', ...errMetadata }, session || undefined)
+							trackServerEvent('tatib_new_error', { event_type: 'conflict', ...errMetadata }, session || undefined)
 						]);
 						return fail(409, {
 							error: 'Data sedang diperbarui oleh pengguna lain. Silakan muat ulang halaman dan coba lagi.'
@@ -406,7 +406,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('tatib_error', 'missing_church_id', session || undefined, errorMetadata),
-				posthogService.trackEvent('tatib_error', {
+				trackServerEvent('tatib_error', {
 					event_type: 'missing_church_id',
 					...errorMetadata
 				}, session || undefined)
@@ -452,7 +452,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('tatib_error', 'closed_window', session || undefined, errorMetadata),
-				posthogService.trackEvent('tatib_error', {
+				trackServerEvent('tatib_error', {
 					event_type: 'closed_window',
 					...errorMetadata
 				}, session || undefined)
@@ -477,7 +477,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('tatib_error', 'validation_error', session || undefined, errorMetadata),
-				posthogService.trackEvent('tatib_error', {
+				trackServerEvent('tatib_error', {
 					event_type: 'validation_error',
 					...errorMetadata
 				}, session || undefined)
@@ -515,7 +515,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'mass_zone_position_not_found', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'mass_zone_position_not_found',
 						...errorMetadata
 					}, session || undefined)
@@ -533,7 +533,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'mass_not_found', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'mass_not_found',
 						...errorMetadata
 					}, session || undefined)
@@ -552,7 +552,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'lingkungan_not_found', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'lingkungan_not_found',
 						...errorMetadata
 					}, session || undefined)
@@ -574,7 +574,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'parse_error', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'parse_error',
 						...errorMetadata
 					}, session || undefined)
@@ -595,7 +595,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'validation_error', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'validation_error',
 						...errorMetadata
 					}, session || undefined)
@@ -624,7 +624,7 @@ export const actions = {
 						case ServiceErrorType.VALIDATION_ERROR:
 							await Promise.all([
 								statsigService.logEvent('tatib_error', 'validation_error', session || undefined, errorMetadata),
-								posthogService.trackEvent('tatib_error', {
+								trackServerEvent('tatib_error', {
 									event_type: 'validation_error',
 									...errorMetadata
 								}, session || undefined)
@@ -636,7 +636,7 @@ export const actions = {
 						case ServiceErrorType.DUPLICATE_ERROR:
 							await Promise.all([
 								statsigService.logEvent('tatib_error', 'duplicate_error', session || undefined, errorMetadata),
-								posthogService.trackEvent('tatib_error', {
+								trackServerEvent('tatib_error', {
 									event_type: 'duplicate_error',
 									...errorMetadata
 								}, session || undefined)
@@ -649,7 +649,7 @@ export const actions = {
 							logger.error('tatib_error: Database error in usher assignment', error);
 							await Promise.all([
 								statsigService.logEvent('tatib_error', 'database_error', session || undefined, errorMetadata),
-								posthogService.trackEvent('tatib_error', {
+								trackServerEvent('tatib_error', {
 									event_type: 'database_error',
 									...errorMetadata
 								}, session || undefined)
@@ -662,7 +662,7 @@ export const actions = {
 							logger.error('tatib_error: Unknown service error', error);
 							await Promise.all([
 								statsigService.logEvent('tatib_error', 'unknown_service_error', session || undefined, errorMetadata),
-								posthogService.trackEvent('tatib_error', {
+								trackServerEvent('tatib_error', {
 									event_type: 'unknown_service_error',
 									...errorMetadata
 								}, session || undefined)
@@ -683,7 +683,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'unexpected_error', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'unexpected_error',
 						...errorMetadata
 					}, session || undefined)
@@ -709,7 +709,7 @@ export const actions = {
 
 				await Promise.all([
 					statsigService.logEvent('tatib_error', 'queue_processing_error', session || undefined, errorMetadata),
-					posthogService.trackEvent('tatib_error', {
+					trackServerEvent('tatib_error', {
 						event_type: 'queue_processing_error',
 						...errorMetadata
 					}, session || undefined)
@@ -739,7 +739,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('tatib_confirm_ushers', 'success', session || undefined, successMetadata),
-				posthogService.trackEvent('tatib_confirm_ushers', {
+				trackServerEvent('tatib_confirm_ushers', {
 					event_type: 'success',
 					...successMetadata
 				}, session || undefined)
@@ -765,7 +765,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('tatib_error', 'unexpected_error', session || undefined, errorMetadata),
-				posthogService.trackEvent('tatib_error', {
+				trackServerEvent('tatib_error', {
 					event_type: 'unexpected_error',
 					...errorMetadata
 				}, session || undefined)

@@ -1,6 +1,6 @@
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
-import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { redirect } from '@sveltejs/kit';
@@ -30,7 +30,7 @@ export const load: PageServerLoad = async (event) => {
     const metadata = { event_id: eventId, load_time_ms: Date.now() - startTime };
     await Promise.all([
         statsigService.logEvent('admin_jadwal_cetak_view', 'load', session || undefined, metadata),
-        posthogService.trackEvent('admin_jadwal_cetak_view', { event_type: 'page_load', ...metadata }, session || undefined)
+        trackServerEvent('admin_jadwal_cetak_view', { event_type: 'page_load', ...metadata }, session || undefined)
     ]);
 
     return {

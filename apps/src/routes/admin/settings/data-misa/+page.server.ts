@@ -47,7 +47,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_zone_misa_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_zone_misa_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_zone_misa_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return { masses };
@@ -79,7 +79,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_misa_create', 'create', session, { church_id: churchId }),
-				posthogService.trackEvent('admin_zone_misa_create', { event_type: 'mass_created', church_id: churchId }, session)
+				trackServerEvent('admin_zone_misa_create', { event_type: 'mass_created', church_id: churchId }, session)
 			]);
 
 			return { success: true };
@@ -117,7 +117,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_misa_update', 'update', session, { mass_id: massId }),
-				posthogService.trackEvent('admin_zone_misa_update', { event_type: 'mass_updated', mass_id: massId }, session)
+				trackServerEvent('admin_zone_misa_update', { event_type: 'mass_updated', mass_id: massId }, session)
 			]);
 
 			return { success: true };
@@ -147,7 +147,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_misa_delete', 'delete', session, { mass_id: massId }),
-				posthogService.trackEvent('admin_zone_misa_delete', { event_type: 'mass_deleted', mass_id: massId }, session)
+				trackServerEvent('admin_zone_misa_delete', { event_type: 'mass_deleted', mass_id: massId }, session)
 			]);
 
 			return { success: true };

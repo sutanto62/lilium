@@ -67,7 +67,7 @@ export const load: PageServerLoad = async (event) => {
 
     await Promise.all([
         statsigService.logEvent('admin_misa_create_view', 'load', session || undefined, pageLoadMetadata),
-        posthogService.trackEvent('admin_misa_create_view', {
+        trackServerEvent('admin_misa_create_view', {
             event_type: 'page_load',
             ...pageLoadMetadata
         }, session || undefined)
@@ -228,7 +228,7 @@ export const actions: Actions = {
 
             await Promise.all([
                 statsigService.logEvent('admin_misa_create', 'success', session || undefined, successMetadata),
-                posthogService.trackEvent('admin_misa_create_success', {
+                trackServerEvent('admin_misa_create_success', {
                     event_type: 'form_submission',
                     ...successMetadata
                 }, session || undefined)
@@ -252,7 +252,7 @@ export const actions: Actions = {
 
             await Promise.all([
                 statsigService.logEvent('admin_misa_create_error', 'form_submission_failed', session || undefined, errorMetadata),
-                posthogService.trackEvent('admin_misa_create_error', {
+                trackServerEvent('admin_misa_create_error', {
                     event_type: 'form_submission_failed',
                     ...errorMetadata
                 }, session || undefined)

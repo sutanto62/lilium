@@ -63,7 +63,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_station_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_station_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_station_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return { stations, zones, ministries, churchId };
@@ -105,7 +105,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_station_create', 'create', session, { church_id: churchId }),
-				posthogService.trackEvent('admin_station_create', { event_type: 'station_created', church_id: churchId }, session)
+				trackServerEvent('admin_station_create', { event_type: 'station_created', church_id: churchId }, session)
 			]);
 
 			return { success: true };
@@ -142,7 +142,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_station_update', 'update', session, { station_id: stationId }),
-				posthogService.trackEvent('admin_station_update', { event_type: 'station_updated', station_id: stationId }, session)
+				trackServerEvent('admin_station_update', { event_type: 'station_updated', station_id: stationId }, session)
 			]);
 
 			return { success: true };
@@ -168,7 +168,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_station_delete', 'delete', session, { station_id: stationId }),
-				posthogService.trackEvent('admin_station_delete', { event_type: 'station_deleted', station_id: stationId }, session)
+				trackServerEvent('admin_station_delete', { event_type: 'station_deleted', station_id: stationId }, session)
 			]);
 
 			return { success: true };

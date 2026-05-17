@@ -108,7 +108,7 @@ export const load: PageServerLoad = async (event) => {
 
 		await Promise.all([
 			statsigService.logEvent('admin_jadwal_error', 'data_fetch_failed', session || undefined, errorMetadata),
-			posthogService.trackEvent('admin_jadwal_error', {
+			trackServerEvent('admin_jadwal_error', {
 				event_type: 'data_fetch_failed',
 				...errorMetadata
 			}, session || undefined)
@@ -176,7 +176,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_jadwal_view', 'load', session || undefined, pageLoadMetadata),
-		posthogService.trackEvent('admin_jadwal_view', {
+		trackServerEvent('admin_jadwal_view', {
 			event_type: 'page_load',
 			...pageLoadMetadata
 		}, session || undefined)

@@ -9,7 +9,7 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { RosterService } from '$core/service/RosterService';
 import { hasRole } from '$src/auth';
-import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { checkServerGate } from '$lib/server/featureFlags';
 import { repo } from '$lib/server/db';
@@ -65,7 +65,7 @@ export const load: PageServerLoad = async (event) => {
 
 		await Promise.all([
 			statsigService.logEvent('admin_jadwal_detail_view', 'load', session || undefined, metadata),
-			posthogService.trackEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
+			trackServerEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
 		]);
 
 		return {
@@ -101,7 +101,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_jadwal_detail_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return {
@@ -158,7 +158,7 @@ export const actions: Actions = {
 					roster_id: roster.id,
 					community_count: communityIds.length
 				}),
-				posthogService.trackEvent('admin_roster_create', {
+				trackServerEvent('admin_roster_create', {
 					event_type: 'create_roster',
 					event_id: eventId,
 					roster_id: roster.id,
@@ -217,7 +217,7 @@ export const actions: Actions = {
 					roster_id: rosterId,
 					community_id: communityId
 				}),
-				posthogService.trackEvent('admin_roster_confirm_entry', {
+				trackServerEvent('admin_roster_confirm_entry', {
 					event_type: 'confirm_entry',
 					roster_id: rosterId,
 					community_id: communityId
@@ -275,7 +275,7 @@ export const actions: Actions = {
 					roster_id: rosterId,
 					community_id: communityId
 				}),
-				posthogService.trackEvent('admin_roster_reopen_entry', {
+				trackServerEvent('admin_roster_reopen_entry', {
 					event_type: 'reopen_entry',
 					roster_id: rosterId,
 					community_id: communityId
@@ -317,7 +317,7 @@ export const actions: Actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_jadwal_detail_deactivate', 'submit', session || undefined, { event_id: eventId }),
-				posthogService.trackEvent('admin_jadwal_detail_deactivate', { event_type: 'deactivate', event_id: eventId }, session || undefined)
+				trackServerEvent('admin_jadwal_detail_deactivate', { event_type: 'deactivate', event_id: eventId }, session || undefined)
 			]);
 		} catch (err) {
 			logger.error('Error deactivating event:', err);
@@ -350,7 +350,7 @@ export const actions: Actions = {
 		const picMetadata = { event_id: eventId, zone_id: zone, mode: mode ?? 'add', is_misa_pic: isMisaPic };
 		await Promise.all([
 			statsigService.logEvent('admin_jadwal_detail_pic_update', 'submit', session || undefined, picMetadata),
-			posthogService.trackEvent('admin_jadwal_detail_pic_update', { event_type: 'pic_update', ...picMetadata }, session || undefined)
+			trackServerEvent('admin_jadwal_detail_pic_update', { event_type: 'pic_update', ...picMetadata }, session || undefined)
 		]);
 
 		return { success: true };
@@ -378,7 +378,7 @@ export const actions: Actions = {
 		const usherMetadata = { event_id: eventId, lingkungan_id: lingkungan };
 		await Promise.all([
 			statsigService.logEvent('admin_jadwal_detail_usher_delete', 'submit', session || undefined, usherMetadata),
-			posthogService.trackEvent('admin_jadwal_detail_usher_delete', { event_type: 'usher_delete', ...usherMetadata }, session || undefined)
+			trackServerEvent('admin_jadwal_detail_usher_delete', { event_type: 'usher_delete', ...usherMetadata }, session || undefined)
 		]);
 
 		return { success: true };

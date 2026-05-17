@@ -57,7 +57,7 @@ export const load: PageServerLoad = async (event) => {
 
 	await Promise.all([
 		statsigService.logEvent('admin_zone_new_view', 'load', session || undefined, metadata),
-		posthogService.trackEvent('admin_zone_new_view', { event_type: 'page_load', ...metadata }, session || undefined)
+		trackServerEvent('admin_zone_new_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
 	return { sections, zones, churchId };
@@ -86,7 +86,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_new_create', 'create', session, { church_id: churchId }),
-				posthogService.trackEvent('admin_zone_new_create', { event_type: 'zone_created', church_id: churchId }, session)
+				trackServerEvent('admin_zone_new_create', { event_type: 'zone_created', church_id: churchId }, session)
 			]);
 
 			return { success: true };
@@ -120,7 +120,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_new_update', 'update', session, { zone_id: zoneId }),
-				posthogService.trackEvent('admin_zone_new_update', { event_type: 'zone_updated', zone_id: zoneId }, session)
+				trackServerEvent('admin_zone_new_update', { event_type: 'zone_updated', zone_id: zoneId }, session)
 			]);
 
 			return { success: true };
@@ -146,7 +146,7 @@ export const actions = {
 
 			await Promise.all([
 				statsigService.logEvent('admin_zone_new_delete', 'delete', session, { zone_id: zoneId }),
-				posthogService.trackEvent('admin_zone_new_delete', { event_type: 'zone_deleted', zone_id: zoneId }, session)
+				trackServerEvent('admin_zone_new_delete', { event_type: 'zone_deleted', zone_id: zoneId }, session)
 			]);
 
 			return { success: true };

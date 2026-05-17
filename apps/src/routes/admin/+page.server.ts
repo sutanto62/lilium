@@ -1,4 +1,4 @@
-import { checkServerGate } from '$lib/server/featureFlags';
+import { checkServerGate, getFeaturePreference } from '$lib/server/featureFlags';
 import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
@@ -8,7 +8,13 @@ export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
 	const session = await event.locals.auth();
 
-	const isNewRosterFlow = await checkServerGate(event.locals, 'new_roster_flow');
+	// Gate AND explicit opt-in must both be true — gate alone is insufficient
+	// (gate can be true from org-wide rollout without the user opting into new_domain)
+	const [isRosterGate, featurePreference] = await Promise.all([
+		checkServerGate(event.locals, 'new_roster_flow'),
+		getFeaturePreference(event.locals)
+	]);
+	const isNewRosterFlow = isRosterGate && featurePreference === 'new_domain';
 
 	const metadata = {
 		is_new_roster_flow: isNewRosterFlow,

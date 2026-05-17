@@ -26,6 +26,7 @@
 	const isAdmin = $derived(data.session?.user?.role === 'admin');
 	const featurePreference = $derived(data.featurePreference);
 	const isOptedIn = $derived(featurePreference === 'new_domain');
+	const isNewDomainEligible = $derived(data.isNewDomainEligible ?? false);
 	const isNewUX = $derived(data.isNewUX ?? false);
 	const menuItems = $derived(isNewUX ? NEW_MENU_ITEMS : OLD_MENU_ITEMS);
 
@@ -55,7 +56,7 @@
 				{/each}
 			</ul>
 
-			{#if isAdmin}
+			{#if isAdmin && isNewDomainEligible}
 				<div class="border-t border-gray-200 px-4 py-3 dark:border-gray-700">
 					<p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
 						Fitur Baru

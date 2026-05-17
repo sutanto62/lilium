@@ -54,3 +54,23 @@ export async function checkServerGate(locals: App.Locals, gate: string): Promise
 		return false;
 	}
 }
+
+
+/**
+ * Reads the user's `featurePreference` from the DB.
+ * Use alongside `checkServerGate` when access requires both the Statsig gate
+ * AND the user's explicit opt-in (e.g. `featurePreference === 'new_domain'`).
+ *
+ * Returns `null` when there is no session or the DB lookup fails.
+ */
+export async function getFeaturePreference(locals: App.Locals): Promise<string | null> {
+	try {
+		const session = await locals.auth();
+		if (!session?.user?.email) return null;
+		const dbUser = await repo.getUserByEmail(session.user.email);
+		return dbUser?.featurePreference ?? null;
+	} catch (error) {
+		logger.warn('getFeaturePreference: failed, defaulting to null', { error });
+		return null;
+	}
+}

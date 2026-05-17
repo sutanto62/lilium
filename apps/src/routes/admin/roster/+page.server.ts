@@ -4,6 +4,7 @@ import { RosterService } from '$core/service/RosterService';
 import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
+import { checkServerGate, getFeaturePreference } from '$lib/server/featureFlags';
 import { repo } from '$lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { parseIndonesianDate } from '$src/lib/utils/dateUtils';
@@ -33,7 +34,16 @@ function normalise(s: unknown): string {
 }
 
 export const load: PageServerLoad = async (event) => {
-	const { session } = await handlePageLoad(event, 'jadwal_roster_upload');
+	// Gate AND explicit opt-in must both be true
+	const [isRosterGate, featurePreference] = await Promise.all([
+		checkServerGate(event.locals, 'new_roster_flow'),
+		getFeaturePreference(event.locals)
+	]);
+	if (!isRosterGate || featurePreference !== 'new_domain') {
+		throw redirect(302, '/admin');
+	}
+
+	const { session } = await handlePageLoad(event, 'admin_roster');
 
 	if (!session) {
 		throw redirect(302, '/signin');
@@ -41,11 +51,10 @@ export const load: PageServerLoad = async (event) => {
 
 	const churchId = session.user?.cid ?? '';
 	if (!churchId) {
-		logger.error('admin_roster_upload.load: no church ID in session');
+		logger.error('admin_roster.load: no church ID in session');
 		throw error(500, 'Invalid session data');
 	}
 
-	const churchService = new ChurchService(churchId);
 	const eventService = new EventService(churchId);
 
 	// Upcoming events window: today → 60 days ahead (for manual creation dropdown)
@@ -54,27 +63,17 @@ export const load: PageServerLoad = async (event) => {
 	const firstDay = today.toISOString().slice(0, 10);
 	const lastDay = sixtyDaysLater.toISOString().slice(0, 10);
 
-	const [lingkungans, masses, communitiesRaw, upcomingEvents] = await Promise.all([
-		churchService.retrieveLingkungans(),
-		churchService.retrieveMasses(),
+	const [communities, upcomingEvents] = await Promise.all([
 		repo.listCommunitiesForChurch(churchId),
 		eventService.listEventsByDateRange(firstDay, lastDay)
 	]);
 
-	// Fall back to lingkungan list when community table is still empty (D3)
-	const communities = communitiesRaw.length > 0
-		? communitiesRaw
-		: lingkungans.map((l) => ({ id: l.id, name: l.name, wilayahId: l.wilayah ?? '', wilayahName: '', sequence: l.sequence ?? null, parishId: '', active: l.active === 1 }));
-
-	logger.debug('admin_roster_upload.load: loaded reference data', {
-		lingkunganCount: lingkungans.length,
-		massCount: masses.length,
+	logger.debug('admin_roster.load: loaded reference data', {
 		communityCount: communities.length,
-		upcomingEventCount: upcomingEvents.length,
-		communitySource: communitiesRaw.length > 0 ? 'community' : 'lingkungan'
+		upcomingEventCount: upcomingEvents.length
 	});
 
-	return { lingkungans, masses, communities, upcomingEvents };
+	return { communities, upcomingEvents };
 };
 
 export const actions: Actions = {
@@ -196,23 +195,29 @@ export const actions: Actions = {
 		}
 
 		// ── 3. Build lookup maps ───────────────────────────────────────────────────
+		// Gate AND explicit opt-in must both be true
+		const [isRosterGate, featurePreference] = await Promise.all([
+			checkServerGate(event.locals, 'new_roster_flow'),
+			getFeaturePreference(event.locals)
+		]);
+		if (!isRosterGate || featurePreference !== 'new_domain') {
+			return fail(403, { error: 'Fitur ini belum tersedia.' });
+		}
+
 		const churchService = new ChurchService(churchId);
 		const eventService = new EventService(churchId);
 		const rosterService = new RosterService(repo);
 
-		const [lingkungans, masses, communitiesRaw] = await Promise.all([
-			churchService.retrieveLingkungans(),
+		const [masses, communitiesRaw] = await Promise.all([
 			churchService.retrieveMasses(),
 			repo.listCommunitiesForChurch(churchId)
 		]);
 
-		// community name (normalised) → id
-		// Prefer new community table; fall back to lingkungan when community is still empty (D3)
-		const communitySource = communitiesRaw.length > 0 ? 'community' : 'lingkungan';
-		const communityMap = communitiesRaw.length > 0
-			? new Map<string, string>(communitiesRaw.map((c) => [normalise(c.name), c.id]))
-			: new Map<string, string>(lingkungans.map((l) => [normalise(l.name), l.id]));
-		logger.debug('admin_roster_upload: community map source', { communitySource, size: communityMap.size });
+		// community name (normalised) → id  (community table is authoritative when new_domain is active)
+		const communityMap = new Map<string, string>(
+			communitiesRaw.map((c) => [normalise(c.name), c.id])
+		);
+		logger.debug('admin_roster_upload: community map', { size: communityMap.size });
 
 		// mass time string (e.g. "17:00") → mass.id
 		const massMap = new Map<string, string>();

@@ -2,6 +2,7 @@ import { hasRole } from '$src/auth';
 import type { Section, Zone } from '$core/entities/Facility';
 import { checkServerGate } from '$lib/server/featureFlags';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { repo } from '$src/lib/server/db';

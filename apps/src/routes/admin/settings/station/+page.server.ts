@@ -3,6 +3,7 @@ import type { Zone, Station } from '$core/entities/Facility';
 import type { Ministry } from '$core/entities/Ministry';
 import { checkServerGate } from '$lib/server/featureFlags';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { repo } from '$src/lib/server/db';

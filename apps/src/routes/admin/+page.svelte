@@ -1,28 +1,31 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import FeatureCard from '$components/FeatureCard.svelte';
 	import { statsigService } from '$src/lib/application/StatsigService';
 	import { tracker } from '$src/lib/utils/analytics';
 	import { Breadcrumb, BreadcrumbItem, Heading } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	let { data } = $props();
 	const isNewRosterFlow = $derived(data.isNewRosterFlow ?? false);
 
 	$effect(() => {
-		const session = $page.data.session || undefined;
-		const metadata = {
-			is_new_roster_flow: isNewRosterFlow
-		};
+		const session = page.data.session || undefined;
+		// Snapshot reactive value so $effect doesn't re-track isNewRosterFlow
+		const isRosterFlow = untrack(() => isNewRosterFlow);
+		const metadata = { is_new_roster_flow: isRosterFlow };
 
 		Promise.all([
 			statsigService.logEvent('admin_dashboard_view', 'load', session, metadata),
 			tracker.track('admin_dashboard_view', metadata, session, page)
-		]);
+		]).catch((err) => {
+			if (import.meta.env.DEV) console.warn('admin/+page: analytics failed', err);
+		});
 	});
 </script>
 
-<Breadcrumb class="mb-4	">
+<Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem>Admin</BreadcrumbItem>
 </Breadcrumb>

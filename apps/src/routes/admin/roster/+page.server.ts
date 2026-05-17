@@ -2,7 +2,7 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { RosterService } from '$core/service/RosterService';
 import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
-import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';

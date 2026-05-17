@@ -3,6 +3,7 @@ import { checkServerGate } from '$lib/server/featureFlags';
 import { repo } from '$lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { logger } from '$src/lib/utils/logger';
 import { error, redirect } from '@sveltejs/kit';

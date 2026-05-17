@@ -1,5 +1,6 @@
 import { checkServerGate } from '$lib/server/featureFlags';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import type { PageServerLoad } from './$types';
 

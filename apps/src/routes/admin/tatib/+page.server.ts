@@ -4,6 +4,7 @@ import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { UsherService } from '$core/service/UsherService';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { repo } from '$src/lib/server/db';
 import { handlePageLoad } from '$src/lib/server/pageHandler';

@@ -12,6 +12,7 @@ import { ChurchService } from "$core/service/ChurchService";
 import { EventService } from "$core/service/EventService";
 import { hasRole } from "$src/auth";
 import { posthogService } from "$src/lib/application/PostHogService";
+import { trackServerEvent } from "$src/lib/server/posthogNode";
 import { statsigService } from "$src/lib/application/StatsigService";
 import { handlePageLoad } from "$src/lib/server/pageHandler";
 import { logger } from "$src/lib/utils/logger";

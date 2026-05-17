@@ -2,6 +2,7 @@ import { hasRole } from '$src/auth';
 import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { posthogService } from '$src/lib/application/PostHogService';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { checkServerGate } from '$lib/server/featureFlags';
 import { handlePageLoad } from '$src/lib/server/pageHandler';

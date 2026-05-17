@@ -78,144 +78,159 @@ export const load: PageServerLoad = async (event) => {
  * It creates events based on active mass schedules, matching days of the week.
  */
 export const actions = {
-    /**
-     * Bulk create mass events for the next month
-     * 
-     * Process:
-     * 1. Validates authentication and church ID
-     * 2. Retrieves active mass schedules
-     * 3. Checks if events for next month already exist
-     * 4. Loops through each day of next month
-     * 5. Matches day of week with mass schedules
-     * 6. Creates events for matching days
-     * 7. Returns success/error response
-     * 
-     * @param request - SvelteKit request object
-     * @param locals - SvelteKit locals containing auth session
-     * @returns Action result with success/error status and message
-     */
-    default: async ({ request, locals }) => {
-        logger.info('admin_misa_bulk_create: Starting bulk create for next month');
+	/**
+	 * Bulk create mass events for the next month
+	 *
+	 * Process:
+	 * 1. Validates authentication and church ID
+	 * 2. Retrieves active mass schedules
+	 * 3. Checks if events for next month already exist
+	 * 4. Loops through each day of next month
+	 * 5. Matches day of week with mass schedules
+	 * 6. Creates events for matching days
+	 * 7. Returns success/error response
+	 *
+	 * @param request - SvelteKit request object
+	 * @param locals - SvelteKit locals containing auth session
+	 * @returns Action result with success/error status and message
+	 */
+	default: async ({ locals }) => {
+		logger.info('admin_misa_bulk_create: Starting bulk create for next month');
 
-        // Authenticate user
-        const session = await locals.auth();
-        if (!session) {
-            logger.error('admin_misa_bulk_create: No session found');
-            return fail(401, { error: 'Anda harus login untuk membuat jadwal misa' });
-        }
+		// Authenticate user
+		const session = await locals.auth();
+		if (!session) {
+			logger.error('admin_misa_bulk_create: No session found');
+			return fail(401, { error: 'Anda harus login untuk membuat jadwal misa' });
+		}
 
-        // Get church ID from session
-        const churchId = session.user?.cid ?? '';
-        if (!churchId) {
-            logger.error('admin_misa_bulk_create: Church ID not found in session');
-            return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
-        }
+		// Get church ID from session
+		const churchId = session.user?.cid ?? '';
+		if (!churchId) {
+			logger.error('admin_misa_bulk_create: Church ID not found in session');
+			return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
+		}
 
-        // Initialize services
-        const churchService = new ChurchService(churchId);
-        const eventService = new EventService(churchId);
+		// Initialize services
+		const churchService = new ChurchService(churchId);
+		const eventService = new EventService(churchId);
 
-        try {
-            // Get all mass schedules and filter for active ones only
-            const masses = await churchService.retrieveMasses();
-            const activeMasses = masses.filter(mass => mass.active === 1);
+		try {
+			// Get all mass schedules and filter for active ones only
+			const masses = await churchService.retrieveMasses();
+			const activeMasses = masses.filter((mass) => mass.active === 1);
 
-            // Validate that there are active mass schedules to use as templates
-            if (activeMasses.length === 0) {
-                logger.warn('admin_misa_bulk_create: No active masses found');
-                return fail(400, { error: 'Tidak ada jadwal misa aktif. Silakan aktifkan jadwal misa terlebih dahulu.' });
-            }
+			// Validate that there are active mass schedules to use as templates
+			if (activeMasses.length === 0) {
+				logger.warn('admin_misa_bulk_create: No active masses found');
+				return fail(400, {
+					error: 'Tidak ada jadwal misa aktif. Silakan aktifkan jadwal misa terlebih dahulu.'
+				});
+			}
 
-            // Calculate next month's date range
-            // nextMonth: First day of next month (e.g., if today is Jan 15, nextMonth is Feb 1)
-            // lastDayOfNextMonth: Last day of next month (e.g., Feb 28/29)
-            const now = new Date();
-            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-            const lastDayOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+			// Calculate next month's date range
+			// nextMonth: First day of next month (e.g., if today is Jan 15, nextMonth is Feb 1)
+			// lastDayOfNextMonth: Last day of next month (e.g., Feb 28/29)
+			const now = new Date();
+			const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+			const lastDayOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
 
-            // Check if events for next month already exist to prevent duplicates
-            const startDate = nextMonth.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-            const endDate = lastDayOfNextMonth.toISOString().split('T')[0];
-            const existingEvents = await eventService.listEventsByDateRange(startDate, endDate);
+			// Check if events for next month already exist to prevent duplicates
+			const startDate = nextMonth.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+			const endDate = lastDayOfNextMonth.toISOString().split('T')[0];
+			const existingEvents = await eventService.listEventsByDateRange(startDate, endDate);
 
-            if (existingEvents && existingEvents.length > 0) {
-                logger.warn('admin_misa_bulk_create: Events for next month already exist', {
-                    count: existingEvents.length,
-                    startDate,
-                    endDate
-                });
-                return fail(400, {
-                    error: `Jadwal misa untuk bulan depan sudah dibuat (${existingEvents.length} jadwal ditemukan). Silakan hapus jadwal yang ada terlebih dahulu jika ingin membuat ulang.`
-                });
-            }
+			if (existingEvents && existingEvents.length > 0) {
+				logger.warn('admin_misa_bulk_create: Events for next month already exist', {
+					count: existingEvents.length,
+					startDate,
+					endDate
+				});
+				return fail(400, {
+					error: `Jadwal misa untuk bulan depan sudah dibuat (${existingEvents.length} jadwal ditemukan). Silakan hapus jadwal yang ada terlebih dahulu jika ingin membuat ulang.`
+				});
+			}
 
-            // Track creation results
-            let createdCount = 0;
-            const errors: string[] = [];
+			// Track creation results
+			let createdCount = 0;
+			const errors: string[] = [];
 
-            // Loop through each day of next month
-            for (let date = new Date(nextMonth); date <= lastDayOfNextMonth; date.setDate(date.getDate() + 1)) {
-                // Get day of week name in English (e.g., "monday", "sunday")
-                // Note: Adjusting for timezone offset to ensure correct day calculation
-                const dayOfWeek = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
-                    .toLocaleDateString('en-EN', { weekday: 'long' })
-                    .toLowerCase();
+			// Loop through each day of next month
+			for (
+				let date = new Date(nextMonth);
+				date <= lastDayOfNextMonth;
+				date.setDate(date.getDate() + 1)
+			) {
+				// Get day of week name in English (e.g., "monday", "sunday")
+				// Note: Adjusting for timezone offset to ensure correct day calculation
+				const dayOfWeek = new Date(date.getTime() + date.getTimezoneOffset() * 60000)
+					.toLocaleDateString('en-EN', { weekday: 'long' })
+					.toLowerCase();
 
-                // Find mass schedules that are scheduled for this day of the week
-                // Mass schedules have a 'day' field (e.g., "monday", "sunday") that we match against
-                const massesForDay = activeMasses.filter(mass => mass.day === dayOfWeek);
+				// Find mass schedules that are scheduled for this day of the week
+				// Mass schedules have a 'day' field (e.g., "monday", "sunday") that we match against
+				const massesForDay = activeMasses.filter((mass) => mass.day === dayOfWeek);
 
-                // Create events for each mass schedule that matches this day
-                for (const mass of massesForDay) {
-                    try {
-                        const eventDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+				// Create events for each mass schedule that matches this day
+				for (const mass of massesForDay) {
+					try {
+						const eventDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 
-                        // Calculate week number for the event date (used for liturgical week tracking)
-                        const weekNumber = getWeekNumber(eventDate);
+						// Calculate week number for the event date (used for liturgical week tracking)
+						const weekNumber = getWeekNumber(eventDate);
 
-                        // Create the event with mass schedule details
-                        await eventService.createEvent({
-                            church: churchId,
-                            mass: mass.id, // Reference to the mass schedule template
-                            date: eventDate,
-                            weekNumber: weekNumber,
-                            isComplete: 0, // Event starts as incomplete (no ushers assigned yet)
-                            active: 1, // Event is active
-                            type: EventType.MASS,
-                            code: mass.code, // Mass code (e.g., "M1", "M2")
-                            description: mass.name // Mass name/description
-                        });
-                        createdCount++;
-                    } catch (err) {
-                        // Collect individual errors but continue processing other events
-                        const eventDate = date.toISOString().split('T')[0];
-                        const errorMsg = `Gagal membuat jadwal untuk ${eventDate} - ${mass.name}`;
-                        logger.error('admin_misa_bulk_create: Error creating event', { err, eventDate, massId: mass.id });
-                        errors.push(errorMsg);
-                    }
-                }
-            }
+						// Create the event with mass schedule details
+						await eventService.createEvent({
+							church: churchId,
+							mass: mass.id, // Reference to the mass schedule template
+							date: eventDate,
+							weekNumber: weekNumber,
+							isComplete: 0, // Event starts as incomplete (no ushers assigned yet)
+							active: 1, // Event is active
+							type: EventType.MASS,
+							code: mass.code, // Mass code (e.g., "M1", "M2")
+							description: mass.name // Mass name/description
+						});
+						createdCount++;
+					} catch (err) {
+						// Collect individual errors but continue processing other events
+						const eventDate = date.toISOString().split('T')[0];
+						const errorMsg = `Gagal membuat jadwal untuk ${eventDate} - ${mass.name}`;
+						logger.error('admin_misa_bulk_create: Error creating event', {
+							err,
+							eventDate,
+							massId: mass.id
+						});
+						errors.push(errorMsg);
+					}
+				}
+			}
 
-            // Handle partial success (some events created, some failed)
-            if (errors.length > 0) {
-                logger.warn('admin_misa_bulk_create: Some events failed to create', {
-                    createdCount,
-                    errorCount: errors.length
-                });
-                // Return error with partial success message (show first 3 errors)
-                return fail(500, {
-                    error: `Berhasil membuat ${createdCount} jadwal, namun ${errors.length} jadwal gagal dibuat. ${errors.slice(0, 3).join('; ')}`
-                });
-            }
+			// Handle partial success (some events created, some failed)
+			if (errors.length > 0) {
+				logger.warn('admin_misa_bulk_create: Some events failed to create', {
+					createdCount,
+					errorCount: errors.length
+				});
+				// Return error with partial success message (show first 3 errors)
+				return fail(500, {
+					error: `Berhasil membuat ${createdCount} jadwal, namun ${errors.length} jadwal gagal dibuat. ${errors.slice(0, 3).join('; ')}`
+				});
+			}
 
-            // All events created successfully
-            logger.info('admin_misa_bulk_create: Successfully created events', { createdCount });
-            return { success: true, message: `Berhasil membuat ${createdCount} jadwal misa untuk bulan depan.` };
-        } catch (err) {
-            // Handle unexpected errors during bulk creation
-            logger.error('admin_misa_bulk_create: Error creating events', err);
-            return fail(500, { error: 'Gagal membuat jadwal misa. Silakan coba lagi atau hubungi administrator.' });
-        }
-    }
+			// All events created successfully
+			logger.info('admin_misa_bulk_create: Successfully created events', { createdCount });
+			return {
+				success: true,
+				message: `Berhasil membuat ${createdCount} jadwal misa untuk bulan depan.`
+			};
+		} catch (err) {
+			// Handle unexpected errors during bulk creation
+			logger.error('admin_misa_bulk_create: Error creating events', err);
+			return fail(500, {
+				error: 'Gagal membuat jadwal misa. Silakan coba lagi atau hubungi administrator.'
+			});
+		}
+	}
 } satisfies Actions;
 

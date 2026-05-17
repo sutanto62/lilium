@@ -1,15 +1,24 @@
 <script lang="ts">
 	import FeatureCard from '$components/FeatureCard.svelte';
 	import { statsigService } from '$src/lib/application/StatsigService';
+	import { tracker } from '$src/lib/utils/analytics';
 	import { Breadcrumb, BreadcrumbItem, Heading } from 'flowbite-svelte';
 	import { FeatureDefault } from 'flowbite-svelte-blocks';
-	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 
 	let { data } = $props();
 	const isNewRosterFlow = $derived(data.isNewRosterFlow ?? false);
 
-	onMount(async () => {
-		await statsigService.logEvent('admin_view', 'load');
+	$effect(() => {
+		const session = $page.data.session || undefined;
+		const metadata = {
+			is_new_roster_flow: isNewRosterFlow
+		};
+
+		Promise.all([
+			statsigService.logEvent('admin_dashboard_view', 'load', session, metadata),
+			tracker.track('admin_dashboard_view', metadata, session, page)
+		]);
 	});
 </script>
 

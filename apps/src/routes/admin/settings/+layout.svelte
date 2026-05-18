@@ -11,7 +11,9 @@
 	];
 
 	const NEW_MENU_ITEMS = [
+		{ label: 'Paroki', href: '/admin/settings/parish' },
 		{ label: 'Perayaan', href: '/admin/settings/celebration' },
+		{ label: 'Wilayah & Lingkungan', href: '/admin/settings/lingkungan' },
 		{ label: 'Seksi', href: '/admin/settings/section' },
 		{ label: 'Zona', href: '/admin/settings/zone' },
 		{ label: 'Pos', href: '/admin/settings/station' }

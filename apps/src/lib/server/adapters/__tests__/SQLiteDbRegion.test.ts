@@ -4,6 +4,11 @@ import { createTestDb, seedParishAndChurch, type TestDb } from './testDb';
 import {
 	findCommunityById,
 	findParishHierarchy,
+	findParishById,
+	updateParish,
+	createWilayah,
+	updateWilayah,
+	deactivateWilayah,
 	listCommunities,
 	listCommunitiesByWilayah,
 	listWilayahsByParish
@@ -132,6 +137,104 @@ describe('SQLiteDbRegion — new ParishRepository methods — integration', () =
 		it('returns null for nonexistent community', async () => {
 			const result = await findCommunityById(db, 'nonexistent');
 			expect(result).toBeNull();
+		});
+	});
+
+	describe('findParishById', () => {
+		it('returns the parish when found', async () => {
+			const result = await findParishById(db, parishId);
+			expect(result).not.toBeNull();
+			expect(result!.id).toBe(parishId);
+			expect(result!.name).toBe('Test Parish');
+			expect(result!.code).toBe('TEST');
+			expect(result!.active).toBe(true);
+		});
+
+		it('returns null for nonexistent parish', async () => {
+			const result = await findParishById(db, 'ghost-parish');
+			expect(result).toBeNull();
+		});
+	});
+
+	describe('updateParish', () => {
+		it('updates name and code, returns true', async () => {
+			const ok = await updateParish(db, parishId, { name: 'Renamed Parish', code: 'REN' });
+			expect(ok).toBe(true);
+
+			const after = await findParishById(db, parishId);
+			expect(after!.name).toBe('Renamed Parish');
+			expect(after!.code).toBe('REN');
+		});
+
+		it('returns false for nonexistent parish', async () => {
+			const ok = await updateParish(db, 'ghost', { name: 'X' });
+			expect(ok).toBe(false);
+		});
+	});
+
+	describe('createWilayah', () => {
+		it('creates a wilayah and returns it with all fields', async () => {
+			const result = await createWilayah(db, {
+				name: 'Wilayah C',
+				code: 'WC',
+				sequence: 3,
+				parishId,
+				active: 1
+			});
+
+			expect(result.id).toBeDefined();
+			expect(result.name).toBe('Wilayah C');
+			expect(result.code).toBe('WC');
+			expect(result.sequence).toBe(3);
+			expect(result.parishId).toBe(parishId);
+			expect(result.active).toBe(true);
+		});
+
+		it('creates a wilayah with null code and null sequence (defaults sequence to 0)', async () => {
+			const result = await createWilayah(db, {
+				name: 'Wilayah D',
+				code: null,
+				sequence: null,
+				parishId,
+				active: 1
+			});
+
+			expect(result.code).toBeNull();
+			expect(result.sequence).toBe(0);
+		});
+	});
+
+	describe('updateWilayah', () => {
+		it('updates mutable fields and returns true', async () => {
+			const ok = await updateWilayah(db, 'wil-1', { name: 'Wilayah Updated', code: 'WU', sequence: 10 });
+			expect(ok).toBe(true);
+
+			const list = await listWilayahsByParish(db, parishId);
+			const updated = list.find((w) => w.id === 'wil-1');
+			expect(updated!.name).toBe('Wilayah Updated');
+			expect(updated!.code).toBe('WU');
+			expect(updated!.sequence).toBe(10);
+		});
+
+		it('returns false for nonexistent wilayah', async () => {
+			const ok = await updateWilayah(db, 'ghost-wil', { name: 'X' });
+			expect(ok).toBe(false);
+		});
+	});
+
+	describe('deactivateWilayah', () => {
+		it('sets active to 0 and returns true', async () => {
+			const ok = await deactivateWilayah(db, 'wil-1');
+			expect(ok).toBe(true);
+
+			const list = await listWilayahsByParish(db, parishId);
+			const ids = list.map((w) => w.id);
+			expect(ids).not.toContain('wil-1');
+		});
+
+		it('returns false for nonexistent wilayah', async () => {
+			const ok = await deactivateWilayah(db, 'ghost-wil');
+			expect(ok).toBe(false);
 		});
 	});
 

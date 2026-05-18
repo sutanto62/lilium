@@ -98,14 +98,25 @@
 
 ### Phase 6.5 — Community (Lingkungan) Settings Page
 
-- [ ] **L1** Add `CreateCommunityInput` type + `createCommunity`, `updateCommunity`, `deactivateCommunity` signatures to `src/core/repositories/ParishRepository.ts`
-- [ ] **L2** Implement `getParishIdByChurch`, `createCommunity`, `updateCommunity`, `deactivateCommunity` in `src/lib/server/adapters/SQLiteDbRegion.ts`
-- [ ] **L3** Delegate four new methods in `src/lib/server/adapters/SQLiteAdapter.ts` + import from `SQLiteDbRegion`
-- [ ] **L4** Add `{ label: 'Lingkungan', href: '/admin/settings/lingkungan' }` to `NEW_MENU_ITEMS` in `src/routes/admin/settings/+layout.svelte`
-- [ ] **L5** Create `src/routes/admin/settings/lingkungan/+page.server.ts` — gate guard + load + create/update/delete actions
-- [ ] **L6** Create `src/routes/admin/settings/lingkungan/+page.svelte` — table (wilayah | nama | urutan | aksi) + create/edit modal + delete modal
+- [x] **L1** Add `CreateCommunityInput` type + `createCommunity`, `updateCommunity`, `deactivateCommunity` signatures to `src/core/repositories/ParishRepository.ts`
+- [x] **L2** Implement `getParishIdByChurch`, `createCommunity`, `updateCommunity`, `deactivateCommunity` in `src/lib/server/adapters/SQLiteDbRegion.ts`
+- [x] **L3** Delegate four new methods in `src/lib/server/adapters/SQLiteAdapter.ts` + import from `SQLiteDbRegion`
+- [x] **L4** Add `{ label: 'Wilayah & Lingkungan', href: '/admin/settings/lingkungan' }` to `NEW_MENU_ITEMS` in `src/routes/admin/settings/+layout.svelte`
+- [x] **L5** Create `src/routes/admin/settings/lingkungan/+page.server.ts` — gate guard + load + create/update/delete actions
+- [x] **L6** Create `src/routes/admin/settings/lingkungan/+page.svelte` — table (wilayah | nama | urutan | aksi) + create/edit modal + delete modal
 
 **⏸ CHECKPOINT 6.x** — `npm run check` passes; gate-on shows page; gate-off redirects to `/admin/settings`
+
+### Phase 6.6 — Parish & Wilayah Settings Page
+
+- [x] **P1** Add `CreateWilayahInput` type + `findParishById`, `updateParish`, `createWilayah`, `updateWilayah`, `deactivateWilayah` signatures to `src/core/repositories/ParishRepository.ts`
+- [x] **P2** Implement `findParishById`, `updateParish`, `createWilayah`, `updateWilayah`, `deactivateWilayah` in `src/lib/server/adapters/SQLiteDbRegion.ts`
+- [x] **P3** Delegate five new methods in `src/lib/server/adapters/SQLiteAdapter.ts`
+- [x] **P4** Add `{ label: 'Paroki', href: '/admin/settings/parish' }` as first item in `NEW_MENU_ITEMS` in `src/routes/admin/settings/+layout.svelte`
+- [x] **P5** Create `src/routes/admin/settings/parish/+page.server.ts` — gate guard + load + updateParish / createWilayah / updateWilayah / deleteWilayah actions
+- [x] **P6** Create `src/routes/admin/settings/parish/+page.svelte` — parish edit card (nama + kode) + wilayah table (nama | kode | urutan | aksi) + create/edit modal + delete confirmation modal
+
+**⏸ CHECKPOINT 6.6** — `npm run check` passes; gate-on shows parish edit card + wilayah table; gate-off redirects to `/admin/settings`; no regressions on lingkungan/section/zone/station
 
 ---
 

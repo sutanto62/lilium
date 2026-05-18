@@ -1,9 +1,12 @@
 import type { Lingkungan, Wilayah as LegacyWilayah } from '$core/entities/Schedule';
 import type { Community, CommunityWithAncestry, ParishHierarchy, Wilayah } from '$core/entities/Parish';
+import type { CreateCommunityInput } from '$core/repositories/ParishRepository';
 import type { Church } from '$core/entities/Facility';
+import { ServiceError } from '$core/errors/ServiceError';
 import { community, church, lingkungan, parish, wilayah } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function listWilayahByChurch(db: ReturnType<typeof drizzle>, churchId: string) {
 	const result = await db
@@ -301,4 +304,169 @@ export async function findParishHierarchy(
 		communitiesByWilayah,
 		churches
 	};
+}
+
+// ─── Community CRUD ─────────────────────────────────────────────────────────────
+
+/** Resolve parishId from a churchId. Throws ServiceError.notFound if church has no linked parish. */
+export async function getParishIdByChurch(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<string> {
+	const [row] = await db
+		.select({ parishId: church.parishId })
+		.from(church)
+		.where(eq(church.id, churchId))
+		.limit(1);
+	if (!row?.parishId) {
+		throw ServiceError.notFound('Church has no associated parish', { churchId });
+	}
+	return row.parishId;
+}
+
+/** Create a new community row. Returns the persisted Community with wilayahName from a JOIN. */
+export async function createCommunity(
+	db: ReturnType<typeof drizzle>,
+	input: CreateCommunityInput
+): Promise<Community> {
+	const [wilayahRow] = await db
+		.select({ name: wilayah.name })
+		.from(wilayah)
+		.where(eq(wilayah.id, input.wilayahId))
+		.limit(1);
+	if (!wilayahRow) {
+		throw ServiceError.notFound('Wilayah not found', { wilayahId: input.wilayahId });
+	}
+
+	const id = uuidv4();
+	await db.insert(community).values({
+		id,
+		name: input.name,
+		wilayahId: input.wilayahId,
+		parishId: input.parishId,
+		sequence: input.sequence ?? null,
+		active: input.active
+	});
+
+	return {
+		id,
+		name: input.name,
+		wilayahId: input.wilayahId,
+		wilayahName: wilayahRow.name,
+		sequence: input.sequence,
+		parishId: input.parishId,
+		active: input.active === 1
+	};
+}
+
+/** Update mutable fields on an existing community. Returns false if no row was matched. */
+export async function updateCommunity(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<Pick<Community, 'name' | 'wilayahId' | 'sequence'>>
+): Promise<boolean> {
+	const result = await db
+		.update(community)
+		.set({ ...patch })
+		.where(eq(community.id, id))
+		.returning({ id: community.id });
+	return result.length > 0;
+}
+
+/** Soft-delete a community (sets active = 0). Returns false if no row was matched. */
+export async function deactivateCommunity(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<boolean> {
+	const result = await db
+		.update(community)
+		.set({ active: 0 })
+		.where(eq(community.id, id))
+		.returning({ id: community.id });
+	return result.length > 0;
+}
+
+// ─── Parish CRUD ─────────────────────────────────────────────────────────────
+
+/** Find a parish by id. Returns null if not found. */
+export async function findParishById(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<import('$core/entities/Parish').Parish | null> {
+	const [row] = await db.select().from(parish).where(eq(parish.id, id)).limit(1);
+	if (!row) return null;
+	return { id: row.id, name: row.name, code: row.code, active: row.active === 1 };
+}
+
+/** Update mutable fields on the parish record. Returns false if no row was matched. */
+export async function updateParish(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<Pick<import('$core/entities/Parish').Parish, 'name' | 'code'>>
+): Promise<boolean> {
+	const result = await db
+		.update(parish)
+		.set(patch)
+		.where(eq(parish.id, id))
+		.returning({ id: parish.id });
+	return result.length > 0;
+}
+
+// ─── Wilayah CRUD ─────────────────────────────────────────────────────────────
+
+/** Create a new wilayah. Returns the persisted Wilayah. */
+export async function createWilayah(
+	db: ReturnType<typeof drizzle>,
+	input: import('$core/repositories/ParishRepository').CreateWilayahInput
+): Promise<import('$core/entities/Parish').Wilayah> {
+	const id = uuidv4();
+	const seq = input.sequence ?? 0;
+	await db.insert(wilayah).values({
+		id,
+		name: input.name,
+		code: input.code ?? null,
+		sequence: seq,
+		parishId: input.parishId,
+		active: input.active
+	});
+	return {
+		id,
+		name: input.name,
+		code: input.code ?? null,
+		sequence: seq,
+		parishId: input.parishId,
+		active: input.active === 1
+	};
+}
+
+/** Update mutable fields on an existing wilayah. Returns false if no row was matched. */
+export async function updateWilayah(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: { name?: string; code?: string | null; sequence?: number | null }
+): Promise<boolean> {
+	const setValues: Record<string, unknown> = {};
+	if (patch.name !== undefined) setValues.name = patch.name;
+	if ('code' in patch) setValues.code = patch.code;
+	if (patch.sequence !== undefined) setValues.sequence = patch.sequence ?? 0;
+
+	const result = await db
+		.update(wilayah)
+		.set(setValues)
+		.where(eq(wilayah.id, id))
+		.returning({ id: wilayah.id });
+	return result.length > 0;
+}
+
+/** Soft-delete a wilayah (sets active = 0). Returns false if no row was matched. */
+export async function deactivateWilayah(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<boolean> {
+	const result = await db
+		.update(wilayah)
+		.set({ active: 0 })
+		.where(eq(wilayah.id, id))
+		.returning({ id: wilayah.id });
+	return result.length > 0;
 }

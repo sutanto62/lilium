@@ -69,7 +69,16 @@ import {
 	findCommunityById,
 	listWilayahsByParish,
 	listCommunitiesByWilayah,
-	listCommunitiesForChurch
+	listCommunitiesForChurch,
+	getParishIdByChurch,
+	createCommunity,
+	updateCommunity,
+	deactivateCommunity,
+	findParishById,
+	updateParish,
+	createWilayah,
+	updateWilayah,
+	deactivateWilayah
 } from './SQLiteDbRegion';
 import {
 	listSectionsByChurch,
@@ -225,6 +234,18 @@ export class SQLiteAdapter
 	listWilayahsByParish = (parishId: string) => listWilayahsByParish(this.db, parishId);
 	listCommunitiesByWilayah = (wilayahId: string) => listCommunitiesByWilayah(this.db, wilayahId);
 	listCommunitiesForChurch = (churchId: string) => listCommunitiesForChurch(this.db, churchId);
+	getParishIdByChurch = (churchId: string) => getParishIdByChurch(this.db, churchId);
+	createCommunity = (input: Parameters<typeof createCommunity>[1]) => createCommunity(this.db, input);
+	updateCommunity = (id: string, patch: Parameters<typeof updateCommunity>[2]) =>
+		updateCommunity(this.db, id, patch);
+	deactivateCommunity = (id: string) => deactivateCommunity(this.db, id);
+	findParishById = (id: string) => findParishById(this.db, id);
+	updateParish = (id: string, patch: Parameters<typeof updateParish>[2]) =>
+		updateParish(this.db, id, patch);
+	createWilayah = (input: Parameters<typeof createWilayah>[1]) => createWilayah(this.db, input);
+	updateWilayah = (id: string, patch: Parameters<typeof updateWilayah>[2]) =>
+		updateWilayah(this.db, id, patch);
+	deactivateWilayah = (id: string) => deactivateWilayah(this.db, id);
 
 	// ── FacilityRepository ──────────────────────────────────────────────────────
 	findChurchFacility = (churchId: string) => findChurchFacility(this.db, churchId);

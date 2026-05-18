@@ -543,6 +543,144 @@ UI spec:
 
 ---
 
+### Task 6.6 — Parish & Wilayah settings page
+
+Route: `admin/settings/parish/`
+
+**Context:** The `parish` table has exactly one row (D1: single-parish decision, seeded at migration time). This page exposes two concerns:
+1. **Parish info** — view and edit the single parish record (`name`, `code`). Create and delete are intentionally out of scope.
+2. **Wilayah CRUD** — full create / read / update / soft-delete for wilayahs belonging to the parish. This is the primary management surface of the page; there is currently no dedicated Wilayah management page in the new UX.
+
+**Gate:** `new_settings_pages`. Gate-off redirect: `/admin/settings` (no legacy equivalent).
+
+**`parishId` resolution:** `session.user?.cid` → `getParishIdByChurch(churchId)` — same pattern as `lingkungan/`.
+
+**Dependency graph (all within this task):**
+
+```
+P1: ParishRepository — add findParishById, updateParish, CreateWilayahInput, createWilayah, updateWilayah, deactivateWilayah signatures
+    └─ P2: SQLiteDbRegion — implement the five new methods
+        └─ P3: SQLiteAdapter — delegate five new methods
+            └─ P5: +page.server.ts — load + 4 actions (updateParish, createWilayah, updateWilayah, deleteWilayah)
+                └─ P6: +page.svelte — parish edit card + wilayah table + modals
+P4: +layout.svelte — add "Paroki" to NEW_MENU_ITEMS (independent)
+```
+
+**Slice P1 — Repository interface**
+
+File: `src/core/repositories/ParishRepository.ts`
+
+Add:
+```typescript
+type CreateWilayahInput = {
+  name: string;
+  code: string | null;
+  sequence: number | null;
+  parishId: string;
+  active: number;
+};
+
+findParishById(id: string): Promise<Parish | null>;
+updateParish(id: string, patch: Partial<Pick<Parish, 'name' | 'code'>>): Promise<boolean>;
+createWilayah(input: CreateWilayahInput): Promise<Wilayah>;
+updateWilayah(id: string, patch: Partial<Pick<Wilayah, 'name' | 'code' | 'sequence'>>): Promise<boolean>;
+deactivateWilayah(id: string): Promise<boolean>;
+```
+
+**Acceptance criteria:**
+- [ ] File compiles with no Drizzle imports
+- [ ] `Parish` and `Wilayah` return types match `$core/entities/Parish.ts`
+
+**Slice P2 — Adapter implementation**
+
+File: `src/lib/server/adapters/SQLiteDbRegion.ts`
+
+Add at end of file:
+- `findParishById(db, id)` — `SELECT` from `parish` WHERE `id = ?`; returns `Parish | null`
+- `updateParish(db, id, patch)` — `UPDATE parish SET ... RETURNING`; returns `boolean`
+- `createWilayah(db, input)` — `INSERT` with `uuidv4()` id; returns `Wilayah`
+- `updateWilayah(db, id, patch)` — `UPDATE wilayah SET ... RETURNING`; returns `boolean`
+- `deactivateWilayah(db, id)` — `UPDATE SET active=0 RETURNING`; returns `boolean`
+
+**Acceptance criteria:**
+- [ ] `findParishById` returns `null` (not throws) when id is not found
+- [ ] `deactivateWilayah` does not hard-delete
+
+**Slice P3 — Adapter facade**
+
+File: `src/lib/server/adapters/SQLiteAdapter.ts`
+
+Import and delegate: `findParishById`, `updateParish`, `createWilayah`, `updateWilayah`, `deactivateWilayah`.
+
+**Slice P4 — Nav item (independent)**
+
+File: `src/routes/admin/settings/+layout.svelte`
+
+Add `{ label: 'Paroki', href: '/admin/settings/parish' }` as the first item in `NEW_MENU_ITEMS` (parish is the root territorial entity).
+
+**Slice P5 — Server load + actions**
+
+File: `src/routes/admin/settings/parish/+page.server.ts`
+
+```
+load():
+  checkServerGate('new_settings_pages') → redirect /admin/settings if false
+  handlePageLoad → redirect /signin if no session
+  hasRole('admin') → redirect / if false
+  session.user?.cid → error 500 if missing
+  parishId = await repo.getParishIdByChurch(churchId)
+  [parish, wilayahs] = await Promise.all([
+    repo.findParishById(parishId),
+    repo.listWilayahsByParish(parishId)
+  ])
+  analytics (statsig + posthog)
+  return { parish, wilayahs, parishId }
+
+actions: updateParish / createWilayah / updateWilayah / deleteWilayah
+  updateParish: name (required), code (required)
+    → repo.updateParish(parishId, { name, code })
+  createWilayah: name (required), code (optional), sequence (optional)
+    → repo.createWilayah({ name, code, sequence, parishId, active: 1 })
+  updateWilayah: wilayahId (required), name (required), code (optional), sequence (optional)
+    → repo.updateWilayah(wilayahId, { name, code, sequence })
+  deleteWilayah: wilayahId (required)
+    → repo.deactivateWilayah(wilayahId)
+```
+
+**Acceptance criteria:**
+- [ ] Gate-off → redirect `/admin/settings`
+- [ ] Gate-on, no session → redirect `/signin`
+- [ ] Gate-on, non-admin → redirect `/`
+- [ ] Load returns both `parish` and `wilayahs`
+- [ ] `updateParish` fails with 400 if `name` or `code` missing
+- [ ] `createWilayah` fails with 400 if `name` missing
+- [ ] `deleteWilayah` is soft-delete only
+- [ ] Analytics fired on load + each mutation
+
+**Slice P6 — Svelte page**
+
+File: `src/routes/admin/settings/parish/+page.svelte`
+
+UI spec:
+- Breadcrumb: Beranda → Admin → Pengaturan → Paroki
+- Section 1: "Informasi Paroki" card — Nama (required text) + Kode (required text) + Simpan button
+- Section 2: "Wilayah" heading + "Tambah Wilayah" button (top-right)
+- Empty state: descriptive text when `wilayahs.length === 0`
+- Table columns: Nama | Kode | Urutan | Aksi (⋮ dropdown: Edit / Hapus)
+- Create/Edit modal: Nama (required text), Kode (optional text), Urutan (optional number)
+- Delete confirmation modal: shows wilayah name, warns that communities in this wilayah may be affected
+
+**Acceptance criteria:**
+- [ ] Parish info form pre-populated from `data.parish`
+- [ ] Wilayah table rows show `code` (or "—" when null) and `sequence`
+- [ ] `isSubmitting` disables all form controls during submit
+- [ ] Success clears modal and refreshes data; error shows `<Alert color="red">`
+- [ ] `use:enhance` with `await invalidateAll()` on all forms
+
+**CHECKPOINT 6.6:** `npm run check` passes. Gate-on shows parish edit card + wilayah table. Creating/editing/deleting a wilayah persists correctly. Gate-off redirects to `/admin/settings`. No regressions on `lingkungan/`, `section/`, `zone/`, `station/`.
+
+---
+
 ## Phase 7 — Feature-Flagged Core Pages
 
 **Goal:** New roster flow for the `tatib` and `zone` admin pages.

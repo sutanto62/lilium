@@ -1,12 +1,19 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { Alert, Badge, Breadcrumb, BreadcrumbItem, Button, Dropdown, DropdownItem, Input, Label, Modal, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
+	import { Alert, Badge, Breadcrumb, BreadcrumbItem, Button, Checkbox, Dropdown, DropdownItem, Input, Label, Modal, Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from 'flowbite-svelte';
 	import { DotsVerticalOutline, PlusOutline } from 'flowbite-svelte-icons';
 	import type { PageData, ActionData } from './$types';
 	import type { Wilayah } from '$core/entities/Parish';
 
 	const { data, form } = $props<{ data: PageData; form: ActionData }>();
+
+	// ── Church edit state ─────────────────────────────────────────────────────
+	let isEditingChurch = $state(false);
+	let churchName = $state('');
+	let churchCode = $state('');
+	let churchRequiresSpecialCollection = $state(false);
+	let isSubmittingChurch = $state(false);
 
 	// ── Parish edit state ─────────────────────────────────────────────────────
 	let isEditingParish = $state(false);
@@ -49,6 +56,13 @@
 		createCode = '';
 		createSequence = '';
 	}
+
+	// Sync church fields from data (on load and after invalidateAll)
+	$effect(() => {
+		churchName = data.church?.name ?? '';
+		churchCode = data.church?.code ?? '';
+		churchRequiresSpecialCollection = (data.church?.requiresSpecialCollection ?? 0) === 1;
+	});
 
 	// Sync parish fields from data (on load and after invalidateAll)
 	$effect(() => {
@@ -121,6 +135,87 @@
 							<Badge color="blue">{data.parish.code}</Badge>
 						{:else}
 							<span class="text-sm text-gray-400">—</span>
+						{/if}
+					</dd>
+				</div>
+			</dl>
+		{/if}
+	</div>
+
+	<!-- ── Church Info Card ─────────────────────────────────────────────── -->
+	<div class="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Informasi Gereja</h2>
+			{#if !isEditingChurch}
+				<Button size="sm" color="alternative" onclick={() => (isEditingChurch = true)}>Ubah</Button>
+			{/if}
+		</div>
+
+		{#if form?.error && isEditingChurch}
+			<Alert color="red" class="mb-4">{form.error}</Alert>
+		{/if}
+
+		{#if isEditingChurch}
+			<form
+				method="POST"
+				action="?/updateChurch"
+				use:enhance={() => {
+					isSubmittingChurch = true;
+					return async ({ update }) => {
+						await update();
+						await invalidateAll();
+						isSubmittingChurch = false;
+						if (!form?.error) isEditingChurch = false;
+					};
+				}}
+			>
+				<div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<div>
+						<Label for="church-name" class="mb-1">Nama Gereja <span class="text-red-500">*</span></Label>
+						<Input id="church-name" name="name" bind:value={churchName} required disabled={isSubmittingChurch} />
+					</div>
+					<div>
+						<Label for="church-code" class="mb-1">Kode Gereja <span class="text-red-500">*</span></Label>
+						<Input id="church-code" name="code" bind:value={churchCode} required disabled={isSubmittingChurch} />
+					</div>
+				</div>
+				<div class="mb-4">
+					<Checkbox
+						id="church-requires-special-collection"
+						name="requiresSpecialCollection"
+						value="true"
+						bind:checked={churchRequiresSpecialCollection}
+						disabled={isSubmittingChurch}
+					>Kolekte Khusus (PPG/PPKG)</Checkbox>
+				</div>
+				<div class="flex gap-2">
+					<Button type="submit" disabled={isSubmittingChurch}>Simpan</Button>
+					<Button color="alternative" type="button" onclick={() => (isEditingChurch = false)} disabled={isSubmittingChurch}>Batal</Button>
+				</div>
+			</form>
+		{:else}
+			<dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				<div>
+					<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Nama Gereja</dt>
+					<dd class="mt-1 text-sm text-gray-900 dark:text-white">{data.church?.name ?? '—'}</dd>
+				</div>
+				<div>
+					<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Kode Gereja</dt>
+					<dd class="mt-1">
+						{#if data.church?.code}
+							<Badge color="blue">{data.church.code}</Badge>
+						{:else}
+							<span class="text-sm text-gray-400">—</span>
+						{/if}
+					</dd>
+				</div>
+				<div>
+					<dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Kolekte Khusus (PPG/PPKG)</dt>
+					<dd class="mt-1">
+						{#if (data.church?.requiresSpecialCollection ?? 0) === 1}
+							<Badge color="green">Aktif</Badge>
+						{:else}
+							<Badge color="gray">Tidak Aktif</Badge>
 						{/if}
 					</dd>
 				</div>

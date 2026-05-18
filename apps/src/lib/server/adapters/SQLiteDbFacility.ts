@@ -990,3 +990,44 @@ export async function deactivateStation(
 	return result.length > 0;
 }
 
+// ─── Church (Facility.Church) read/update ─────────────────────────────────────
+
+/** Find a church by id, returning the Facility.Church domain shape. */
+export async function findFacilityChurchById(
+	db: ReturnType<typeof drizzle>,
+	id: string
+): Promise<import('$core/entities/Facility').Church | null> {
+	const [row] = await db.select().from(church).where(eq(church.id, id)).limit(1);
+	if (!row) return null;
+	return {
+		id: row.id,
+		name: row.name,
+		code: row.code,
+		parishId: row.parishId ?? '',
+		requiresSpecialCollection: row.requirePpg ?? 0,
+		active: row.active
+	};
+}
+
+/** Update mutable fields on a church. Maps requiresSpecialCollection → requirePpg DB column. */
+export async function updateFacilityChurch(
+	db: ReturnType<typeof drizzle>,
+	id: string,
+	patch: Partial<
+		Pick<import('$core/entities/Facility').Church, 'name' | 'code' | 'requiresSpecialCollection'>
+	>
+): Promise<boolean> {
+	const setValues: Record<string, unknown> = {};
+	if (patch.name !== undefined) setValues.name = patch.name;
+	if (patch.code !== undefined) setValues.code = patch.code;
+	if (patch.requiresSpecialCollection !== undefined)
+		setValues.requirePpg = patch.requiresSpecialCollection;
+	if (Object.keys(setValues).length === 0) return false;
+	const result = await db
+		.update(church)
+		.set(setValues)
+		.where(eq(church.id, id))
+		.returning({ id: church.id });
+	return result.length > 0;
+}
+

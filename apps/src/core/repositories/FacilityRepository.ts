@@ -40,4 +40,11 @@ export interface FacilityRepository {
 	createStation(input: Omit<Station, 'id'>): Promise<Station>;
 	updateStation(id: string, patch: Partial<Pick<Station, 'name' | 'code' | 'description' | 'sequence' | 'zoneId' | 'ministryId' | 'defaultRoleId'>>): Promise<boolean>;
 	deactivateStation(id: string): Promise<boolean>;
+
+	// ── Church read/update ────────────────────────────────────────────────────
+	findFacilityChurchById(id: string): Promise<import('$core/entities/Facility').Church | null>;
+	updateFacilityChurch(
+		id: string,
+		patch: Partial<Pick<import('$core/entities/Facility').Church, 'name' | 'code' | 'requiresSpecialCollection'>>
+	): Promise<boolean>;
 }

@@ -118,6 +118,18 @@
 
 **⏸ CHECKPOINT 6.6** — `npm run check` passes; gate-on shows parish edit card + wilayah table; gate-off redirects to `/admin/settings`; no regressions on lingkungan/section/zone/station
 
+### Phase 6.7 — Church Entity Integration (admin/settings/parish)
+
+- [x] **C1** Create `apps/drizzle/0004_backfill_church_parish_id.sql` + add journal entry — backfill `church.parish_id = 'parish-1'` for all rows with `parish_id IS NULL`
+- [x] **C2** Add `findFacilityChurchById` + `updateFacilityChurch` signatures to `src/core/repositories/FacilityRepository.ts`
+- [x] **C3** Implement `findFacilityChurchById` + `updateFacilityChurch` in `src/lib/server/adapters/SQLiteDbFacility.ts`
+- [x] **C4** Delegate both methods in `src/lib/server/adapters/SQLiteAdapter.ts`
+- [x] **C5** Update `admin/settings/parish/+page.server.ts` — extend load to return `church: FacilityChurch | null`; add `updateChurch` action with analytics
+- [x] **C6** Update `admin/settings/parish/+page.svelte` — Church Info Card (Nama/Kode/Kolekte Khusus) above Parish card; in-place edit form
+- [ ] **C7** Add `admin_church_update` event to `doc/events-inventory.md`
+
+**⏸ CHECKPOINT 6.7** — `npm run db:migrate` clean; `npm run check` passes; Church card shows above Parish card; `?/updateChurch` persists; no regressions
+
 ---
 
 ## Phase 7 — Feature-Flagged Core Pages

@@ -94,7 +94,9 @@ import {
 	deactivateNewZone,
 	createStation,
 	updateStation,
-	deactivateStation
+	deactivateStation,
+	findFacilityChurchById,
+	updateFacilityChurch
 } from './SQLiteDbFacility';
 import {
 	listMinistries,
@@ -269,6 +271,11 @@ export class SQLiteAdapter
 	updateStation = (id: string, patch: Partial<Pick<import('$core/entities/Facility').Station, 'name' | 'code' | 'description' | 'sequence' | 'zoneId' | 'ministryId' | 'defaultRoleId'>>) =>
 		updateStation(this.db, id, patch);
 	deactivateStation = (id: string) => deactivateStation(this.db, id);
+	findFacilityChurchById = (id: string) => findFacilityChurchById(this.db, id);
+	updateFacilityChurch = (
+		id: string,
+		patch: Partial<Pick<import('$core/entities/Facility').Church, 'name' | 'code' | 'requiresSpecialCollection'>>
+	) => updateFacilityChurch(this.db, id, patch);
 
 	// ── MinistryRepository ──────────────────────────────────────────────────────
 	listMinistries = () => listMinistries(this.db);

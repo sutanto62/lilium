@@ -1,0 +1,160 @@
+import { hasRole } from '$src/auth';
+import type { Community, Wilayah } from '$core/entities/Parish';
+import { checkServerGate } from '$lib/server/featureFlags';
+import { trackServerEvent } from '$src/lib/server/posthogNode';
+import { statsigService } from '$src/lib/application/StatsigService';
+import { handlePageLoad } from '$src/lib/server/pageHandler';
+import { repo } from '$src/lib/server/db';
+import { logger } from '$src/lib/utils/logger';
+import { ServiceError } from '$core/errors/ServiceError';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async (event) => {
+	const startTime = Date.now();
+
+	const isNewUX = await checkServerGate(event.locals, 'new_settings_pages');
+	if (!isNewUX) {
+		throw redirect(302, '/admin/settings');
+	}
+
+	const { session } = await handlePageLoad(event, 'lingkungan');
+	if (!session) {
+		logger.warn('admin_lingkungan.load: No session found');
+		throw redirect(302, '/signin');
+	}
+
+	if (!hasRole(session, 'admin')) {
+		logger.warn('admin_lingkungan.load: User does not have admin role');
+		throw redirect(302, '/');
+	}
+
+	const churchId = session.user?.cid;
+	if (!churchId) {
+		logger.error('admin_lingkungan.load: Church ID not found in session');
+		throw error(500, 'Invalid session data');
+	}
+
+	let wilayahs: Wilayah[] = [];
+	let communities: Community[] = [];
+
+	try {
+		[wilayahs, communities] = await Promise.all([
+			repo.listWilayahByChurch(churchId),
+			repo.listCommunitiesForChurch(churchId)
+		]);
+	} catch (err) {
+		logger.error('admin_lingkungan.load: Error fetching data', { err, churchId });
+		throw error(500, 'Failed to fetch community data');
+	}
+
+	const metadata = {
+		total_wilayahs: wilayahs.length,
+		total_communities: communities.length,
+		load_time_ms: Date.now() - startTime
+	};
+
+	await Promise.all([
+		statsigService.logEvent('admin_lingkungan_view', 'load', session || undefined, metadata),
+		trackServerEvent('admin_lingkungan_view', { event_type: 'page_load', ...metadata }, session || undefined)
+	]);
+
+	return { wilayahs, communities, churchId };
+};
+
+export const actions = {
+	create: async ({ request, locals }) => {
+		const session = await locals.auth();
+		if (!session) return fail(401, { error: 'Anda harus login' });
+		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
+
+		const churchId = session.user?.cid;
+		if (!churchId) return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
+
+		const formData = await request.formData();
+		const name = (formData.get('name') as string)?.trim();
+		const wilayahId = (formData.get('wilayahId') as string)?.trim();
+		const sequence = formData.get('sequence') ? Number(formData.get('sequence')) : null;
+
+		if (!name) return fail(400, { error: 'Nama lingkungan wajib diisi' });
+		if (!wilayahId) return fail(400, { error: 'Wilayah wajib dipilih' });
+
+		try {
+			const parishId = await repo.getParishIdByChurch(churchId);
+			await repo.createCommunity({ name, wilayahId, parishId, sequence, active: 1 });
+
+			await Promise.all([
+				statsigService.logEvent('admin_lingkungan_create', 'create', session, { church_id: churchId }),
+				trackServerEvent('admin_lingkungan_create', { event_type: 'community_created', church_id: churchId }, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_lingkungan.create: Error', { err });
+			if (err instanceof ServiceError) return fail(400, { error: err.message });
+			return fail(500, { error: 'Gagal membuat lingkungan. Silakan coba lagi.' });
+		}
+	},
+
+	update: async ({ request, locals }) => {
+		const session = await locals.auth();
+		if (!session) return fail(401, { error: 'Anda harus login' });
+		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
+
+		const formData = await request.formData();
+		const communityId = formData.get('communityId') as string;
+		if (!communityId) return fail(400, { error: 'ID lingkungan tidak ditemukan' });
+
+		const name = (formData.get('name') as string)?.trim();
+		const wilayahId = (formData.get('wilayahId') as string)?.trim() || undefined;
+		const sequence = formData.get('sequence') ? Number(formData.get('sequence')) : null;
+
+		if (!name) return fail(400, { error: 'Nama lingkungan wajib diisi' });
+
+		try {
+			const ok = await repo.updateCommunity(communityId, {
+				name,
+				...(wilayahId ? { wilayahId } : {}),
+				sequence
+			});
+			if (!ok) return fail(404, { error: 'Lingkungan tidak ditemukan' });
+
+			await Promise.all([
+				statsigService.logEvent('admin_lingkungan_update', 'update', session, { community_id: communityId }),
+				trackServerEvent('admin_lingkungan_update', { event_type: 'community_updated', community_id: communityId }, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_lingkungan.update: Error', { err, communityId });
+			if (err instanceof ServiceError) return fail(400, { error: err.message });
+			return fail(500, { error: 'Gagal mengubah lingkungan. Silakan coba lagi.' });
+		}
+	},
+
+	delete: async ({ request, locals }) => {
+		const session = await locals.auth();
+		if (!session) return fail(401, { error: 'Anda harus login' });
+		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
+
+		const formData = await request.formData();
+		const communityId = formData.get('communityId') as string;
+		if (!communityId) return fail(400, { error: 'ID lingkungan tidak ditemukan' });
+
+		try {
+			const ok = await repo.deactivateCommunity(communityId);
+			if (!ok) return fail(404, { error: 'Lingkungan tidak ditemukan' });
+
+			await Promise.all([
+				statsigService.logEvent('admin_lingkungan_delete', 'delete', session, { community_id: communityId }),
+				trackServerEvent('admin_lingkungan_delete', { event_type: 'community_deleted', community_id: communityId }, session)
+			]);
+
+			return { success: true };
+		} catch (err) {
+			logger.error('admin_lingkungan.delete: Error', { err, communityId });
+			if (err instanceof ServiceError) return fail(400, { error: err.message });
+			return fail(500, { error: 'Gagal menghapus lingkungan. Silakan coba lagi.' });
+		}
+	}
+} satisfies Actions;

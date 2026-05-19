@@ -12,11 +12,11 @@
 
 	const NEW_MENU_ITEMS = [
 		{ label: 'Paroki', href: '/admin/settings/paroki' },
-		{ label: 'Perayaan', href: '/admin/settings/celebration' },
-		{ label: 'Wilayah & Lingkungan', href: '/admin/settings/lingkungan' },
-		{ label: 'Seksi', href: '/admin/settings/section' },
-		{ label: 'Zona', href: '/admin/settings/zone' },
-		{ label: 'Pos', href: '/admin/settings/station' }
+		{ label: 'Misa', href: '/admin/settings/misa' },
+		{ label: 'Wilayah', href: '/admin/settings/wilayah' },
+		{ label: 'Lingkungan', href: '/admin/settings/lingkungan' },
+		{ label: 'Gereja', href: '/admin/settings/gereja', divider: true },
+		{ label: 'Struktur', href: '/admin/settings/struktur' }
 	];
 
 	// Parent admin layout provides featurePreference and session; layout server adds isNewUX
@@ -45,6 +45,9 @@
 			</div>
 			<ul class="p-2">
 				{#each menuItems as item}
+					{#if item.divider}
+						<li><hr class="my-1 border-gray-200 dark:border-gray-700" /></li>
+					{/if}
 					<li>
 						<a
 							href={item.href}

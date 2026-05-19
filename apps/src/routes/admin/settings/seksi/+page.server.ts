@@ -1,6 +1,5 @@
 import { hasRole } from '$src/auth';
 import type { Section } from '$core/entities/Facility';
-import { checkServerGate } from '$lib/server/featureFlags';
 import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
@@ -14,11 +13,11 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
 
-	// Gate guard
-	const isNewUX = await checkServerGate(event.locals, 'new_settings_pages');
-	if (!isNewUX) {
+	const { isNewDomainEligible, featurePreference } = await event.parent();
+	if (!isNewDomainEligible || featurePreference !== 'new_domain') {
 		throw redirect(302, '/admin/settings/data-zona-group');
 	}
+	throw redirect(302, '/admin/settings/struktur');
 
 	const { session } = await handlePageLoad(event, 'section');
 	if (!session) {

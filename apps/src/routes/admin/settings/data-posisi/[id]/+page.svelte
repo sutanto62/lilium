@@ -653,7 +653,7 @@
 
 			<div>
 				<Label for="create-sequence">Urutan</Label>
-				<Input
+				<Input autocomplete="off"
 					id="create-sequence"
 					name="sequence"
 					type="number"
@@ -671,7 +671,7 @@
 
 			<div>
 				<Label for="create-name">Nama Posisi *</Label>
-				<Input id="create-name" name="name" bind:value={createName} required placeholder="Contoh: Usher Depan" />
+				<Input autocomplete="off" id="create-name" name="name" bind:value={createName} required placeholder="Contoh: Usher Depan" />
 			</div>
 
 			<div>
@@ -691,7 +691,7 @@
 
 			<div>
 				<Label for="create-code">Kode</Label>
-				<Input
+				<Input autocomplete="off"
 					id="create-code"
 					name="code"
 					bind:value={createCode}
@@ -766,7 +766,7 @@
 
 				<div>
 					<Label for="edit-sequence">Urutan</Label>
-					<Input
+					<Input autocomplete="off"
 						id="edit-sequence"
 						name="sequence"
 						type="number"
@@ -784,7 +784,7 @@
 
 				<div>
 					<Label for="edit-name">Nama Posisi *</Label>
-					<Input id="edit-name" name="name" bind:value={editName} required />
+					<Input autocomplete="off" id="edit-name" name="name" bind:value={editName} required />
 				</div>
 
 				<div>

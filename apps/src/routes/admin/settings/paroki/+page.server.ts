@@ -1,6 +1,5 @@
 import { hasRole } from '$src/auth';
-import type { Parish, Wilayah } from '$core/entities/Parish';
-import type { Church as FacilityChurch } from '$core/entities/Facility';
+import type { Parish } from '$core/entities/Parish';
 import { checkServerGate } from '$lib/server/featureFlags';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
@@ -39,22 +38,12 @@ export const load: PageServerLoad = async (event) => {
 	logger.debug('admin_parish.load: Fetching data', { churchId });
 
 	let parish: Parish | null = null;
-	let wilayahs: Wilayah[] = [];
-	let church: FacilityChurch | null = null;
 
 	try {
 		const parishId = await repo.getParishIdByChurch(churchId);
 		logger.debug('admin_parish.load: Resolved parishId', { churchId, parishId });
-		[parish, wilayahs, church] = await Promise.all([
-			repo.findParishById(parishId),
-			repo.listWilayahsByParish(parishId),
-			repo.findFacilityChurchById(churchId)
-		]);
-		logger.debug('admin_parish.load: Data fetched', {
-			parishId,
-			wilayahCount: wilayahs.length,
-			churchFound: !!church
-		});
+		parish = await repo.findParishById(parishId);
+		logger.debug('admin_parish.load: Data fetched', { parishId });
 	} catch (err) {
 		if (err instanceof ServiceError && err.type === ServiceErrorType.NOT_FOUND_ERROR) {
 			logger.debug('admin_parish.load: No parish linked to church yet', { churchId });
@@ -65,7 +54,6 @@ export const load: PageServerLoad = async (event) => {
 	}
 
 	const metadata = {
-		total_wilayahs: wilayahs.length,
 		load_time_ms: Date.now() - startTime
 	};
 
@@ -74,7 +62,7 @@ export const load: PageServerLoad = async (event) => {
 		trackServerEvent('admin_parish_view', { event_type: 'page_load', ...metadata }, session || undefined)
 	]);
 
-	return { parish, wilayahs, church, churchId };
+	return { parish, churchId };
 };
 
 export const actions = {
@@ -114,150 +102,4 @@ export const actions = {
 		}
 	},
 
-	updateChurch: async ({ request, locals }) => {
-		const session = await locals.auth();
-		if (!session) return fail(401, { error: 'Anda harus login' });
-		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
-
-		const churchId = session.user?.cid;
-		if (!churchId) return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
-
-		const formData = await request.formData();
-		const name = (formData.get('name') as string)?.trim();
-		const code = (formData.get('code') as string)?.trim();
-		const requiresSpecialCollection =
-			formData.get('requiresSpecialCollection') === 'true' ? 1 : 0;
-
-		if (!name) return fail(400, { error: 'Nama gereja wajib diisi' });
-		if (!code) return fail(400, { error: 'Kode gereja wajib diisi' });
-
-		logger.debug('admin_parish.updateChurch: Updating', { churchId, name, code, requiresSpecialCollection });
-
-		try {
-			const ok = await repo.updateFacilityChurch(churchId, { name, code, requiresSpecialCollection });
-			logger.debug('admin_parish.updateChurch: Result', { churchId, ok });
-			if (!ok) return fail(404, { error: 'Gereja tidak ditemukan' });
-
-			await Promise.all([
-				statsigService.logEvent('admin_church_update', 'update', session, {
-					church_id: churchId,
-					requires_special_collection: requiresSpecialCollection
-				}),
-				trackServerEvent(
-					'admin_church_update',
-					{ event_type: 'church_updated', church_id: churchId, requires_special_collection: requiresSpecialCollection },
-					session
-				)
-			]);
-
-			return { success: true };
-		} catch (err) {
-			logger.error('admin_parish.updateChurch: Error', { err, churchId });
-			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal mengubah gereja. Silakan coba lagi.' });
-		}
-	},
-
-	createWilayah: async ({ request, locals }) => {
-		const session = await locals.auth();
-		if (!session) return fail(401, { error: 'Anda harus login' });
-		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
-
-		const churchId = session.user?.cid;
-		if (!churchId) return fail(404, { error: 'Tidak ada gereja yang terdaftar' });
-
-		const formData = await request.formData();
-		const name = (formData.get('name') as string)?.trim();
-		const code = (formData.get('code') as string)?.trim() || null;
-		const sequence = formData.get('sequence') ? Number(formData.get('sequence')) : null;
-
-		if (!name) return fail(400, { error: 'Nama wilayah wajib diisi' });
-
-		logger.debug('admin_parish.createWilayah: Creating', { churchId, name, code, sequence });
-
-		try {
-			const parishId = await repo.getParishIdByChurch(churchId);
-			await repo.createWilayah({ name, code, sequence, parishId, active: 1 });
-			logger.debug('admin_parish.createWilayah: Created', { parishId, name });
-
-			await Promise.all([
-				statsigService.logEvent('admin_parish_wilayah_create', 'create', session, { church_id: churchId }),
-				trackServerEvent('admin_parish_wilayah_create', { event_type: 'wilayah_created', church_id: churchId }, session)
-			]);
-
-			return { success: true };
-		} catch (err) {
-			logger.error('admin_parish.createWilayah: Error', { err });
-			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal membuat wilayah. Silakan coba lagi.' });
-		}
-	},
-
-	updateWilayah: async ({ request, locals }) => {
-		const session = await locals.auth();
-		if (!session) return fail(401, { error: 'Anda harus login' });
-		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
-
-		const formData = await request.formData();
-		const wilayahId = formData.get('wilayahId') as string;
-		if (!wilayahId) return fail(400, { error: 'ID wilayah tidak ditemukan' });
-
-		const name = (formData.get('name') as string)?.trim();
-		const code = (formData.get('code') as string)?.trim() || null;
-		const sequence = formData.get('sequence') ? Number(formData.get('sequence')) : null;
-
-		if (!name) return fail(400, { error: 'Nama wilayah wajib diisi' });
-
-		logger.debug('admin_parish.updateWilayah: Updating', { wilayahId, name, code, sequence });
-
-		try {
-			const ok = await repo.updateWilayah(wilayahId, {
-				name,
-				code: code ?? undefined,
-				...(sequence !== null ? { sequence } : {})
-			});
-			logger.debug('admin_parish.updateWilayah: Result', { wilayahId, ok });
-			if (!ok) return fail(404, { error: 'Wilayah tidak ditemukan' });
-
-			await Promise.all([
-				statsigService.logEvent('admin_parish_wilayah_update', 'update', session, { wilayah_id: wilayahId }),
-				trackServerEvent('admin_parish_wilayah_update', { event_type: 'wilayah_updated', wilayah_id: wilayahId }, session)
-			]);
-
-			return { success: true };
-		} catch (err) {
-			logger.error('admin_parish.updateWilayah: Error', { err, wilayahId });
-			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal mengubah wilayah. Silakan coba lagi.' });
-		}
-	},
-
-	deleteWilayah: async ({ request, locals }) => {
-		const session = await locals.auth();
-		if (!session) return fail(401, { error: 'Anda harus login' });
-		if (!hasRole(session, 'admin')) return fail(403, { error: 'Tidak ada izin' });
-
-		const formData = await request.formData();
-		const wilayahId = formData.get('wilayahId') as string;
-		if (!wilayahId) return fail(400, { error: 'ID wilayah tidak ditemukan' });
-
-		logger.debug('admin_parish.deleteWilayah: Deleting', { wilayahId });
-
-		try {
-			const ok = await repo.deactivateWilayah(wilayahId);
-			logger.debug('admin_parish.deleteWilayah: Result', { wilayahId, ok });
-			if (!ok) return fail(404, { error: 'Wilayah tidak ditemukan' });
-
-			await Promise.all([
-				statsigService.logEvent('admin_parish_wilayah_delete', 'delete', session, { wilayah_id: wilayahId }),
-				trackServerEvent('admin_parish_wilayah_delete', { event_type: 'wilayah_deleted', wilayah_id: wilayahId }, session)
-			]);
-
-			return { success: true };
-		} catch (err) {
-			logger.error('admin_parish.deleteWilayah: Error', { err, wilayahId });
-			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal menghapus wilayah. Silakan coba lagi.' });
-		}
-	}
 } satisfies Actions;

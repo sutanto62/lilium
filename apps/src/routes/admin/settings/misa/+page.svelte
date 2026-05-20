@@ -108,28 +108,28 @@
 			const session = page.data.session || undefined;
 			const metadata = { total_masses: data.masses?.length || 0, has_masses: (data.masses?.length || 0) > 0 };
 			Promise.all([
-				statsigService.logEvent('admin_celebration_view', 'load', session, metadata),
-				tracker.track('admin_celebration_view', metadata, session, page)
+				statsigService.logEvent('admin_misa_view', 'load', session, metadata),
+				tracker.track('admin_misa_view', metadata, session, page)
 			]);
 		}
 	});
 </script>
 
 <svelte:head>
-	<title>Perayaan</title>
+	<title>Misa</title>
 </svelte:head>
 
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/settings">Pengaturan</BreadcrumbItem>
-	<BreadcrumbItem>Perayaan</BreadcrumbItem>
+	<BreadcrumbItem>Misa</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="mb-4">
 	<div class="mb-4 flex items-right justify-between">
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-			Pengaturan Perayaan
+			Pengaturan Misa
 		</Heading>
 		<Button color="blue" onclick={openCreateModal}>
 			<PlusOutline class="mr-2 h-4 w-4" />
@@ -208,7 +208,7 @@
 </div>
 
 <!-- Create / Edit Modal -->
-<Modal title={selectedMass ? 'Edit Perayaan' : 'Tambah Perayaan'} bind:open={showFormModal}>
+<Modal title={selectedMass ? 'Edit Misa' : 'Tambah Misa'} bind:open={showFormModal}>
 	<form
 		method="POST"
 		action={selectedMass ? '?/update' : '?/create'}
@@ -226,12 +226,12 @@
 		{/if}
 
 		<div class="mb-4">
-			<Label for="name" class="mb-2">Nama Perayaan <span class="text-red-500">*</span></Label>
-			<Input id="name" name="name" bind:value={formName} placeholder="cth. Misa Minggu 08:00" required />
+			<Label for="name" class="mb-2">Nama Misa <span class="text-red-500">*</span></Label>
+			<Input autocomplete="off" id="name" name="name" bind:value={formName} placeholder="cth. Misa Minggu 08:00" required />
 		</div>
 		<div class="mb-4">
 			<Label for="code" class="mb-2">Kode</Label>
-			<Input id="code" name="code" bind:value={formCode} placeholder="cth. SUN08" />
+			<Input autocomplete="off" id="code" name="code" bind:value={formCode} placeholder="cth. SUN08" />
 		</div>
 		<div class="mb-4">
 			<Label for="day" class="mb-2">Hari <span class="text-red-500">*</span></Label>
@@ -239,17 +239,17 @@
 		</div>
 		<div class="mb-4 grid grid-cols-2 gap-4">
 			<div>
-				<Label for="time" class="mb-2">Waktu Perayaan</Label>
-				<Input id="time" name="time" bind:value={formTime} placeholder="cth. 08:00" />
+				<Label for="time" class="mb-2">Waktu Misa</Label>
+				<Input autocomplete="off" id="time" name="time" bind:value={formTime} placeholder="cth. 08:00" />
 			</div>
 			<div>
 				<Label for="briefingTime" class="mb-2">Waktu Briefing</Label>
-				<Input id="briefingTime" name="briefingTime" bind:value={formBriefingTime} placeholder="cth. 07:30" />
+				<Input autocomplete="off" id="briefingTime" name="briefingTime" bind:value={formBriefingTime} placeholder="cth. 07:30" />
 			</div>
 		</div>
 		<div class="mb-4">
 			<Label for="sequence" class="mb-2">Urutan</Label>
-			<Input id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
+			<Input autocomplete="off" id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
 		</div>
 
 		<div class="flex justify-end gap-2">
@@ -263,7 +263,7 @@
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal title="Hapus Perayaan" bind:open={showDeleteModal}>
+<Modal title="Hapus Misa" bind:open={showDeleteModal}>
 	{#if selectedMass}
 		<P class="mb-4">
 			Apakah Anda yakin ingin menghapus perayaan <strong>{selectedMass.name}</strong>? Data historis akan tetap tersimpan.

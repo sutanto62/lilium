@@ -48,6 +48,17 @@
 		wilayahs.map((w: Wilayah) => ({ value: w.id, name: w.name }))
 	);
 
+	const filterOptions = $derived([
+		{ value: '', name: 'Semua Wilayah' },
+		...wilayahs.map((w: Wilayah) => ({ value: w.id, name: w.name }))
+	]);
+
+	let filterWilayahId = $state('');
+
+	const filteredCommunities = $derived(
+		filterWilayahId ? communities.filter((c: Community) => c.wilayahId === filterWilayahId) : communities
+	);
+
 	function openCreateModal() {
 		selectedCommunity = null;
 		formName = '';
@@ -133,7 +144,17 @@
 			{/if}
 		</div>
 	{:else}
-		<Table striped={true} shadow>
+		<div class="mb-4 flex items-center gap-3">
+		<Label for="filterWilayah" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Filter Wilayah:</Label>
+		<Select
+			id="filterWilayah"
+			items={filterOptions}
+			bind:value={filterWilayahId}
+			class="w-56"
+		/>
+	</div>
+
+	<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
 				Daftar Lingkungan
 				<p class="mt-1 text-sm font-normal text-gray-500 dark:text-gray-400">
@@ -141,18 +162,16 @@
 				</p>
 			</caption>
 			<TableHead>
-				<TableHeadCell>Wilayah</TableHeadCell>
-				<TableHeadCell>Nama Lingkungan</TableHeadCell>
-				<TableHeadCell>Urutan</TableHeadCell>
-				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
+				<TableHeadCell class="w-16">Urutan</TableHeadCell>
+				<TableHeadCell class="w-full">Nama Lingkungan</TableHeadCell>
+				<TableHeadCell class="w-12 text-right"><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each communities as c}
+				{#each filteredCommunities as c}
 					<TableBodyRow>
-						<TableBodyCell>{c.wilayahName}</TableBodyCell>
-						<TableBodyCell class="font-medium">{c.name}</TableBodyCell>
-						<TableBodyCell>{c.sequence ?? '-'}</TableBodyCell>
-						<TableBodyCell>
+						<TableBodyCell class="w-16">{c.sequence ?? '-'}</TableBodyCell>
+						<TableBodyCell class="w-full font-medium">{c.name}</TableBodyCell>
+						<TableBodyCell class="w-12 text-right">
 							<div class="relative" data-dropdown-menu>
 								<Button
 									size="xs"
@@ -165,7 +184,7 @@
 								</Button>
 								{#if openDropdownId === c.id}
 									<div
-										class="absolute right-0 z-20 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900"
+										class="absolute right-0 z-20 bottom-full mb-2 w-44 rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900"
 										data-dropdown-menu
 									>
 										<button
@@ -223,7 +242,7 @@
 		</div>
 		<div class="mb-4">
 			<Label for="name" class="mb-2">Nama Lingkungan <span class="text-red-500">*</span></Label>
-			<Input
+			<Input autocomplete="off"
 				id="name"
 				name="name"
 				bind:value={formName}
@@ -233,7 +252,7 @@
 		</div>
 		<div class="mb-4">
 			<Label for="sequence" class="mb-2">Urutan</Label>
-			<Input
+			<Input autocomplete="off"
 				id="sequence"
 				name="sequence"
 				type="number"

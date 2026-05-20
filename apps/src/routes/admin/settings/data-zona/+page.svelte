@@ -205,15 +205,15 @@
 
 		<div class="mb-4">
 			<Label for="name" class="mb-2">Nama Zona <span class="text-red-500">*</span></Label>
-			<Input id="name" name="name" bind:value={formName} placeholder="cth. Pintu Utama" required />
+			<Input autocomplete="off" id="name" name="name" bind:value={formName} placeholder="cth. Pintu Utama" required />
 		</div>
 		<div class="mb-4">
 			<Label for="code" class="mb-2">Kode</Label>
-			<Input id="code" name="code" bind:value={formCode} placeholder="cth. ZA" />
+			<Input autocomplete="off" id="code" name="code" bind:value={formCode} placeholder="cth. ZA" />
 		</div>
 		<div class="mb-4">
 			<Label for="group" class="mb-2">Grup Zona (ID)</Label>
-			<Input id="group" name="group" bind:value={formGroup} placeholder="ID grup zona (opsional)" />
+			<Input autocomplete="off" id="group" name="group" bind:value={formGroup} placeholder="ID grup zona (opsional)" />
 		</div>
 		<div class="mb-4">
 			<Label for="description" class="mb-2">Deskripsi</Label>
@@ -221,7 +221,7 @@
 		</div>
 		<div class="mb-4">
 			<Label for="sequence" class="mb-2">Urutan</Label>
-			<Input id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
+			<Input autocomplete="off" id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
 		</div>
 
 		<div class="flex justify-end gap-2">

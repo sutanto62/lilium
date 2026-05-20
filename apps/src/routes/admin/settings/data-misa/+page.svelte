@@ -227,11 +227,11 @@
 
 		<div class="mb-4">
 			<Label for="name" class="mb-2">Nama Misa <span class="text-red-500">*</span></Label>
-			<Input id="name" name="name" bind:value={formName} placeholder="cth. Misa Minggu 08:00" required />
+			<Input autocomplete="off" id="name" name="name" bind:value={formName} placeholder="cth. Misa Minggu 08:00" required />
 		</div>
 		<div class="mb-4">
 			<Label for="code" class="mb-2">Kode</Label>
-			<Input id="code" name="code" bind:value={formCode} placeholder="cth. SUN08" />
+			<Input autocomplete="off" id="code" name="code" bind:value={formCode} placeholder="cth. SUN08" />
 		</div>
 		<div class="mb-4">
 			<Label for="day" class="mb-2">Hari <span class="text-red-500">*</span></Label>
@@ -240,16 +240,16 @@
 		<div class="mb-4 grid grid-cols-2 gap-4">
 			<div>
 				<Label for="time" class="mb-2">Waktu Misa</Label>
-				<Input id="time" name="time" bind:value={formTime} placeholder="cth. 08:00" />
+				<Input autocomplete="off" id="time" name="time" bind:value={formTime} placeholder="cth. 08:00" />
 			</div>
 			<div>
 				<Label for="briefingTime" class="mb-2">Waktu Briefing</Label>
-				<Input id="briefingTime" name="briefingTime" bind:value={formBriefingTime} placeholder="cth. 07:30" />
+				<Input autocomplete="off" id="briefingTime" name="briefingTime" bind:value={formBriefingTime} placeholder="cth. 07:30" />
 			</div>
 		</div>
 		<div class="mb-4">
 			<Label for="sequence" class="mb-2">Urutan</Label>
-			<Input id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
+			<Input autocomplete="off" id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
 		</div>
 
 		<div class="flex justify-end gap-2">

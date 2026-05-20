@@ -22,7 +22,7 @@
 	} from 'flowbite-svelte';
 	import { PenOutline, PlusOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
-	import type { Station, Zone } from '$core/entities/Facility';
+	import type { Section, Station, Zone } from '$core/entities/Facility';
 	import type { Ministry } from '$core/entities/Ministry';
 
 	const { data, form } = $props<{
@@ -32,14 +32,33 @@
 
 	const stations = $derived(data.stations);
 	const zones = $derived(data.zones);
+	const sections = $derived(data.sections);
 	const ministries = $derived(data.ministries);
 
 	// Build lookup maps for display
+	const sectionMap = $derived(new Map(sections.map((s: Section) => [s.id, s.name])));
 	const zoneMap = $derived(new Map(zones.map((z: Zone) => [z.id, z.name])));
+	const zoneSectionMap = $derived(new Map(zones.map((z: Zone) => [z.id, sectionMap.get(z.sectionId ?? '') ?? '-'])));
 	const ministryMap = $derived(new Map(ministries.map((m: Ministry) => [m.id, m.name])));
 
 	const zoneOptions = $derived(zones.map((z: Zone) => ({ value: z.id, name: z.name })));
 	const ministryOptions = $derived(ministries.map((m: Ministry) => ({ value: m.id, name: m.name })));
+
+	let filterSectionId = $state('');
+	let filterZoneId = $state('');
+
+	const zonesForFilter = $derived(
+		filterSectionId ? zones.filter((z: Zone) => z.sectionId === filterSectionId) : zones
+	);
+
+	const filteredStations = $derived(() => {
+		if (filterZoneId) return stations.filter((s: Station) => s.zoneId === filterZoneId);
+		if (filterSectionId) {
+			const sectionZoneIds = new Set(zonesForFilter.map((z: Zone) => z.id));
+			return stations.filter((s: Station) => sectionZoneIds.has(s.zoneId));
+		}
+		return stations;
+	});
 
 	let openDropdownId = $state<string | null>(null);
 	let showDeleteModal = $state(false);
@@ -52,15 +71,21 @@
 	let formName = $state('');
 	let formCode = $state('');
 	let formDescription = $state('');
+	let formSectionId = $state('');
 	let formZoneId = $state('');
 	let formMinistryId = $state('');
 	let formSequence = $state('');
+
+	const formZonesForSection = $derived(
+		formSectionId ? zones.filter((z: Zone) => z.sectionId === formSectionId) : zones
+	);
 
 	function openCreateModal() {
 		selectedStation = null;
 		formName = '';
 		formCode = '';
 		formDescription = '';
+		formSectionId = '';
 		formZoneId = zones[0]?.id ?? '';
 		formMinistryId = ministries[0]?.id ?? '';
 		formSequence = '';
@@ -72,6 +97,7 @@
 		formName = s.name;
 		formCode = s.code ?? '';
 		formDescription = s.description ?? '';
+		formSectionId = zones.find((z: Zone) => z.id === s.zoneId)?.sectionId ?? '';
 		formZoneId = s.zoneId;
 		formMinistryId = s.ministryId;
 		formSequence = s.sequence != null ? String(s.sequence) : '';
@@ -86,6 +112,18 @@
 	}
 
 	$effect(() => {
+		if (filterSectionId && filterZoneId) {
+			if (!zonesForFilter.some((z: Zone) => z.id === filterZoneId)) filterZoneId = '';
+		}
+	});
+
+	$effect(() => {
+		if (formSectionId !== undefined && !formZonesForSection.some((z: Zone) => z.id === formZoneId)) {
+			formZoneId = formZonesForSection[0]?.id ?? '';
+		}
+	});
+
+	$effect(() => {
 		if (form?.success || form?.error) {
 			setTimeout(() => { showAlert = false; }, 10000);
 			isSubmitting = false;
@@ -98,20 +136,20 @@
 </script>
 
 <svelte:head>
-	<title>Pos</title>
+	<title>Titik Tugas</title>
 </svelte:head>
 
 <Breadcrumb class="mb-4">
 	<BreadcrumbItem href="/" home>Beranda</BreadcrumbItem>
 	<BreadcrumbItem href="/admin">Admin</BreadcrumbItem>
 	<BreadcrumbItem href="/admin/settings">Pengaturan</BreadcrumbItem>
-	<BreadcrumbItem>Pos</BreadcrumbItem>
+	<BreadcrumbItem>Titik Tugas</BreadcrumbItem>
 </Breadcrumb>
 
 <div class="mb-4">
 	<div class="mb-4 flex items-right justify-between">
 		<Heading tag="h1" class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
-			Pengaturan Pos
+			Pengaturan Titik Tugas
 		</Heading>
 		<Button color="blue" onclick={openCreateModal} disabled={zones.length === 0 || ministries.length === 0}>
 			<PlusOutline class="mr-2 h-4 w-4" />
@@ -132,6 +170,17 @@
 		<Alert color="red" class="mb-4"><p>{form.error}</p></Alert>
 	{/if}
 
+	<div class="mb-4 flex flex-wrap items-center gap-3">
+		<div class="flex items-center gap-2">
+			<Label for="filterSection" class="whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">Filter Seksi</Label>
+			<Select id="filterSection" bind:value={filterSectionId} items={[{ value: '', name: 'Semua Seksi' }, ...sections.map((s: Section) => ({ value: s.id, name: s.name }))]} class="w-48" />
+		</div>
+		<div class="flex items-center gap-2">
+			<Label for="filterZone" class="whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">Filter Zona</Label>
+			<Select id="filterZone" bind:value={filterZoneId} items={[{ value: '', name: 'Semua Zona' }, ...zonesForFilter.map((z: Zone) => ({ value: z.id, name: z.name }))]} class="w-48" />
+		</div>
+	</div>
+
 	{#if stations.length === 0}
 		<div class="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
 			<p class="mb-2 text-lg font-medium text-gray-900 dark:text-white">Belum ada pos.</p>
@@ -148,16 +197,18 @@
 			<TableHead>
 				<TableHeadCell>Kode</TableHeadCell>
 				<TableHeadCell>Nama</TableHeadCell>
+				<TableHeadCell>Seksi</TableHeadCell>
 				<TableHeadCell>Zona</TableHeadCell>
 				<TableHeadCell>Pelayanan</TableHeadCell>
 				<TableHeadCell>Urutan</TableHeadCell>
 				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each stations as s}
+				{#each filteredStations() as s}
 					<TableBodyRow>
 						<TableBodyCell>{s.code || '-'}</TableBodyCell>
 						<TableBodyCell>{s.name}</TableBodyCell>
+						<TableBodyCell>{zoneSectionMap.get(s.zoneId) ?? '-'}</TableBodyCell>
 						<TableBodyCell>{zoneMap.get(s.zoneId) ?? '-'}</TableBodyCell>
 						<TableBodyCell>{ministryMap.get(s.ministryId) ?? '-'}</TableBodyCell>
 						<TableBodyCell>{s.sequence ?? '-'}</TableBodyCell>
@@ -167,7 +218,7 @@
 									<span class="text-lg leading-none">⋮</span>
 								</Button>
 								{#if openDropdownId === s.id}
-									<div class="absolute right-0 z-20 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900" data-dropdown-menu>
+									<div class="absolute right-0 z-20 bottom-full mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900" data-dropdown-menu>
 										<button type="button" class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700" onclick={() => openEditModal(s)}>
 											<PenOutline class="h-4 w-4" /><span>Edit</span>
 										</button>
@@ -186,7 +237,7 @@
 </div>
 
 <!-- Create / Edit Modal -->
-<Modal title={selectedStation ? 'Edit Pos' : 'Tambah Pos'} bind:open={showFormModal}>
+<Modal title={selectedStation ? 'Edit Titik Tugas' : 'Tambah Titik Tugas'} bind:open={showFormModal}>
 	<form
 		method="POST"
 		action={selectedStation ? '?/update' : '?/create'}
@@ -205,15 +256,19 @@
 
 		<div class="mb-4">
 			<Label for="name" class="mb-2">Nama Pos <span class="text-red-500">*</span></Label>
-			<Input id="name" name="name" bind:value={formName} placeholder="cth. Pintu 1" required />
+			<Input id="name" name="name" bind:value={formName} placeholder="cth. Pintu 1" autocomplete="off" required />
 		</div>
 		<div class="mb-4">
 			<Label for="code" class="mb-2">Kode</Label>
-			<Input id="code" name="code" bind:value={formCode} placeholder="cth. D1" />
+			<Input autocomplete="off" id="code" name="code" bind:value={formCode} placeholder="cth. D1" />
+		</div>
+		<div class="mb-4">
+			<Label for="formSectionId" class="mb-2">Seksi</Label>
+			<Select id="formSectionId" bind:value={formSectionId} items={[{ value: '', name: '— Semua Seksi —' }, ...sections.map((s: Section) => ({ value: s.id, name: s.name }))]} />
 		</div>
 		<div class="mb-4">
 			<Label for="zoneId" class="mb-2">Zona <span class="text-red-500">*</span></Label>
-			<Select id="zoneId" name="zoneId" bind:value={formZoneId} items={zoneOptions} required />
+			<Select id="zoneId" name="zoneId" bind:value={formZoneId} items={formZonesForSection.map((z: Zone) => ({ value: z.id, name: z.name }))} required />
 		</div>
 		<div class="mb-4">
 			<Label for="ministryId" class="mb-2">Pelayanan <span class="text-red-500">*</span></Label>
@@ -221,11 +276,11 @@
 		</div>
 		<div class="mb-4">
 			<Label for="description" class="mb-2">Deskripsi</Label>
-			<Input id="description" name="description" bind:value={formDescription} placeholder="cth. Pintu utama sebelah kiri" />
+			<Input autocomplete="off" id="description" name="description" bind:value={formDescription} placeholder="cth. Pintu utama sebelah kiri" />
 		</div>
 		<div class="mb-4">
 			<Label for="sequence" class="mb-2">Urutan</Label>
-			<Input id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
+			<Input autocomplete="off" id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
 		</div>
 
 		<div class="flex justify-end gap-2">
@@ -239,7 +294,7 @@
 </Modal>
 
 <!-- Delete Confirmation Modal -->
-<Modal title="Hapus Pos" bind:open={showDeleteModal}>
+<Modal title="Hapus Titik Tugas" bind:open={showDeleteModal}>
 	{#if selectedStation}
 		<P class="mb-4">
 			Apakah Anda yakin ingin menghapus pos <strong>{selectedStation.name}</strong>?

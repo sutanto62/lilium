@@ -42,6 +42,12 @@
 		...sections.map((s: Section) => ({ value: s.id, name: s.name }))
 	]);
 
+	let filterSectionId = $state('');
+
+	const filteredZones = $derived(
+		filterSectionId ? zones.filter((z: Zone) => z.sectionId === filterSectionId) : zones
+	);
+
 	let openDropdownId = $state<string | null>(null);
 	let showDeleteModal = $state(false);
 	let showFormModal = $state(false);
@@ -117,6 +123,11 @@
 		</Button>
 	</div>
 
+	<div class="mb-4 flex items-center gap-2">
+		<Label for="filterSection" class="whitespace-nowrap text-sm font-medium text-gray-700 dark:text-gray-300">Filter Seksi</Label>
+		<Select id="filterSection" bind:value={filterSectionId} items={[{ value: '', name: 'Semua Seksi' }, ...sections.map((s: Section) => ({ value: s.id, name: s.name }))]} class="w-56" />
+	</div>
+
 	{#if form?.success && showAlert}
 		<Alert color="green" class="mb-4"><p>Berhasil disimpan.</p></Alert>
 	{/if}
@@ -146,7 +157,7 @@
 				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each zones as z}
+				{#each filteredZones as z}
 					<TableBodyRow>
 						<TableBodyCell>{z.code || '-'}</TableBodyCell>
 						<TableBodyCell>{z.name}</TableBodyCell>
@@ -159,7 +170,7 @@
 									<span class="text-lg leading-none">⋮</span>
 								</Button>
 								{#if openDropdownId === z.id}
-									<div class="absolute right-0 z-20 mt-2 w-44 rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900" data-dropdown-menu>
+									<div class="absolute right-0 z-20 mt-2 w-44 bottom-full rounded-lg border border-gray-200 bg-white p-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900" data-dropdown-menu>
 										<button type="button" class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700" onclick={() => openEditModal(z)}>
 											<PenOutline class="h-4 w-4" /><span>Edit</span>
 										</button>
@@ -197,11 +208,11 @@
 
 		<div class="mb-4">
 			<Label for="name" class="mb-2">Nama Zona <span class="text-red-500">*</span></Label>
-			<Input id="name" name="name" bind:value={formName} placeholder="cth. Lorong Kiri" required />
+			<Input autocomplete="off" id="name" name="name" bind:value={formName} placeholder="cth. Lorong Kiri" required />
 		</div>
 		<div class="mb-4">
 			<Label for="code" class="mb-2">Kode</Label>
-			<Input id="code" name="code" bind:value={formCode} placeholder="cth. LEFT" />
+			<Input autocomplete="off" id="code" name="code" bind:value={formCode} placeholder="cth. LEFT" />
 		</div>
 		<div class="mb-4">
 			<Label for="sectionId" class="mb-2">Seksi</Label>
@@ -209,11 +220,11 @@
 		</div>
 		<div class="mb-4">
 			<Label for="description" class="mb-2">Deskripsi</Label>
-			<Input id="description" name="description" bind:value={formDescription} placeholder="cth. Lorong sebelah kiri altar" />
+			<Input autocomplete="off" id="description" name="description" bind:value={formDescription} placeholder="cth. Lorong sebelah kiri altar" />
 		</div>
 		<div class="mb-4">
 			<Label for="sequence" class="mb-2">Urutan</Label>
-			<Input id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
+			<Input autocomplete="off" id="sequence" name="sequence" type="number" bind:value={formSequence} placeholder="cth. 1" />
 		</div>
 
 		<div class="flex justify-end gap-2">

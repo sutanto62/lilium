@@ -11,42 +11,47 @@
 
 	const { data } = $props<{ data: PageProps['data'] }>();
 
-	// ── Mutable flat arrays (synced from server data) ─────────────────────────
+	// ── DnD state (Maps keyed by parent ID — no sort, order = DnD order) ───────
+
+	function buildZonesBySection(zones: Zone[]): Map<string | null, Zone[]> {
+		const map = new Map<string | null, Zone[]>();
+		for (const z of zones) {
+			const key = z.sectionId ?? null;
+			if (!map.has(key)) map.set(key, []);
+			map.get(key)!.push(z);
+		}
+		return map;
+	}
+
+	function buildStationsByZone(stations: Station[]): Map<string, Station[]> {
+		const map = new Map<string, Station[]>();
+		for (const s of stations) {
+			if (!map.has(s.zoneId)) map.set(s.zoneId, []);
+			map.get(s.zoneId)!.push(s);
+		}
+		return map;
+	}
 
 	let sections = $state<Section[]>(data.sections as Section[]);
-	let zones = $state<Zone[]>(data.zones as Zone[]);
-	let stations = $state<Station[]>(data.stations as Station[]);
-	const ministries = $derived(data.ministries as Ministry[]);
+	let zonesBySection = $state(buildZonesBySection(data.zones as Zone[]));
+	let stationsByZone = $state(buildStationsByZone(data.stations as Station[]));
 
 	$effect(() => {
 		sections = data.sections as Section[];
-		zones = data.zones as Zone[];
-		stations = data.stations as Station[];
+		zonesBySection = buildZonesBySection(data.zones as Zone[]);
+		stationsByZone = buildStationsByZone(data.stations as Station[]);
 	});
 
-	// ── Derived lookups ───────────────────────────────────────────────────────
+	// ── Derived lookups (use server data so dropdowns never show shadow items) ─
 
-	const ministryMap = $derived(new Map(ministries.map((m) => [m.id, m.name])));
-
-	const sectionOptions = $derived(sections.map((s) => ({ value: s.id, name: s.name })));
-	const zoneOptions = $derived(zones.map((z) => ({ value: z.id, name: z.name })));
+	const ministryMap = $derived(new Map((data.ministries as Ministry[]).map((m) => [m.id, m.name])));
+	const sectionOptions = $derived((data.sections as Section[]).map((s) => ({ value: s.id, name: s.name })));
+	const zoneOptions = $derived((data.zones as Zone[]).map((z) => ({ value: z.id, name: z.name })));
 	const ministryOptions = $derived(
-		ministries.filter((m) => m.active).map((m) => ({ value: m.id, name: m.name }))
+		(data.ministries as Ministry[]).filter((m) => m.active).map((m) => ({ value: m.id, name: m.name }))
 	);
 
-	function zonesForSection(sectionId: string | null): Zone[] {
-		return zones
-			.filter((z) => (z.sectionId ?? null) === sectionId)
-			.sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
-	}
-
-	function stationsForZone(zoneId: string): Station[] {
-		return stations
-			.filter((s) => s.zoneId === zoneId)
-			.sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
-	}
-
-	const orphanZones = $derived(zonesForSection(null));
+	const orphanZones = $derived(zonesBySection.get(null) ?? []);
 
 	// ── Collapse state ────────────────────────────────────────────────────────
 
@@ -83,70 +88,44 @@
 	}
 
 	// Zones DnD (reorder + re-parent between sections)
+	// Map update: DnD library owns the order, we just forward its items array per bucket.
 	function handleZoneConsider(sectionId: string | null, e: CustomEvent<DndEvent<Zone>>) {
-		const incoming = e.detail.items;
-		// Replace all zones that now belong to this section with the updated list
-		zones = [
-			...zones.filter((z) => {
-				const key = z.sectionId ?? null;
-				if (key === sectionId) return false; // remove old entries for this section
-				if (incoming.some((i) => i.id === z.id)) return false; // remove if moved here
-				return true;
-			}),
-			...incoming
-		];
+		zonesBySection = new Map(zonesBySection);
+		zonesBySection.set(sectionId, e.detail.items);
 	}
 	async function handleZoneFinalize(sectionId: string | null, e: CustomEvent<DndEvent<Zone>>) {
 		const finalItems = e.detail.items;
 		const movedItem = finalItems.find((z) => (z.sectionId ?? null) !== sectionId);
 
-		// Update flat zones array: set correct sectionId + sequence for items in this list
-		zones = [
-			...zones.filter((z) => !finalItems.some((f) => f.id === z.id)),
-			...finalItems.map((z, i) => ({ ...z, sectionId: sectionId ?? undefined, sequence: i } as Zone))
-		];
+		zonesBySection = new Map(zonesBySection);
+		zonesBySection.set(sectionId, finalItems.map((z, i) => ({ ...z, sectionId: sectionId ?? null, sequence: i })));
 
 		if (movedItem) {
-			await postAction('?/move', {
-				entity: 'zona',
-				id: movedItem.id,
-				newParentId: sectionId ?? ''
-			});
+			const oldKey = movedItem.sectionId ?? null;
+			zonesBySection.set(oldKey, (zonesBySection.get(oldKey) ?? []).filter((z) => z.id !== movedItem.id));
+			await postAction('?/move', { entity: 'zona', id: movedItem.id, newParentId: sectionId ?? '' });
 		}
-		await postAction('?/reorder', {
-			entity: 'zona',
-			ids: JSON.stringify(finalItems.map((z) => z.id))
-		});
+		await postAction('?/reorder', { entity: 'zona', ids: JSON.stringify(finalItems.map((z) => z.id)) });
 	}
 
 	// Stations DnD (reorder + re-parent between zones)
 	function handleStationConsider(zoneId: string, e: CustomEvent<DndEvent<Station>>) {
-		const incoming = e.detail.items;
-		stations = [
-			...stations.filter((s) => {
-				if (s.zoneId === zoneId) return false;
-				if (incoming.some((i) => i.id === s.id)) return false;
-				return true;
-			}),
-			...incoming
-		];
+		stationsByZone = new Map(stationsByZone);
+		stationsByZone.set(zoneId, e.detail.items);
 	}
 	async function handleStationFinalize(zoneId: string, e: CustomEvent<DndEvent<Station>>) {
 		const finalItems = e.detail.items;
 		const movedItem = finalItems.find((s) => s.zoneId !== zoneId);
 
-		stations = [
-			...stations.filter((s) => !finalItems.some((f) => f.id === s.id)),
-			...finalItems.map((s, i) => ({ ...s, zoneId, sequence: i }))
-		];
+		stationsByZone = new Map(stationsByZone);
+		stationsByZone.set(zoneId, finalItems.map((s, i) => ({ ...s, zoneId, sequence: i })));
 
 		if (movedItem) {
+			const oldZoneId = movedItem.zoneId;
+			stationsByZone.set(oldZoneId, (stationsByZone.get(oldZoneId) ?? []).filter((s) => s.id !== movedItem.id));
 			await postAction('?/move', { entity: 'station', id: movedItem.id, newParentId: zoneId });
 		}
-		await postAction('?/reorder', {
-			entity: 'station',
-			ids: JSON.stringify(finalItems.map((s) => s.id))
-		});
+		await postAction('?/reorder', { entity: 'station', ids: JSON.stringify(finalItems.map((s) => s.id)) });
 	}
 
 	// ── Drawer state ──────────────────────────────────────────────────────────
@@ -265,7 +244,7 @@
 	onfinalize={handleSectionFinalize}
 >
 	{#each sections as section (section.id)}
-		{@const sectionZones = zonesForSection(section.id)}
+		{@const sectionZones = zonesBySection.get(section.id) ?? []}
 		{@const isCollapsed = collapsedSections.has(section.id)}
 
 		<div class="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
@@ -326,7 +305,7 @@
 						onfinalize={(e) => handleZoneFinalize(section.id, e)}
 					>
 						{#each sectionZones as zone (zone.id)}
-							{@const zoneStations = stationsForZone(zone.id)}
+							{@const zoneStations = stationsByZone.get(zone.id) ?? []}
 							{@const zoneCollapsed = collapsedZones.has(zone.id)}
 
 							<div class="border-b border-gray-50 last:border-0 dark:border-gray-700/50">
@@ -463,7 +442,7 @@
 							<DotsVerticalOutline class="h-4 w-4" />
 						</span>
 						<span class="flex-1 text-sm text-gray-700 dark:text-gray-300">{zone.name}</span>
-						<span class="text-xs text-gray-400">{stationsForZone(zone.id).length} titik</span>
+						<span class="text-xs text-gray-400">{(stationsByZone.get(zone.id) ?? []).length} titik</span>
 						{#if !isShadow(zone)}
 							<Button size="xs" color="light" onclick={() => openEdit('zona', zone)}>
 								<PenOutline class="h-3 w-3" />
@@ -495,6 +474,7 @@
 		<form
 			method="POST"
 			action={drawerAction}
+			autocomplete="off"
 			use:enhance={handleDrawerSubmit}
 			class="flex flex-1 flex-col gap-4 overflow-y-auto p-4"
 		>

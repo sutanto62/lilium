@@ -86,6 +86,10 @@ export class ChurchService {
 		return this.masses;
 	}
 
+	async retrieveAllMasses(): Promise<Mass[]> {
+		return await repo.getAllMasses(this.churchId);
+	}
+
 	/**
 	 * Retrieves the list of zones for the church, initializing if necessary.
 	 * @returns A promise that resolves to an array of ChurchZone objects.
@@ -172,6 +176,10 @@ export class ChurchService {
 
 	async deactivateZone(zoneId: string): Promise<boolean> {
 		return await repo.deactivateZone(zoneId);
+	}
+
+	async retrieveAllZoneGroups(): Promise<ChurchZoneGroup[]> {
+		return await repo.listAllZoneGroups(this.churchId);
 	}
 
 	async retrieveZoneGroups(): Promise<ChurchZoneGroup[]> {

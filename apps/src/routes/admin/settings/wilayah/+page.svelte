@@ -12,6 +12,7 @@
 		Label,
 		Modal,
 		P,
+		Select,
 		Spinner
 	} from 'flowbite-svelte';
 	import { PenOutline, PlusOutline, TrashBinOutline } from 'flowbite-svelte-icons';
@@ -24,6 +25,18 @@
 	}>();
 
 	const wilayahs = $derived(data.wilayahs);
+
+	const STATUS_OPTIONS = [
+		{ value: 'active', name: 'Aktif' },
+		{ value: 'inactive', name: 'Nonaktif' },
+		{ value: 'all', name: 'Semua' }
+	];
+	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
+	const filteredWilayahs = $derived(
+		filterStatus === 'all' ? wilayahs
+		: filterStatus === 'active' ? wilayahs.filter((w: Wilayah) => !!w.active)
+		: wilayahs.filter((w: Wilayah) => !w.active)
+	);
 
 	let openDropdownId = $state<string | null>(null);
 	let showDeleteModal = $state(false);
@@ -114,6 +127,15 @@
 			</Button>
 		</div>
 	{:else}
+		<div class="mb-4 flex items-center gap-3">
+			<Label for="filterStatus" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Status:</Label>
+			<Select id="filterStatus" items={STATUS_OPTIONS} bind:value={filterStatus} class="w-40" />
+		</div>
+		{#if filteredWilayahs.length === 0}
+			<div class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada wilayah dengan status ini.</p>
+			</div>
+		{:else}
 		<div class="overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
 			<table class="w-full text-left text-sm text-gray-500 dark:text-gray-400">
 				<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
@@ -127,11 +149,12 @@
 						<th class="w-16 px-4 py-3">Urutan</th>
 						<th class="w-full px-4 py-3">Nama Wilayah</th>
 						<th class="px-4 py-3">Kode</th>
+						<th class="px-4 py-3">Status</th>
 						<th class="w-12 px-4 py-3 text-right"><span class="sr-only">Aksi</span></th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-					{#each wilayahs as w (w.id)}
+					{#each filteredWilayahs as w (w.id)}
 						<tr class="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700">
 							<td class="w-16 px-4 py-3">{w.sequence ?? '—'}</td>
 							<td class="w-full px-4 py-3 font-medium text-gray-900 dark:text-white">{w.name}</td>
@@ -140,6 +163,13 @@
 									<Badge color="gray">{w.code}</Badge>
 								{:else}
 									<span class="text-gray-400">—</span>
+								{/if}
+							</td>
+							<td class="px-4 py-3">
+								{#if w.active}
+									<span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Aktif</span>
+								{:else}
+									<span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Nonaktif</span>
 								{/if}
 							</td>
 							<td class="w-12 px-4 py-3 text-right">
@@ -181,6 +211,7 @@
 				</tbody>
 			</table>
 		</div>
+		{/if}
 	{/if}
 </div>
 

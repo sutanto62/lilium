@@ -38,7 +38,8 @@ export const load: PageServerLoad = async (event) => {
 
 	let masses: Mass[] = [];
 	try {
-		masses = await churchService.retrieveMasses();
+		masses = await churchService.retrieveAllMasses();
+		logger.debug('admin_misa.load: Retrieved masses', { count: masses.length, churchId });
 	} catch (err) {
 		logger.error('admin_misa.load: Error fetching masses', { err, churchId });
 		throw error(500, 'Failed to fetch masses');

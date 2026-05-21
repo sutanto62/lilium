@@ -1,11 +1,26 @@
 import type { Mass } from '$core/entities/Schedule';
 import { mass } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function findMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<Mass[]> {
+export async function findAllMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<Mass[]> {
 	const result = await db.select().from(mass).where(eq(mass.church, churchId)).orderBy(mass.sequence);
+	return result.map((mass) => ({
+		id: mass.id,
+		church: mass.church,
+		name: mass.name,
+		code: mass.code,
+		day: mass.day,
+		sequence: mass.sequence,
+		time: mass.time,
+		briefingTime: mass.briefingTime,
+		active: mass.active
+	}));
+}
+
+export async function findMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<Mass[]> {
+	const result = await db.select().from(mass).where(and(eq(mass.church, churchId), eq(mass.active, 1))).orderBy(mass.sequence);
 	return result.map((mass) => ({
 		id: mass.id,
 		church: mass.church,

@@ -13,6 +13,7 @@ describe('PositionService', () => {
 		mockRepo = {
 			// Mass
 			getMasses: vi.fn(),
+			getAllMasses: vi.fn(),
 			getMassById: vi.fn(),
 			deactivateMass: vi.fn(),
 			createMass: vi.fn(),
@@ -24,6 +25,7 @@ describe('PositionService', () => {
 			deactivateZone: vi.fn(),
 
 			// ZoneGroup CRUD
+			listAllZoneGroups: vi.fn(),
 			listZoneGroups: vi.fn(),
 			createZoneGroup: vi.fn(),
 			updateZoneGroup: vi.fn(),
@@ -35,6 +37,8 @@ describe('PositionService', () => {
 			deactivateMassZone: vi.fn(),
 
 			// Region
+			listAllWilayahsByParish: vi.fn(),
+			listAllCommunitiesForChurch: vi.fn(),
 			listWilayahByChurch: vi.fn(),
 			listLingkunganByChurch: vi.fn(),
 			findLingkunganById: vi.fn(),
@@ -83,7 +87,10 @@ describe('PositionService', () => {
 			// Authentication
 			getUserByEmail: vi.fn(),
 			findUsersByChurch: vi.fn(),
-			updateUserFeaturePreference: vi.fn()
+			updateUserFeaturePreference: vi.fn(),
+			listAllUsersByChurch: vi.fn(),
+			createUser: vi.fn(),
+			updateUser: vi.fn()
 		};
 	});
 

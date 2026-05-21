@@ -46,6 +46,7 @@ import {
 	findZonesByEvent,
 	findZonesByMass,
 	listPositionByMass,
+	listAllZoneGroups as listAllZoneGroupsDb,
 	listZoneGroups as listZoneGroupsDb,
 	reorderZonePositions,
 	softDeletePosition,
@@ -56,6 +57,7 @@ import {
 import {
 	createMass as createMassDb,
 	deactivateMass as deactivateMassDb,
+	findAllMasses,
 	findMassById,
 	findMasses,
 	updateMass as updateMassDb
@@ -67,8 +69,10 @@ import {
 	findParishHierarchy,
 	listCommunities,
 	findCommunityById,
+	listAllWilayahsByParish,
 	listWilayahsByParish,
 	listCommunitiesByWilayah,
+	listAllCommunitiesForChurch,
 	listCommunitiesForChurch,
 	getParishIdByChurch,
 	createCommunity,
@@ -116,7 +120,14 @@ import {
 
 import type { ChurchEvent, EventPicRequest, EventUsher } from '$core/entities/Event';
 import type { Church, ChurchZone, ChurchZoneGroup, Lingkungan } from '$core/entities/Schedule';
-import { findUserByEmail, findUsersByChurch, updateUserFeaturePreference } from './SQLiteDbUser';
+import {
+	findUserByEmail,
+	findUsersByChurch,
+	updateUserFeaturePreference,
+	listAllUsersByChurch,
+	createUser as createUserDb,
+	updateUser as updateUserDb
+} from './SQLiteDbUser';
 
 // Adapter
 // It is used to abstract the database implementation.
@@ -139,6 +150,7 @@ export class SQLiteAdapter
 
 	// SQLiteDbMass
 	getMasses = (churchId: string) => findMasses(this.db, churchId);
+	getAllMasses = (churchId: string) => findAllMasses(this.db, churchId);
 	getMassById = (id: string) => findMassById(this.db, id);
 	deactivateMass = (massId: string) => deactivateMassDb(this.db, massId);
 	createMass = (input: Omit<import('$core/entities/Schedule').Mass, 'id'>) => createMassDb(this.db, input);
@@ -200,6 +212,7 @@ export class SQLiteAdapter
 	getZonesByEvent = (churchId: string, eventId: string) => findZonesByEvent(this.db, churchId, eventId);
 	getZonesByMass = (churchId: string, massId: string) => findZonesByMass(this.db, churchId, massId);
 	findZoneGroupsByEvent = (churchId: string, eventId: string) => findZoneGroupsByEvent(this.db, churchId, eventId);
+	listAllZoneGroups = (churchId: string) => listAllZoneGroupsDb(this.db, churchId);
 	listZoneGroups = (churchId: string) => listZoneGroupsDb(this.db, churchId);
 	createZoneGroup = (input: Omit<ChurchZoneGroup, 'id'>) => createZoneGroupDb(this.db, input);
 	updateZoneGroup = (id: string, patch: Partial<Omit<ChurchZoneGroup, 'id' | 'church'>>) => updateZoneGroupDb(this.db, id, patch);
@@ -225,6 +238,11 @@ export class SQLiteAdapter
 	findUsersByChurch = (churchId: string) => findUsersByChurch(this.db, churchId);
 	updateUserFeaturePreference = (email: string, preference: string | null) =>
 		updateUserFeaturePreference(this.db, email, preference);
+	listAllUsersByChurch = (churchId: string) => listAllUsersByChurch(this.db, churchId);
+	createUser = (data: { id: string; name: string; email: string; role: 'admin' | 'user'; cid: string; active: number }) =>
+		createUserDb(this.db, data);
+	updateUser = (userId: string, data: Partial<{ role: 'admin' | 'user'; lingkunganId: string | null; active: number }>) =>
+		updateUserDb(this.db, userId, data);
 
 	// Report
 	// findUshersByEvent = (eventId: string, date: string) => findUshersByEvent(this.db, eventId, date)dd
@@ -233,8 +251,10 @@ export class SQLiteAdapter
 	findParishHierarchy = (parishId: string) => findParishHierarchy(this.db, parishId);
 	listCommunities = (parishId: string) => listCommunities(this.db, parishId);
 	findCommunityById = (id: string) => findCommunityById(this.db, id);
+	listAllWilayahsByParish = (parishId: string) => listAllWilayahsByParish(this.db, parishId);
 	listWilayahsByParish = (parishId: string) => listWilayahsByParish(this.db, parishId);
 	listCommunitiesByWilayah = (wilayahId: string) => listCommunitiesByWilayah(this.db, wilayahId);
+	listAllCommunitiesForChurch = (churchId: string) => listAllCommunitiesForChurch(this.db, churchId);
 	listCommunitiesForChurch = (churchId: string) => listCommunitiesForChurch(this.db, churchId);
 	getParishIdByChurch = (churchId: string) => getParishIdByChurch(this.db, churchId);
 	createCommunity = (input: Parameters<typeof createCommunity>[1]) => createCommunity(this.db, input);

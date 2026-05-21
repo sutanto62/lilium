@@ -14,6 +14,7 @@
 		Label,
 		Modal,
 		P,
+		Select,
 		Spinner,
 		Table,
 		TableBody,
@@ -33,6 +34,18 @@
 	}>();
 
 	const zoneGroups = $derived(data.zoneGroups);
+
+	const STATUS_OPTIONS = [
+		{ value: 'active', name: 'Aktif' },
+		{ value: 'inactive', name: 'Nonaktif' },
+		{ value: 'all', name: 'Semua' }
+	];
+	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
+	const filteredZoneGroups = $derived(
+		filterStatus === 'all' ? zoneGroups
+		: filterStatus === 'active' ? zoneGroups.filter((g: ChurchZoneGroup) => !!g.active)
+		: zoneGroups.filter((g: ChurchZoneGroup) => !g.active)
+	);
 
 	let openDropdownId = $state<string | null>(null);
 	let showDeleteModal = $state(false);
@@ -129,6 +142,15 @@
 			<p class="text-sm text-gray-500 dark:text-gray-400">Klik tombol "Tambah Grup Zona" untuk menambahkan grup pertama.</p>
 		</div>
 	{:else}
+		<div class="mb-4 flex items-center gap-3">
+			<Label for="filterStatus" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Status:</Label>
+			<Select id="filterStatus" items={STATUS_OPTIONS} bind:value={filterStatus} class="w-40" />
+		</div>
+		{#if filteredZoneGroups.length === 0}
+			<div class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada grup zona dengan status ini.</p>
+			</div>
+		{:else}
 		<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
 				Daftar Grup Zona
@@ -143,7 +165,7 @@
 				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each zoneGroups as group}
+				{#each filteredZoneGroups as group}
 					<TableBodyRow>
 						<TableBodyCell>{group.code || '-'}</TableBodyCell>
 						<TableBodyCell>{group.name}</TableBodyCell>
@@ -177,6 +199,7 @@
 				{/each}
 			</TableBody>
 		</Table>
+		{/if}
 	{/if}
 </div>
 

@@ -1,7 +1,6 @@
 import { hasRole } from '$src/auth';
 import type { ChurchZone, ChurchZoneGroup } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
-import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
@@ -35,9 +34,10 @@ export const load: PageServerLoad = async (event) => {
 	let zones: ChurchZone[] = [];
 	let zoneGroups: ChurchZoneGroup[] = [];
 	try {
-		zones = await churchService.retrieveZones();
-		// Zone groups don't have a dedicated event-less retrieval method yet; use empty for now
-		zoneGroups = [];
+		[zones, zoneGroups] = await Promise.all([
+			churchService.retrieveZones(),
+			churchService.retrieveAllZoneGroups()
+		]);
 	} catch (err) {
 		logger.error('admin_zone_zona.load: Error fetching zones', { err, churchId });
 		throw error(500, 'Failed to fetch zones');

@@ -30,6 +30,7 @@ import {
 export interface ScheduleRepository {
 	// Mass
 	getMasses: (churchId: string) => Promise<Mass[]>;
+	getAllMasses: (churchId: string) => Promise<Mass[]>;
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
 	deactivateMass: (massId: string) => Promise<boolean>;
 	createMass: (input: Omit<Mass, 'id'>) => Promise<Mass>;
@@ -41,6 +42,7 @@ export interface ScheduleRepository {
 	deactivateZone: (zoneId: string) => Promise<boolean>;
 
 	// ZoneGroup CRUD
+	listAllZoneGroups: (churchId: string) => Promise<ChurchZoneGroup[]>;
 	listZoneGroups: (churchId: string) => Promise<ChurchZoneGroup[]>;
 	createZoneGroup: (input: Omit<ChurchZoneGroup, 'id'>) => Promise<ChurchZoneGroup>;
 	updateZoneGroup: (id: string, patch: Partial<Omit<ChurchZoneGroup, 'id' | 'church'>>) => Promise<ChurchZoneGroup>;
@@ -52,6 +54,8 @@ export interface ScheduleRepository {
 	deactivateMassZone: (massZoneId: string) => Promise<boolean>;
 
 	// Region
+	listAllWilayahsByParish: (parishId: string) => Promise<import('$core/entities/Parish').Wilayah[]>;
+	listAllCommunitiesForChurch: (churchId: string) => Promise<import('$core/entities/Parish').Community[]>;
 	listWilayahByChurch: (churchId: string) => Promise<Wilayah[]>;
 	listLingkunganByChurch: (churchId: string) => Promise<Lingkungan[]>;
 	findLingkunganById: (id: string) => Promise<Lingkungan>;
@@ -114,6 +118,9 @@ export interface ScheduleRepository {
 	getUserByEmail(email: string): Promise<User>;
 	findUsersByChurch(churchId: string): Promise<User[]>;
 	updateUserFeaturePreference(email: string, preference: string | null): Promise<void>;
+	listAllUsersByChurch(churchId: string): Promise<{ id: string; name: string; email: string; role: string; cid: string; lingkunganId: string | null; featurePreference: string | null; active: number; createdAt: number | null }[]>;
+	createUser(data: { id: string; name: string; email: string; role: 'admin' | 'user'; cid: string; active: number }): Promise<void>;
+	updateUser(userId: string, data: Partial<{ role: 'admin' | 'user'; lingkunganId: string | null; active: number }>): Promise<void>;
 
 	// Report
 	// findUshersByEvent(eventId: string, date: string): Promise<any[]>;

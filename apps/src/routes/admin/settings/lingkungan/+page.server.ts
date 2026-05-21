@@ -40,8 +40,8 @@ export const load: PageServerLoad = async (event) => {
 	try {
 		const parishId = await repo.getParishIdByChurch(churchId);
 		[wilayahs, communities] = await Promise.all([
-			repo.listWilayahsByParish(parishId),
-			repo.listCommunitiesForChurch(churchId)
+			repo.listAllWilayahsByParish(parishId),
+			repo.listAllCommunitiesForChurch(churchId)
 		]);
 	} catch (err) {
 		logger.error('admin_lingkungan.load: Error fetching data', { err, churchId });

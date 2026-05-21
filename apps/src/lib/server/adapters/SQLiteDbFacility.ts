@@ -83,6 +83,27 @@ export async function findZoneGroupsByEvent(
 	}));
 }
 
+export async function listAllZoneGroups(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<ChurchZoneGroup[]> {
+	const result = await db
+		.select()
+		.from(church_zone_group)
+		.where(eq(church_zone_group.church, churchId))
+		.orderBy(church_zone_group.sequence);
+
+	return result.map((group) => ({
+		id: group.id,
+		church: group.church ?? '',
+		name: group.name,
+		code: group.code,
+		description: group.description,
+		sequence: group.sequence,
+		active: group.active,
+	}));
+}
+
 export async function listZoneGroups(
 	db: ReturnType<typeof drizzle>,
 	churchId: string

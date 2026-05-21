@@ -34,6 +34,18 @@
 
 	const masses = $derived(data.masses);
 
+	const STATUS_OPTIONS = [
+		{ value: 'active', name: 'Aktif' },
+		{ value: 'inactive', name: 'Nonaktif' },
+		{ value: 'all', name: 'Semua' }
+	];
+	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
+	const filteredMasses = $derived(
+		filterStatus === 'all' ? masses
+		: filterStatus === 'active' ? masses.filter((m: Mass) => !!m.active)
+		: masses.filter((m: Mass) => !m.active)
+	);
+
 	const DAY_OPTIONS = [
 		{ value: 'sunday', name: 'Minggu' },
 		{ value: 'monday', name: 'Senin' },
@@ -150,6 +162,15 @@
 			<p class="text-sm text-gray-500 dark:text-gray-400">Klik tombol "Tambah" untuk menambahkan perayaan pertama.</p>
 		</div>
 	{:else}
+		<div class="mb-4 flex items-center gap-3">
+			<Label for="filterStatus" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Status:</Label>
+			<Select id="filterStatus" items={STATUS_OPTIONS} bind:value={filterStatus} class="w-40" />
+		</div>
+		{#if filteredMasses.length === 0}
+			<div class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada misa dengan status ini.</p>
+			</div>
+		{:else}
 		<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
 				Keterangan
@@ -162,22 +183,18 @@
 				<TableHeadCell>Nama</TableHeadCell>
 				<TableHeadCell>Hari</TableHeadCell>
 				<TableHeadCell>Waktu</TableHeadCell>
-				<TableHeadCell>Briefing</TableHeadCell>
-				<TableHeadCell>Urutan</TableHeadCell>
 				<TableHeadCell>Status</TableHeadCell>
 				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each masses as mass}
+				{#each filteredMasses as mass}
 					<TableBodyRow>
 						<TableBodyCell>{mass.code || '-'}</TableBodyCell>
 						<TableBodyCell>{mass.name}</TableBodyCell>
 						<TableBodyCell>{formatDayName(mass.day)}</TableBodyCell>
 						<TableBodyCell>{mass.time || '-'}</TableBodyCell>
-						<TableBodyCell>{mass.briefingTime || '-'}</TableBodyCell>
-						<TableBodyCell>{mass.sequence ?? '-'}</TableBodyCell>
 						<TableBodyCell>
-							{#if mass.active === 1}
+							{#if mass.active}
 								<span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Aktif</span>
 							{:else}
 								<span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Nonaktif</span>
@@ -204,6 +221,7 @@
 				{/each}
 			</TableBody>
 		</Table>
+		{/if}
 	{/if}
 </div>
 

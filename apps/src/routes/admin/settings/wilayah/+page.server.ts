@@ -38,11 +38,13 @@ export const load: PageServerLoad = async (event) => {
 
 	try {
 		const parishId = await repo.getParishIdByChurch(churchId);
-		wilayahs = await repo.listWilayahsByParish(parishId);
+		wilayahs = await repo.listAllWilayahsByParish(parishId);
+		logger.debug('admin_wilayah.load: Retrieved wilayahs', { count: wilayahs.length, churchId });
 	} catch (err) {
 		logger.error('admin_wilayah.load: Error fetching data', { err, churchId });
 		throw error(500, 'Failed to fetch wilayah data');
 	}
+
 
 	const metadata = {
 		total_wilayahs: wilayahs.length,

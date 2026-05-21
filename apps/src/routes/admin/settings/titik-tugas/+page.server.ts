@@ -1,74 +1,19 @@
 import { hasRole } from '$src/auth';
-import type { Section, Zone, Station } from '$core/entities/Facility';
-import type { Ministry } from '$core/entities/Ministry';
-import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
 import { ServiceError } from '$core/errors/ServiceError';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-	const startTime = Date.now();
-
 	const { isNewDomainEligible, featurePreference } = await event.parent();
 	if (!isNewDomainEligible || featurePreference !== 'new_domain') {
 		throw redirect(302, '/admin/settings/data-posisi');
 	}
 	throw redirect(302, '/admin/settings/struktur');
-
-	const { session } = await handlePageLoad(event, 'station');
-	if (!session) {
-		logger.warn('admin_station.load: No session found');
-		throw redirect(302, '/signin');
-	}
-
-	if (!hasRole(session, 'admin')) {
-		logger.warn('admin_station.load: User does not have admin role');
-		throw redirect(302, '/');
-	}
-
-	const churchId = session.user?.cid;
-	if (!churchId) {
-		logger.error('admin_station.load: Church ID not found in session');
-		throw error(500, 'Invalid session data');
-	}
-
-	let sections: Section[] = [];
-	let zones: Zone[] = [];
-	let ministries: Ministry[] = [];
-	let stations: Station[] = [];
-
-	try {
-		[sections, zones, ministries] = await Promise.all([
-			repo.listSectionsByChurch(churchId),
-			repo.listZonesByChurch(churchId),
-			repo.listMinistries()
-		]);
-
-		// Load stations for all zones in parallel
-		const stationsByZone = await Promise.all(zones.map((z) => repo.listStationsByZone(z.id)));
-		stations = stationsByZone.flat();
-	} catch (err) {
-		logger.error('admin_station.load: Error fetching data', { err, churchId });
-		throw error(500, 'Failed to fetch stations');
-	}
-
-	const metadata = {
-		total_stations: stations.length,
-		load_time_ms: Date.now() - startTime,
-		has_stations: stations.length > 0
-	};
-
-	await Promise.all([
-		statsigService.logEvent('admin_station_view', 'load', session || undefined, metadata),
-		trackServerEvent('admin_station_view', { event_type: 'page_load', ...metadata }, session || undefined)
-	]);
-
-	return { sections, stations, zones, ministries, churchId };
 };
 
 export const actions = {
@@ -93,17 +38,7 @@ export const actions = {
 		if (!ministryId) return fail(400, { error: 'Pelayanan wajib dipilih' });
 
 		try {
-			await repo.createStation({
-				name,
-				code,
-				description,
-				zoneId,
-				ministryId,
-				defaultRoleId: null,
-				sequence,
-				churchId,
-				active: 1
-			});
+			await repo.createStation({ name, code, description, zoneId, ministryId, defaultRoleId: null, sequence, churchId, active: 1 });
 
 			await Promise.all([
 				statsigService.logEvent('admin_station_create', 'create', session, { church_id: churchId }),

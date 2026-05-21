@@ -55,8 +55,19 @@
 
 	let filterWilayahId = $state('');
 
+	const STATUS_OPTIONS = [
+		{ value: 'active', name: 'Aktif' },
+		{ value: 'inactive', name: 'Nonaktif' },
+		{ value: 'all', name: 'Semua' }
+	];
+	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
+
 	const filteredCommunities = $derived(
-		filterWilayahId ? communities.filter((c: Community) => c.wilayahId === filterWilayahId) : communities
+		communities
+			.filter((c: Community) => !filterWilayahId || c.wilayahId === filterWilayahId)
+			.filter((c: Community) =>
+				filterStatus === 'all' ? true : filterStatus === 'active' ? !!c.active : !c.active
+			)
 	);
 
 	function openCreateModal() {
@@ -145,15 +156,16 @@
 		</div>
 	{:else}
 		<div class="mb-4 flex items-center gap-3">
-		<Label for="filterWilayah" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Filter Wilayah:</Label>
-		<Select
-			id="filterWilayah"
-			items={filterOptions}
-			bind:value={filterWilayahId}
-			class="w-56"
-		/>
-	</div>
-
+			<Label for="filterWilayah" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Filter Wilayah:</Label>
+			<Select id="filterWilayah" items={filterOptions} bind:value={filterWilayahId} class="w-56" />
+			<Label for="filterStatus" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Status:</Label>
+			<Select id="filterStatus" items={STATUS_OPTIONS} bind:value={filterStatus} class="w-40" />
+		</div>
+		{#if filteredCommunities.length === 0}
+			<div class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada lingkungan dengan filter ini.</p>
+			</div>
+		{:else}
 	<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
 				Daftar Lingkungan
@@ -164,6 +176,7 @@
 			<TableHead>
 				<TableHeadCell class="w-16">Urutan</TableHeadCell>
 				<TableHeadCell class="w-full">Nama Lingkungan</TableHeadCell>
+				<TableHeadCell>Status</TableHeadCell>
 				<TableHeadCell class="w-12 text-right"><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
@@ -171,6 +184,13 @@
 					<TableBodyRow>
 						<TableBodyCell class="w-16">{c.sequence ?? '-'}</TableBodyCell>
 						<TableBodyCell class="w-full font-medium">{c.name}</TableBodyCell>
+						<TableBodyCell>
+							{#if c.active}
+								<span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">Aktif</span>
+							{:else}
+								<span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Nonaktif</span>
+							{/if}
+						</TableBodyCell>
 						<TableBodyCell class="w-12 text-right">
 							<div class="relative" data-dropdown-menu>
 								<Button
@@ -209,6 +229,7 @@
 				{/each}
 			</TableBody>
 		</Table>
+		{/if}
 	{/if}
 </div>
 

@@ -1,7 +1,6 @@
 import { hasRole } from '$src/auth';
 import type { Mass } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
-import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
@@ -34,7 +33,7 @@ export const load: PageServerLoad = async (event) => {
 
 	let masses: Mass[] = [];
 	try {
-		masses = await churchService.retrieveMasses();
+		masses = await churchService.retrieveAllMasses();
 	} catch (err) {
 		logger.error('admin_zone_misa.load: Error fetching masses', { err, churchId });
 		throw error(500, 'Failed to fetch masses');

@@ -4,6 +4,7 @@ import type { CreateCommunityInput } from '$core/repositories/ParishRepository';
 import type { Church } from '$core/entities/Facility';
 import { ServiceError } from '$core/errors/ServiceError';
 import { community, church, lingkungan, parish, wilayah } from '$lib/server/db/schema';
+import { logger } from '$src/lib/utils/logger';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
@@ -60,6 +61,34 @@ export async function findLingkunganById(db: ReturnType<typeof drizzle>, id: str
 
 // ─── New Parish-domain methods (ParishRepository) ─────────────────────────────
 
+/** List all wilayahs (active + inactive) for a parish ordered by sequence. For admin management pages. */
+export async function listAllWilayahsByParish(
+	db: ReturnType<typeof drizzle>,
+	parishId: string
+): Promise<Wilayah[]> {
+	const rows = await db
+		.select({
+			id: wilayah.id,
+			name: wilayah.name,
+			code: wilayah.code,
+			sequence: wilayah.sequence,
+			parishId: wilayah.parishId,
+			active: wilayah.active
+		})
+		.from(wilayah)
+		.where(eq(wilayah.parishId, parishId))
+		.orderBy(wilayah.sequence);
+
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		code: r.code ?? null,
+		sequence: r.sequence ?? null,
+		parishId: r.parishId ?? parishId,
+		active: r.active === 1
+	}));
+}
+
 /** List active wilayahs for a parish ordered by sequence. */
 export async function listWilayahsByParish(
 	db: ReturnType<typeof drizzle>,
@@ -78,7 +107,7 @@ export async function listWilayahsByParish(
 		.where(and(eq(wilayah.parishId, parishId), eq(wilayah.active, 1)))
 		.orderBy(wilayah.sequence);
 
-	return rows.map((r) => ({
+	const result = rows.map((r) => ({
 		id: r.id,
 		name: r.name,
 		code: r.code ?? null,
@@ -86,6 +115,10 @@ export async function listWilayahsByParish(
 		parishId: r.parishId ?? parishId,
 		active: r.active === 1
 	}));
+
+	logger.debug('listWilayahsByParish: Retrieved rows', { count: result.length, parishId, rows: result });
+
+	return result;
 }
 
 /** List active communities for a wilayah ordered by sequence. */
@@ -146,6 +179,38 @@ export async function listCommunities(
 		wilayahName: r.wilayahName ?? '',
 		sequence: r.sequence ?? null,
 		parishId: r.parishId ?? parishId,
+		active: r.active === 1
+	}));
+}
+
+/** List all communities (active + inactive) for the parish associated with the given church. For admin management pages. */
+export async function listAllCommunitiesForChurch(
+	db: ReturnType<typeof drizzle>,
+	churchId: string
+): Promise<Community[]> {
+	const rows = await db
+		.select({
+			id: community.id,
+			name: community.name,
+			wilayahId: community.wilayahId,
+			wilayahName: wilayah.name,
+			sequence: community.sequence,
+			parishId: community.parishId,
+			active: community.active
+		})
+		.from(community)
+		.leftJoin(wilayah, eq(community.wilayahId, wilayah.id))
+		.innerJoin(church, eq(community.parishId, church.parishId))
+		.where(eq(church.id, churchId))
+		.orderBy(wilayah.sequence, community.sequence);
+
+	return rows.map((r) => ({
+		id: r.id,
+		name: r.name,
+		wilayahId: r.wilayahId ?? '',
+		wilayahName: r.wilayahName ?? '',
+		sequence: r.sequence ?? null,
+		parishId: r.parishId ?? '',
 		active: r.active === 1
 	}));
 }

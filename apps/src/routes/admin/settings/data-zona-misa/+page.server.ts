@@ -1,7 +1,6 @@
 import { hasRole } from '$src/auth';
 import type { ChurchZone, Mass, MassZone } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
-import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';

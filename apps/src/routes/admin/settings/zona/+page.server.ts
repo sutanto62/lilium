@@ -1,66 +1,19 @@
 import { hasRole } from '$src/auth';
-import type { Section, Zone } from '$core/entities/Facility';
-import { posthogService } from '$src/lib/application/PostHogService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
 import { handlePageLoad } from '$src/lib/server/pageHandler';
 import { repo } from '$src/lib/server/db';
 import { logger } from '$src/lib/utils/logger';
 import { ServiceError } from '$core/errors/ServiceError';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
-	const startTime = Date.now();
-
 	const { isNewDomainEligible, featurePreference } = await event.parent();
 	if (!isNewDomainEligible || featurePreference !== 'new_domain') {
 		throw redirect(302, '/admin/settings/data-zona');
 	}
 	throw redirect(302, '/admin/settings/struktur');
-
-	const { session } = await handlePageLoad(event, 'zone');
-	if (!session) {
-		logger.warn('admin_zone_new.load: No session found');
-		throw redirect(302, '/signin');
-	}
-
-	if (!hasRole(session, 'admin')) {
-		logger.warn('admin_zone_new.load: User does not have admin role');
-		throw redirect(302, '/');
-	}
-
-	const churchId = session.user?.cid;
-	if (!churchId) {
-		logger.error('admin_zone_new.load: Church ID not found in session');
-		throw error(500, 'Invalid session data');
-	}
-
-	let sections: Section[] = [];
-	let zones: Zone[] = [];
-
-	try {
-		[sections, zones] = await Promise.all([
-			repo.listSectionsByChurch(churchId),
-			repo.listZonesByChurch(churchId)
-		]);
-	} catch (err) {
-		logger.error('admin_zone_new.load: Error fetching data', { err, churchId });
-		throw error(500, 'Failed to fetch zones');
-	}
-
-	const metadata = {
-		total_zones: zones.length,
-		load_time_ms: Date.now() - startTime,
-		has_zones: zones.length > 0
-	};
-
-	await Promise.all([
-		statsigService.logEvent('admin_zone_new_view', 'load', session || undefined, metadata),
-		trackServerEvent('admin_zone_new_view', { event_type: 'page_load', ...metadata }, session || undefined)
-	]);
-
-	return { sections, zones, churchId };
 };
 
 export const actions = {

@@ -14,6 +14,7 @@
 		Label,
 		Modal,
 		P,
+		Select,
 		Spinner,
 		Table,
 		TableBody,
@@ -33,6 +34,18 @@
 	}>();
 
 	const zones = $derived(data.zones);
+
+	const STATUS_OPTIONS = [
+		{ value: 'active', name: 'Aktif' },
+		{ value: 'inactive', name: 'Nonaktif' },
+		{ value: 'all', name: 'Semua' }
+	];
+	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
+	const filteredZones = $derived(
+		filterStatus === 'all' ? zones
+		: filterStatus === 'active' ? zones.filter((z: ChurchZone) => !!z.active)
+		: zones.filter((z: ChurchZone) => !z.active)
+	);
 
 	let openDropdownId = $state<string | null>(null);
 	let showDeleteModal = $state(false);
@@ -132,6 +145,15 @@
 			<p class="text-sm text-gray-500 dark:text-gray-400">Klik tombol "Tambah Zona" untuk menambahkan zona pertama.</p>
 		</div>
 	{:else}
+		<div class="mb-4 flex items-center gap-3">
+			<Label for="filterStatus" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Status:</Label>
+			<Select id="filterStatus" items={STATUS_OPTIONS} bind:value={filterStatus} class="w-40" />
+		</div>
+		{#if filteredZones.length === 0}
+			<div class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada zona dengan status ini.</p>
+			</div>
+		{:else}
 		<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
 				Instruksi	
@@ -147,7 +169,7 @@
 				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each zones as zone}
+				{#each filteredZones as zone}
 					<TableBodyRow>
 						<TableBodyCell>{zone.code || '-'}</TableBodyCell>
 						<TableBodyCell>{zone.name}</TableBodyCell>
@@ -182,6 +204,7 @@
 				{/each}
 			</TableBody>
 		</Table>
+		{/if}
 	{/if}
 </div>
 

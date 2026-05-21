@@ -35,6 +35,18 @@
 	const masses = $derived(data.masses as Mass[]);
 	const zones = $derived(data.zones as ChurchZone[]);
 
+	const STATUS_OPTIONS = [
+		{ value: 'active', name: 'Aktif' },
+		{ value: 'inactive', name: 'Nonaktif' },
+		{ value: 'all', name: 'Semua' }
+	];
+	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
+	const filteredMassZones = $derived(
+		filterStatus === 'all' ? massZones
+		: filterStatus === 'active' ? massZones.filter((mz: MassZone) => !!mz.active)
+		: massZones.filter((mz: MassZone) => !mz.active)
+	);
+
 	const massOptions = $derived(masses.map((m: Mass) => ({ value: m.id, name: m.name })));
 	const zoneOptions = $derived(zones.map((z: ChurchZone) => ({ value: z.id, name: z.name })));
 
@@ -129,6 +141,15 @@
 			<p class="text-sm text-gray-500 dark:text-gray-400">Tambahkan relasi untuk menentukan zona yang melayani setiap misa.</p>
 		</div>
 	{:else}
+		<div class="mb-4 flex items-center gap-3">
+			<Label for="filterStatus" class="shrink-0 text-sm font-medium text-gray-700 dark:text-gray-300">Status:</Label>
+			<Select id="filterStatus" items={STATUS_OPTIONS} bind:value={filterStatus} class="w-40" />
+		</div>
+		{#if filteredMassZones.length === 0}
+			<div class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+				<p class="text-sm text-gray-500 dark:text-gray-400">Tidak ada relasi dengan status ini.</p>
+			</div>
+		{:else}
 		<Table striped={true} shadow>
 			<caption class="bg-white p-5 text-left text-lg font-semibold text-gray-900 dark:bg-gray-800 dark:text-white">
 				Daftar Relasi Misa-Zona
@@ -142,7 +163,7 @@
 				<TableHeadCell><span class="sr-only">Aksi</span></TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each massZones as mz}
+				{#each filteredMassZones as mz}
 					<TableBodyRow>
 						<TableBodyCell>{getMassName(mz.mass)}</TableBodyCell>
 						<TableBodyCell>{getZoneName(mz.zone)}</TableBodyCell>
@@ -163,6 +184,7 @@
 				{/each}
 			</TableBody>
 		</Table>
+		{/if}
 	{/if}
 </div>
 

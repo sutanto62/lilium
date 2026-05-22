@@ -12,6 +12,11 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
 
+	const { isNewUX, featurePreference } = await event.parent();
+	if (!isNewUX || featurePreference !== 'new_domain') {
+		throw redirect(302, '/admin/settings');
+	}
+
 	const { session } = await handlePageLoad(event, 'user');
 	if (!session) {
 		logger.warn('admin_user.load: No session found');

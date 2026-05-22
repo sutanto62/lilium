@@ -1,0 +1,29 @@
+{
+  "skill_name": "check-route-ontology",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Check if this route follows the new domain ontology:\n\nimport type { Mass } from '$core/entities/Schedule';\nimport type { ChurchEvent } from '$core/entities/Event';\n\nexport const load: PageServerLoad = async (event) => {\n  const { isNewUX, featurePreference } = await event.parent();\n  if (!isNewUX || featurePreference !== 'new_domain') {\n    throw redirect(302, '/admin/settings/data-misa');\n  }\n  \n  const masses: Mass[] = [];\n  const events: ChurchEvent[] = [];\n  return { masses, events };\n};",
+      "expected_output": "Identifies deprecated Mass and ChurchEvent imports and types. Notes that gate pattern is compliant. Suggests replacing Mass with MassSchedule and ChurchEvent with Celebration.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Does this route follow the new domain model? apps/src/routes/admin/settings/misa/",
+      "expected_output": "Analyzes both +page.server.ts and +page.svelte from the misa route. Should show that it's using MassSchedule (compliant) and has proper gate checks.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Validate this snippet against the ontology:\n\nimport type { ChurchPosition, ChurchZoneGroup } from '$core/entities/Schedule';\n\nconst positions: ChurchPosition[] = [];\nconst zoneGroups: ChurchZoneGroup[] = [];\n\nfunction getPositionsByZoneGroup(zoneGroup: ChurchZoneGroup): ChurchPosition[] {\n  return positions.filter(p => p.zone === zoneGroup.id);\n}",
+      "expected_output": "Flags ChurchPosition (should be Station) and ChurchZoneGroup (should be Section). Provides import changes and type annotation updates. Shows all occurrences with line numbers.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Is this new route setup ontology-compliant? It's a new feature-gated route but I want to make sure it follows the domain model.\n\nexport const load: PageServerLoad = async (event) => {\n  const session = await locals.auth();\n  if (!session) throw redirect(302, '/signin');\n  \n  const events = await eventService.retrieveEvents();\n  return { events };\n};",
+      "expected_output": "Reports missing feature gate pattern (isNewUX && featurePreference). No deprecated names used, so no violations. Provides template for adding the gate check.",
+      "files": []
+    }
+  ]
+}

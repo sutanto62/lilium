@@ -1,10 +1,10 @@
-import type { Mass } from '$core/entities/Schedule';
+import type { MassSchedule } from '$core/entities/Schedule';
 import { mass } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type { drizzle } from 'drizzle-orm/libsql';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function findAllMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<Mass[]> {
+export async function findAllMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<MassSchedule[]> {
 	const result = await db.select().from(mass).where(eq(mass.church, churchId)).orderBy(mass.sequence);
 	return result.map((mass) => ({
 		id: mass.id,
@@ -19,7 +19,7 @@ export async function findAllMasses(db: ReturnType<typeof drizzle>, churchId: st
 	}));
 }
 
-export async function findMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<Mass[]> {
+export async function findMasses(db: ReturnType<typeof drizzle>, churchId: string): Promise<MassSchedule[]> {
 	const result = await db.select().from(mass).where(and(eq(mass.church, churchId), eq(mass.active, 1))).orderBy(mass.sequence);
 	return result.map((mass) => ({
 		id: mass.id,
@@ -57,8 +57,8 @@ export async function deactivateMass(
 
 export async function createMass(
 	db: ReturnType<typeof drizzle>,
-	input: Omit<Mass, 'id'>
-): Promise<Mass> {
+	input: Omit<MassSchedule, 'id'>
+): Promise<MassSchedule> {
 	const id = uuidv4();
 	const result = await db
 		.insert(mass)
@@ -92,8 +92,8 @@ export async function createMass(
 export async function updateMass(
 	db: ReturnType<typeof drizzle>,
 	massId: string,
-	patch: Partial<Omit<Mass, 'id' | 'church'>>
-): Promise<Mass> {
+	patch: Partial<Omit<MassSchedule, 'id' | 'church'>>
+): Promise<MassSchedule> {
 	const updateData: Record<string, unknown> = {};
 	if (patch.code !== undefined) updateData.code = patch.code ?? null;
 	if (patch.name !== undefined) updateData.name = patch.name;

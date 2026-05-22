@@ -1,5 +1,5 @@
 import { hasRole } from '$src/auth';
-import type { Mass } from '$core/entities/Schedule';
+import type { MassSchedule } from '$core/entities/Schedule';
 import { ChurchService } from '$core/service/ChurchService';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const churchService = new ChurchService(churchId);
 
-	let masses: Mass[] = [];
+	let masses: MassSchedule[] = [];
 	try {
 		masses = await churchService.retrieveAllMasses();
 		logger.debug('admin_misa.load: Retrieved masses', { count: masses.length, churchId });

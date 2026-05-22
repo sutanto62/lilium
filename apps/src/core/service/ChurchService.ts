@@ -5,7 +5,7 @@ import type {
 	ChurchZone,
 	ChurchZoneGroup,
 	Lingkungan,
-	Mass,
+	MassSchedule,
 	MassZone,
 	Wilayah
 } from '$core/entities/Schedule';
@@ -24,7 +24,7 @@ export class ChurchService {
 	church: Church;
 	churches: Church[]; // Array to hold church schedules
 	zones: ChurchZone[]; // Array to hold church zones
-	masses: Mass[]; // Array to hold mass schedules
+	masses: MassSchedule[]; // Array to hold mass schedules
 	events: ChurchEvent[]; // Array to hold church events
 	wilayahs: Wilayah[]; // Array to hold wilayahs
 	lingkungans: Lingkungan[]; // Array to hold lingkungans
@@ -79,14 +79,14 @@ export class ChurchService {
 
 	/**
 	 * Retrieves the list of masses for the church, initializing if necessary.
-	 * @returns A promise that resolves to an array of Mass objects.
+	 * @returns A promise that resolves to an array of MassSchedule objects.
 	 */
-	async retrieveMasses(): Promise<Mass[]> {
+	async retrieveMasses(): Promise<MassSchedule[]> {
 		await this.initialize();
 		return this.masses;
 	}
 
-	async retrieveAllMasses(): Promise<Mass[]> {
+	async retrieveAllMasses(): Promise<MassSchedule[]> {
 		return await repo.getAllMasses(this.churchId);
 	}
 
@@ -158,11 +158,11 @@ export class ChurchService {
 		return await repo.deactivateMass(massId);
 	}
 
-	async createMass(input: Omit<Mass, 'id'>): Promise<Mass> {
+	async createMass(input: Omit<MassSchedule, 'id'>): Promise<MassSchedule> {
 		return await repo.createMass(input);
 	}
 
-	async updateMass(massId: string, patch: Partial<Omit<Mass, 'id' | 'church'>>): Promise<Mass> {
+	async updateMass(massId: string, patch: Partial<Omit<MassSchedule, 'id' | 'church'>>): Promise<MassSchedule> {
 		return await repo.updateMass(massId, patch);
 	}
 

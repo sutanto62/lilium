@@ -13,7 +13,7 @@ import type {
 	ChurchZone,
 	ChurchZoneGroup,
 	Lingkungan,
-	Mass,
+	MassSchedule,
 	MassZone,
 	Wilayah,
 } from '$core/entities/Schedule';
@@ -29,12 +29,12 @@ import {
  */
 export interface ScheduleRepository {
 	// Mass
-	getMasses: (churchId: string) => Promise<Mass[]>;
-	getAllMasses: (churchId: string) => Promise<Mass[]>;
+	getMasses: (churchId: string) => Promise<MassSchedule[]>;
+	getAllMasses: (churchId: string) => Promise<MassSchedule[]>;
 	getMassById: (id: string) => Promise<typeof mass.$inferSelect | null>;
 	deactivateMass: (massId: string) => Promise<boolean>;
-	createMass: (input: Omit<Mass, 'id'>) => Promise<Mass>;
-	updateMass: (massId: string, patch: Partial<Omit<Mass, 'id' | 'church'>>) => Promise<Mass>;
+	createMass: (input: Omit<MassSchedule, 'id'>) => Promise<MassSchedule>;
+	updateMass: (massId: string, patch: Partial<Omit<MassSchedule, 'id' | 'church'>>) => Promise<MassSchedule>;
 
 	// Zone CRUD
 	createZone: (input: Omit<ChurchZone, 'id'>) => Promise<ChurchZone>;

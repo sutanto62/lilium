@@ -25,7 +25,7 @@
 	} from 'flowbite-svelte';
 	import { PenOutline, PlusOutline, TrashBinOutline } from 'flowbite-svelte-icons';
 	import type { PageProps } from './$types';
-	import type { Mass } from '$core/entities/Schedule';
+	import type { MassSchedule } from '$core/entities/Schedule';
 
 	const { data, form } = $props<{
 		data: PageProps['data'];
@@ -42,8 +42,8 @@
 	let filterStatus = $state<'active' | 'inactive' | 'all'>('active');
 	const filteredMasses = $derived(
 		filterStatus === 'all' ? masses
-		: filterStatus === 'active' ? masses.filter((m: Mass) => !!m.active)
-		: masses.filter((m: Mass) => !m.active)
+		: filterStatus === 'active' ? masses.filter((m: MassSchedule) => !!m.active)
+		: masses.filter((m: MassSchedule) => !m.active)
 	);
 
 	const DAY_OPTIONS = [
@@ -63,7 +63,7 @@
 	let openDropdownId = $state<string | null>(null);
 	let showDeleteModal = $state(false);
 	let showFormModal = $state(false);
-	let selectedMass = $state<Mass | null>(null);
+	let selectedMass = $state<MassSchedule | null>(null);
 	let isSubmitting = $state(false);
 	let showAlert = $state(true);
 
@@ -86,7 +86,7 @@
 		showFormModal = true;
 	}
 
-	function openEditModal(mass: Mass) {
+	function openEditModal(mass: MassSchedule) {
 		selectedMass = mass;
 		formName = mass.name;
 		formCode = mass.code ?? '';
@@ -98,7 +98,7 @@
 		openDropdownId = null;
 	}
 
-	function openDeleteModal(mass: Mass) {
+	function openDeleteModal(mass: MassSchedule) {
 		selectedMass = mass;
 		showDeleteModal = true;
 		openDropdownId = null;

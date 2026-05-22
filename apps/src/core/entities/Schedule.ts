@@ -3,7 +3,7 @@ export interface Country {
 	name: string;
 }
 
-export interface Mass {
+export interface MassSchedule {
 	id: string;
 	code: string | null;
 	name: string;
@@ -14,6 +14,9 @@ export interface Mass {
 	briefingTime: string | null;
 	active: number | 1;
 }
+
+/** @deprecated Use MassSchedule instead */
+export type Mass = MassSchedule;
 
 export interface MassZone {
 	id: string;

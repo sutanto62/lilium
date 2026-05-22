@@ -153,8 +153,8 @@ export class SQLiteAdapter
 	getAllMasses = (churchId: string) => findAllMasses(this.db, churchId);
 	getMassById = (id: string) => findMassById(this.db, id);
 	deactivateMass = (massId: string) => deactivateMassDb(this.db, massId);
-	createMass = (input: Omit<import('$core/entities/Schedule').Mass, 'id'>) => createMassDb(this.db, input);
-	updateMass = (massId: string, patch: Partial<Omit<import('$core/entities/Schedule').Mass, 'id' | 'church'>>) => updateMassDb(this.db, massId, patch);
+	createMass = (input: Omit<import('$core/entities/Schedule').MassSchedule, 'id'>) => createMassDb(this.db, input);
+	updateMass = (massId: string, patch: Partial<Omit<import('$core/entities/Schedule').MassSchedule, 'id' | 'church'>>) => updateMassDb(this.db, massId, patch);
 
 	// SQLiteDbEvents
 	getEventByChurch = (churchId: string, massId: string, date: string) =>

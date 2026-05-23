@@ -64,6 +64,6 @@ export class MinistryService {
 			if (err instanceof ServiceError) throw err;
 			logger.error('MinistryService.resolveRoleByCode: Failed', { err, ministryCode, roleCode });
 			throw ServiceError.unknown('Gagal mencari peran kementerian', { originalError: err });
-		} (feat(phase-7): feature-flag core roster and zone pages behind Statsig gates)
+		}
 	}
 }

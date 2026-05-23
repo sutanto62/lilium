@@ -9,6 +9,9 @@ import { logger } from '$src/lib/utils/logger';
 import { ServiceError } from '$core/errors/ServiceError';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { requireAdminSession } from '$lib/server/auth-guards';
+import { parseFormFields, parseNumericField, parseJsonField } from '$lib/server/form-helpers';
+import { OPERATION_ERRORS, VALIDATION_ERRORS } from '$lib/server/settings-errors';
 
 export const load: PageServerLoad = async (event) => {
 	const startTime = Date.now();
@@ -46,6 +49,8 @@ export const load: PageServerLoad = async (event) => {
 			repo.listZonesByChurch(churchId),
 			repo.listMinistries()
 		]);
+		// Note: N+1 pattern for stations — load by zone ID
+		// TODO: Add listStationsByChurch(churchId) to repo to batch this query
 		const stationsByZone = await Promise.all(zones.map((z) => repo.listStationsByZone(z.id)));
 		stations = stationsByZone.flat();
 	} catch (err) {
@@ -68,16 +73,7 @@ export const load: PageServerLoad = async (event) => {
 	return { sections, zones, stations, ministries, churchId };
 };
 
-// ── Auth helpers ──────────────────────────────────────────────────────────────
 
-async function getAdminSession(locals: App.Locals) {
-	const session = await locals.auth();
-	if (!session) return { session: null, churchId: null, err: fail(401, { error: 'Anda harus login' }) };
-	if (!hasRole(session, 'admin')) return { session: null, churchId: null, err: fail(403, { error: 'Tidak ada izin' }) };
-	const churchId = session.user?.cid;
-	if (!churchId) return { session: null, churchId: null, err: fail(404, { error: 'Tidak ada gereja yang terdaftar' }) };
-	return { session, churchId, err: null };
-}
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
@@ -86,16 +82,14 @@ export const actions = {
 	// ── Seksi ──────────────────────────────────────────────────────────────────
 
 	createSeksi: async ({ request, locals }) => {
-		const { session, churchId, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, churchId, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
-		const name = (fd.get('name') as string)?.trim();
-		const code = (fd.get('code') as string)?.trim() || null;
-		const description = (fd.get('description') as string)?.trim() || null;
-		const sequence = fd.get('sequence') ? Number(fd.get('sequence')) : null;
+		const { name, code, description } = parseFormFields(fd, ['name', 'code', 'description']);
+		const sequence = parseNumericField(fd, 'sequence');
 
-		if (!name) return fail(400, { error: 'Nama seksi wajib diisi' });
+		if (!name) return fail(400, { error: VALIDATION_ERRORS.NAME_REQUIRED });
 
 		try {
 			await repo.createSection({ name, code, description, sequence, churchId: churchId!, active: 1 });
@@ -107,28 +101,26 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.createSeksi: Error', { err });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal membuat seksi. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.SECTION_CREATE });
 		}
 	},
 
 	updateSeksi: async ({ request, locals }) => {
-		const { session, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const sectionId = fd.get('sectionId') as string;
-		if (!sectionId) return fail(400, { error: 'ID seksi tidak ditemukan' });
+		if (!sectionId) return fail(400, { error: VALIDATION_ERRORS.ID_NOT_FOUND });
 
-		const name = (fd.get('name') as string)?.trim();
-		const code = (fd.get('code') as string)?.trim() || null;
-		const description = (fd.get('description') as string)?.trim() || null;
-		const sequence = fd.get('sequence') ? Number(fd.get('sequence')) : null;
+		const { name, code, description } = parseFormFields(fd, ['name', 'code', 'description']);
+		const sequence = parseNumericField(fd, 'sequence');
 
-		if (!name) return fail(400, { error: 'Nama seksi wajib diisi' });
+		if (!name) return fail(400, { error: VALIDATION_ERRORS.NAME_REQUIRED });
 
 		try {
-			const ok = await repo.updateSection(sectionId, { name, code, description, sequence });
-			if (!ok) return fail(404, { error: 'Seksi tidak ditemukan' });
+			const result = await repo.updateSection(sectionId, { name, code, description, sequence });
+			if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			await Promise.all([
 				statsigService.logEvent('admin_struktur_seksi_update', 'update', session!, { section_id: sectionId }),
 				trackServerEvent('admin_struktur_seksi_update', { event_type: 'section_updated', section_id: sectionId }, session!)
@@ -137,21 +129,21 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.updateSeksi: Error', { err, sectionId });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal mengubah seksi. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.SECTION_UPDATE });
 		}
 	},
 
 	deleteSeksi: async ({ request, locals }) => {
-		const { session, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const sectionId = fd.get('sectionId') as string;
-		if (!sectionId) return fail(400, { error: 'ID seksi tidak ditemukan' });
+		if (!sectionId) return fail(400, { error: VALIDATION_ERRORS.ID_NOT_FOUND });
 
 		try {
-			const ok = await repo.deactivateSection(sectionId);
-			if (!ok) return fail(404, { error: 'Seksi tidak ditemukan' });
+			const result = await repo.deactivateSection(sectionId);
+			if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			await Promise.all([
 				statsigService.logEvent('admin_struktur_seksi_delete', 'delete', session!, { section_id: sectionId }),
 				trackServerEvent('admin_struktur_seksi_delete', { event_type: 'section_deleted', section_id: sectionId }, session!)
@@ -160,24 +152,21 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.deleteSeksi: Error', { err, sectionId });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal menghapus seksi. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.SECTION_DELETE });
 		}
 	},
 
 	// ── Zona ───────────────────────────────────────────────────────────────────
 
 	createZona: async ({ request, locals }) => {
-		const { session, churchId, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, churchId, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
-		const name = (fd.get('name') as string)?.trim();
-		const code = (fd.get('code') as string)?.trim() || null;
-		const description = (fd.get('description') as string)?.trim() || null;
-		const sectionId = (fd.get('sectionId') as string)?.trim() || null;
-		const sequence = fd.get('sequence') ? Number(fd.get('sequence')) : null;
+		const { name, code, description, sectionId } = parseFormFields(fd, ['name', 'code', 'description', 'sectionId']);
+		const sequence = parseNumericField(fd, 'sequence');
 
-		if (!name) return fail(400, { error: 'Nama zona wajib diisi' });
+		if (!name) return fail(400, { error: VALIDATION_ERRORS.NAME_REQUIRED });
 
 		try {
 			await repo.createNewZone({ name, code, description, sectionId, sequence, churchId: churchId!, active: 1 });
@@ -189,29 +178,26 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.createZona: Error', { err });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal membuat zona. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.ZONE_CREATE });
 		}
 	},
 
 	updateZona: async ({ request, locals }) => {
-		const { session, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const zoneId = fd.get('zoneId') as string;
-		if (!zoneId) return fail(400, { error: 'ID zona tidak ditemukan' });
+		if (!zoneId) return fail(400, { error: VALIDATION_ERRORS.ID_NOT_FOUND });
 
-		const name = (fd.get('name') as string)?.trim();
-		const code = (fd.get('code') as string)?.trim() || null;
-		const description = (fd.get('description') as string)?.trim() || null;
-		const sectionId = (fd.get('sectionId') as string)?.trim() || null;
-		const sequence = fd.get('sequence') ? Number(fd.get('sequence')) : null;
+		const { name, code, description, sectionId } = parseFormFields(fd, ['name', 'code', 'description', 'sectionId']);
+		const sequence = parseNumericField(fd, 'sequence');
 
-		if (!name) return fail(400, { error: 'Nama zona wajib diisi' });
+		if (!name) return fail(400, { error: VALIDATION_ERRORS.NAME_REQUIRED });
 
 		try {
-			const ok = await repo.updateNewZone(zoneId, { name, code, description, sectionId, sequence });
-			if (!ok) return fail(404, { error: 'Zona tidak ditemukan' });
+			const result = await repo.updateNewZone(zoneId, { name, code, description, sectionId, sequence });
+			if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			await Promise.all([
 				statsigService.logEvent('admin_struktur_zona_update', 'update', session!, { zone_id: zoneId }),
 				trackServerEvent('admin_struktur_zona_update', { event_type: 'zone_updated', zone_id: zoneId }, session!)
@@ -220,21 +206,21 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.updateZona: Error', { err, zoneId });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal mengubah zona. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.ZONE_UPDATE });
 		}
 	},
 
 	deleteZona: async ({ request, locals }) => {
-		const { session, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const zoneId = fd.get('zoneId') as string;
-		if (!zoneId) return fail(400, { error: 'ID zona tidak ditemukan' });
+		if (!zoneId) return fail(400, { error: VALIDATION_ERRORS.ID_NOT_FOUND });
 
 		try {
-			const ok = await repo.deactivateNewZone(zoneId);
-			if (!ok) return fail(404, { error: 'Zona tidak ditemukan' });
+			const result = await repo.deactivateNewZone(zoneId);
+			if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			await Promise.all([
 				statsigService.logEvent('admin_struktur_zona_delete', 'delete', session!, { zone_id: zoneId }),
 				trackServerEvent('admin_struktur_zona_delete', { event_type: 'zone_deleted', zone_id: zoneId }, session!)
@@ -243,27 +229,23 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.deleteZona: Error', { err, zoneId });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal menghapus zona. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.ZONE_DELETE });
 		}
 	},
 
 	// ── Station ────────────────────────────────────────────────────────────────
 
 	createStation: async ({ request, locals }) => {
-		const { session, churchId, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, churchId, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
-		const name = (fd.get('name') as string)?.trim();
-		const code = (fd.get('code') as string)?.trim() || null;
-		const description = (fd.get('description') as string)?.trim() || null;
-		const zoneId = (fd.get('zoneId') as string)?.trim();
-		const ministryId = (fd.get('ministryId') as string)?.trim();
-		const sequence = fd.get('sequence') ? Number(fd.get('sequence')) : null;
+		const { name, code, description, zoneId, ministryId } = parseFormFields(fd, ['name', 'code', 'description', 'zoneId', 'ministryId']);
+		const sequence = parseNumericField(fd, 'sequence');
 
-		if (!name) return fail(400, { error: 'Nama titik tugas wajib diisi' });
-		if (!zoneId) return fail(400, { error: 'Zona wajib dipilih' });
-		if (!ministryId) return fail(400, { error: 'Pelayanan wajib dipilih' });
+		if (!name) return fail(400, { error: VALIDATION_ERRORS.NAME_REQUIRED });
+		if (!zoneId) return fail(400, { error: VALIDATION_ERRORS.ZONE_REQUIRED });
+		if (!ministryId) return fail(400, { error: VALIDATION_ERRORS.MINISTRY_REQUIRED });
 
 		try {
 			await repo.createStation({ name, code, description, zoneId, ministryId, defaultRoleId: null, sequence, churchId: churchId!, active: 1 });
@@ -275,32 +257,28 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.createStation: Error', { err });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal membuat titik tugas. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.STATION_CREATE });
 		}
 	},
 
 	updateStation: async ({ request, locals }) => {
-		const { session, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const stationId = fd.get('stationId') as string;
-		if (!stationId) return fail(400, { error: 'ID titik tugas tidak ditemukan' });
+		if (!stationId) return fail(400, { error: VALIDATION_ERRORS.ID_NOT_FOUND });
 
-		const name = (fd.get('name') as string)?.trim();
-		const code = (fd.get('code') as string)?.trim() || null;
-		const description = (fd.get('description') as string)?.trim() || null;
-		const zoneId = (fd.get('zoneId') as string)?.trim();
-		const ministryId = (fd.get('ministryId') as string)?.trim();
-		const sequence = fd.get('sequence') ? Number(fd.get('sequence')) : null;
+		const { name, code, description, zoneId, ministryId } = parseFormFields(fd, ['name', 'code', 'description', 'zoneId', 'ministryId']);
+		const sequence = parseNumericField(fd, 'sequence');
 
-		if (!name) return fail(400, { error: 'Nama titik tugas wajib diisi' });
-		if (!zoneId) return fail(400, { error: 'Zona wajib dipilih' });
-		if (!ministryId) return fail(400, { error: 'Pelayanan wajib dipilih' });
+		if (!name) return fail(400, { error: VALIDATION_ERRORS.NAME_REQUIRED });
+		if (!zoneId) return fail(400, { error: VALIDATION_ERRORS.ZONE_REQUIRED });
+		if (!ministryId) return fail(400, { error: VALIDATION_ERRORS.MINISTRY_REQUIRED });
 
 		try {
-			const ok = await repo.updateStation(stationId, { name, code, description, zoneId, ministryId, sequence });
-			if (!ok) return fail(404, { error: 'Titik tugas tidak ditemukan' });
+			const result = await repo.updateStation(stationId, { name, code, description, zoneId, ministryId, sequence });
+			if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			await Promise.all([
 				statsigService.logEvent('admin_struktur_station_update', 'update', session!, { station_id: stationId }),
 				trackServerEvent('admin_struktur_station_update', { event_type: 'station_updated', station_id: stationId }, session!)
@@ -309,21 +287,21 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.updateStation: Error', { err, stationId });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal mengubah titik tugas. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.STATION_UPDATE });
 		}
 	},
 
 	deleteStation: async ({ request, locals }) => {
-		const { session, err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, session, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const stationId = fd.get('stationId') as string;
-		if (!stationId) return fail(400, { error: 'ID titik tugas tidak ditemukan' });
+		if (!stationId) return fail(400, { error: VALIDATION_ERRORS.ID_NOT_FOUND });
 
 		try {
-			const ok = await repo.deactivateStation(stationId);
-			if (!ok) return fail(404, { error: 'Titik tugas tidak ditemukan' });
+			const result = await repo.deactivateStation(stationId);
+			if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			await Promise.all([
 				statsigService.logEvent('admin_struktur_station_delete', 'delete', session!, { station_id: stationId }),
 				trackServerEvent('admin_struktur_station_delete', { event_type: 'station_deleted', station_id: stationId }, session!)
@@ -332,27 +310,20 @@ export const actions = {
 		} catch (err) {
 			logger.error('admin_struktur.deleteStation: Error', { err, stationId });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal menghapus titik tugas. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.STATION_DELETE });
 		}
 	},
 
 	// ── Reorder (batch sequence update, called via fetch from DnD handler) ─────
 
 	reorder: async ({ request, locals }) => {
-		const { err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const entity = fd.get('entity') as 'seksi' | 'zona' | 'station';
-		const idsRaw = fd.get('ids') as string;
-		if (!entity || !idsRaw) return fail(400, { error: 'Data urutan tidak valid' });
-
-		let ids: string[];
-		try {
-			ids = JSON.parse(idsRaw) as string[];
-		} catch {
-			return fail(400, { error: 'Format data urutan tidak valid' });
-		}
+		const ids = parseJsonField<string[]>(fd, 'ids');
+		if (!entity || !ids) return fail(400, { error: 'Data urutan tidak valid' });
 
 		try {
 			await Promise.all(
@@ -365,15 +336,15 @@ export const actions = {
 			return { success: true };
 		} catch (err) {
 			logger.error('admin_struktur.reorder: Error', { err, entity });
-			return fail(500, { error: 'Gagal menyimpan urutan. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.REORDER_FAILED });
 		}
 	},
 
 	// ── Move (re-parent via DnD, called via fetch) ────────────────────────────
 
 	move: async ({ request, locals }) => {
-		const { err } = await getAdminSession(locals);
-		if (err) return err;
+		const { ok, err } = await requireAdminSession(locals);
+		if (!ok) return err;
 
 		const fd = await request.formData();
 		const entity = fd.get('entity') as 'zona' | 'station';
@@ -384,18 +355,18 @@ export const actions = {
 
 		try {
 			if (entity === 'zona') {
-				const ok = await repo.updateNewZone(id, { sectionId: newParentId, sequence: 9999 });
-				if (!ok) return fail(404, { error: 'Zona tidak ditemukan' });
+				const result = await repo.updateNewZone(id, { sectionId: newParentId, sequence: 9999 });
+				if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			} else {
-				if (!newParentId) return fail(400, { error: 'Zona tujuan wajib dipilih' });
-				const ok = await repo.updateStation(id, { zoneId: newParentId, sequence: 9999 });
-				if (!ok) return fail(404, { error: 'Titik tugas tidak ditemukan' });
+				if (!newParentId) return fail(400, { error: VALIDATION_ERRORS.ZONE_REQUIRED });
+				const result = await repo.updateStation(id, { zoneId: newParentId, sequence: 9999 });
+				if (!result) return fail(404, { error: OPERATION_ERRORS.NOT_FOUND });
 			}
 			return { success: true };
 		} catch (err) {
 			logger.error('admin_struktur.move: Error', { err, entity, id });
 			if (err instanceof ServiceError) return fail(400, { error: err.message });
-			return fail(500, { error: 'Gagal memindahkan item. Silakan coba lagi.' });
+			return fail(500, { error: OPERATION_ERRORS.MOVE_FAILED });
 		}
 	}
 

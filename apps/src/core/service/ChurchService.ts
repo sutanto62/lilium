@@ -226,4 +226,3 @@ export class ChurchService {
 		return this.facilityRepo.findChurchFacility(this.churchId);
 	}
 }
-}

@@ -8,6 +8,7 @@ import { ServiceError, ServiceErrorType } from '$core/errors/ServiceError';
 import { ChurchService } from '$core/service/ChurchService';
 import { EventService } from '$core/service/EventService';
 import { RosterService } from '$core/service/RosterService';
+import type { Roster } from '$core/entities/Roster';
 import { hasRole } from '$src/auth';
 import { trackServerEvent } from '$src/lib/server/posthogNode';
 import { statsigService } from '$src/lib/application/StatsigService';
@@ -39,49 +40,12 @@ export const load: PageServerLoad = async (event) => {
 	const churchId = session.user?.cid ?? '';
 	const eventId = event.params.id;
 
-	// ── Gate check: new roster flow ────────────────────────────────────────────
-	const isNewRosterFlow = await checkServerGate(event.locals, 'new_roster_flow');
-	logger.debug('admin_jadwal_detail.load: gate check', { eventId, isNewRosterFlow });
+	// ── Gate check: domain eligibility ────────────────────────────────────────
+	const { featurePreference } = await event.parent();
+	const isNewDomainEligible = await checkServerGate(event.locals, 'new_domain_model');
+	logger.debug('admin_jadwal_detail.load: gate check', { eventId, isNewDomainEligible, featurePreference });
 
-	if (isNewRosterFlow) {
-		// New domain model path — load Roster aggregate
-		logger.debug('admin_jadwal_detail.load: new roster flow path', { eventId, churchId });
-		const rosterService = new RosterService(repo);
-		const eventService = new EventService(churchId);
-
-		const [eventDetail, roster, communities] = await Promise.all([
-			eventService.retrieveEventSchedule(eventId),
-			rosterService.loadRoster(eventId),
-			repo.listCommunitiesForChurch(churchId)
-		]);
-		logger.debug('admin_jadwal_detail.load: roster loaded', { eventId, hasRoster: !!roster, entryCount: roster?.entries.length ?? 0, communityCount: communities.length });
-
-		const metadata = {
-			event_id: eventId,
-			has_roster: !!roster,
-			entry_count: roster?.entries.length ?? 0,
-			load_time_ms: Date.now() - startTime
-		};
-
-		await Promise.all([
-			statsigService.logEvent('admin_jadwal_detail_view', 'load', session || undefined, metadata),
-			trackServerEvent('admin_jadwal_detail_view', { event_type: 'page_load', ...metadata }, session || undefined)
-		]);
-
-		return {
-			eventDetail,
-			roster,
-			communities,
-			isNewRosterFlow: true,
-			zones: [],
-			wilayahs: [],
-			lingkungans: [],
-			events: [],
-			eventsDate: [],
-			success: false,
-			assignedUshers: []
-		};
-	}
+	// This route uses the old domain model regardless of eligibility.
 
 	// ── Legacy path ────────────────────────────────────────────────────────────
 	const eventService = new EventService(churchId);
@@ -106,7 +70,7 @@ export const load: PageServerLoad = async (event) => {
 
 	return {
 		eventDetail,
-		roster: null,
+		roster: null as Roster | null,
 		communities: [],
 		isNewRosterFlow: false,
 		zones: zoneGroups,

@@ -41,16 +41,16 @@ export function validateUsherNames(ushers: EventUsher[], requirePpg: boolean = t
             return { isValid: false, error: `Panjang nama petugas minimum 3/maksimum 50 karakter: ${name}` };
         }
 
-        if (/(.)\1{2,}/.test(name)) {
-            return { isValid: false, error: `Mohon ketik nama petugas dengan benar: ${name}` };
+        if (name.includes('.')) {
+            return { isValid: false, error: `Nama petugas tidak boleh mengandung titik: ${name}` };
         }
 
         if (!/^[a-zA-Z\s]+$/.test(name)) {
             return { isValid: false, error: `Nama petugas hanya boleh mengandung huruf: ${name}` };
         }
 
-        if (name.includes('.')) {
-            return { isValid: false, error: `Nama petugas tidak boleh mengandung titik: ${name}` };
+        if (/([^\s])\1{2,}/.test(name)) {
+            return { isValid: false, error: `Mohon ketik nama petugas dengan benar: ${name}` };
         }
 
         // Check for single character words (abbreviations)

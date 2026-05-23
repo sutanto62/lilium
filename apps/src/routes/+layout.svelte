@@ -4,10 +4,15 @@
 	import NavigationAdmin from '$components/NavigationAdmin.svelte';
 	import '$src/app.css';
 	import { posthogService } from '$src/lib/application/PostHogService';
+	import { themeStore } from '$lib/utils/themeStore';
 	import { onMount } from 'svelte';
 
-	// Initialize PostHog and track page views
+	// Initialize theme on mount
 	onMount(async () => {
+		// Initialize theme store (this will apply the correct class to html element)
+		// The store is automatically initialized on first access
+		const unsubscribe = themeStore.subscribe(() => {});
+		
 		await posthogService.use();
 
 		// Track initial page view
@@ -19,6 +24,10 @@
 			},
 			page.data.session || undefined
 		);
+
+		return () => {
+			unsubscribe();
+		};
 	});
 </script>
 

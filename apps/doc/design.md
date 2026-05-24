@@ -65,6 +65,37 @@ graph TB
 - **Logging**: Pino (structured logging)
 - **Testing**: Vitest (unit tests), Playwright (integration tests)
 
+## Domain Model State (Dual-Model Transition)
+
+The codebase is mid-migration. **Two domain models coexist:**
+
+| Aspect | Legacy Model | New Domain Model |
+|---|---|---|
+| **Routes** | All routes except `admin/settings/*` | `admin/settings/*` only |
+| **Schema tables** | `church_zone_group`, `church_zone`, `church_position`, `mass`, `event`, `event_usher`, `wilayah`, `lingkungan` | `parish`, `community`, `section`, `zone`, `station`, `ministry`, `ministry_role`, `roster`, `roster_entry`, `roster_usher` |
+| **Entity files** | `Schedule.ts`, `Event.ts`, `Usher.ts` | `Parish.ts`, `Facility.ts`, `Ministry.ts`, `Roster.ts` |
+| **Identity** | Usher name as free-text string; no stable identity | `Parishioner` FK planned (Phase 1–2, not yet implemented) |
+| **PPG/Kolekte** | `is_ppg` / `is_kolekte` boolean columns on `event_usher` | `ministry_role_id` FK on `roster_usher` |
+| **Migration status** | See `doc/migrate.md` for per-phase status | Phases 7–10 partially done as parallel model |
+
+**The old model is not going away until all legacy routes are migrated.** Do not delete old schema tables or entities.
+
+### Entity Name Mapping (Old → New)
+
+| Old Name | New Name | Notes |
+|---|---|---|
+| `Mass` (recurring template) | `MassSchedule` | TypeScript interface done; DB table still named `mass` |
+| `ChurchEvent` | `Celebration` | TypeScript: `ChurchEvent` still in use; `event` table unchanged |
+| `ChurchZoneGroup` | `Section` | New table `section` exists; `church_zone_group` retained |
+| `ChurchZone` | `Zone` | New table `zone` exists; `church_zone` retained |
+| `ChurchPosition` | `Station` | New table `station` exists; `church_position` retained |
+| `EventUsher` | `RosterUsher` | New table `roster_usher` exists; `event_usher` retained |
+| `Lingkungan` | `Community` (TypeScript) | UI label stays *Lingkungan*; new table `community` |
+| `church.parish: string` | `Parish` entity | New table `parish`; `church.parish_id` nullable FK bridge |
+| `is_ppg` / `is_kolekte` booleans | `MinistryRole.code` | Booleans still live on legacy `event_usher` |
+
+---
+
 ## Architecture Layers
 
 ### Domain Layer (`core/entities/`)
@@ -72,6 +103,33 @@ graph TB
 The domain layer contains pure business entities with no external dependencies.
 
 #### Entity Definitions
+
+> **Dual-model note:** "Legacy" entities are still active in most routes. "New domain" entities are used only in `admin/settings/*` and the new roster flow. Both sets must be maintained until migration is complete.
+
+##### Legacy Domain Entities (still in use by most routes)
+
+**Physical / Spatial:**
+- `ChurchZoneGroup` (table: `church_zone_group`) — section of the building; new name: `Section`
+- `ChurchZone` (table: `church_zone`) — service area within a zone group; new name: `Zone`
+- `ChurchPosition` (table: `church_position`) — specific usher station; new name: `Station`; has `type: 'usher' | 'prodiakon' | 'peta'` and `is_ppg` boolean
+
+**Liturgy / Scheduling:**
+- `Mass` (table: `mass`) — recurring schedule template; new name: `MassSchedule`
+- `ChurchEvent` (table: `event`) — concrete dated event; new name: `Celebration`; has `EventType.MASS | FEAST` and `is_complete` boolean
+- `EventZonePic` (table: `event_zone_pic`) — free-text PIC name per zone group per event
+- `EventUsher` (table: `event_usher`) — usher assignment with free-text name and `is_ppg` / `is_kolekte` flags
+
+**Territorial:**
+- `Wilayah` (table: `wilayah`) — unchanged; also has new `parish_id` FK bridge column
+- `Lingkungan` (table: `lingkungan`) — neighbourhood community; new TypeScript name: `Community`
+
+**Shared:**
+- `Church` (table: `church`) — physical building; gains nullable `parish_id` FK as bridge to new model
+- `User` (table: `user`) — system user; unchanged
+
+---
+
+##### New Domain Entities (admin/settings routes only)
 
 **Core Entities — Territorial hierarchy (WHERE, territorial):**
 - `Parish`: Administrative root; owns Wilayahs and Churches
@@ -400,82 +458,139 @@ export const actions: Actions = {
 
 ### Entity Relationship Diagram
 
-See `doc/ERD.mermaid` for complete ERD. Key relationships:
+See `doc/ERD.mermaid` for complete ERD.
 
-**Territorial hierarchy (WHERE, territorial):**
-- Parish → Wilayah (governs)
-- Wilayah → Community (contains; UI label: *Lingkungan*)
-- Community → Parishioner (belongs_to)
+#### Legacy Model — Key Relationships (most routes)
 
-**Physical hierarchy (WHERE, physical):**
-- Parish → Church (owns)
-- Church → Section (has; was ZoneGroup)
-- Section → Zone (contains; was ChurchZone)
-- Zone → Station (defines; was ChurchPosition)
-- Station → Ministry (served_by)
+```
+Church ──────────────────────────────────────────── Church
+ ├─ church_zone_group (ChurchZoneGroup / Section)
+ │    └─ church_zone (ChurchZone / Zone)
+ │         └─ church_position (ChurchPosition / Station) ── type: usher|prodiakon|peta
+ ├─ mass (Mass / MassSchedule)
+ │    └─ event (ChurchEvent / Celebration) ── type: mass|feast, is_complete
+ │         ├─ event_zone_pic (free-text PIC per zone_group)
+ │         └─ event_usher (EventUsher) ── name TEXT, wilayah TEXT, lingkungan TEXT,
+ │                                         is_ppg, is_kolekte, position_id→church_position
+ └─ wilayah
+      └─ lingkungan (Lingkungan / Community)
 
-**Liturgy (WHAT × WHEN):**
-- Church → MassSchedule (recurring template; was Mass)
-- MassSchedule → Celebration (instance on a date; was ChurchEvent)
+User → Church
+```
 
-**Roster (WHO):**
-- Celebration → Roster (assembled for)
-- Roster → RosterEntry (one per Community assigned)
-- RosterEntry → RosterUsher (one per minister; was EventUsher)
-- RosterUsher → Station (assigned_to)
-- RosterUsher → MinistryRole (role_in)
+#### New Domain Model — Key Relationships (admin/settings only)
 
-**Auth:**
-- User → Church (belongs_to)
+```
+Parish
+ ├─ Wilayah (bridge: wilayah.parish_id FK)
+ │    └─ Community (table: community)
+ ├─ Church (bridge: church.parish_id FK)
+ │    ├─ Section (table: section)
+ │    │    └─ Zone (table: zone)
+ │    │         └─ Station ── ministry_id→Ministry, default_role_id→MinistryRole
+ │    └─ [Celebration — target state; event table not yet renamed]
+ └─ Ministry (catalog)
+      └─ MinistryRole (sub-catalog; replaces is_ppg/is_kolekte)
+
+event (Celebration) → Roster → RosterEntry (Community snapshot)
+                                    └─ RosterUsher ── ministry_role_id, station_id
+```
 
 ### Schema Definitions
 
-Schema is defined in `src/lib/server/db/schema.ts` using Drizzle ORM:
+Schema is defined in `src/lib/server/db/schema.ts` using Drizzle ORM.
+
+#### Legacy Schema (active — do not remove until migration complete)
 
 ```typescript
-// Celebration (was: event table)
-export const celebration = sqliteTable('celebration', {
-  id: text('id').primaryKey().unique().notNull(),
-  church_id: text('church_id')
-    .references(() => church.id, { onDelete: 'cascade' })
-    .notNull(),
-  mass_schedule_id: text('mass_schedule_id')
-    .references(() => mass_schedule.id, { onDelete: 'set null' }),
-  date: text('date').notNull(),
-  week_number: integer('week_number'),
-  created_at: integer('created_at').default(sql`(unixepoch())`),
-  active: integer('active').notNull().default(1),
-  liturgy_kind: text('liturgy_kind', {
-    enum: ['mass', 'adoration', 'vespers', 'stations_of_cross']
-  }).notNull().default('mass'),
-  liturgical_rank: text('liturgical_rank', {
-    enum: ['solemnity', 'feast', 'memorial', 'weekday']
-  }),
-  code: text('code'),
-  description: text('description')
+// Mass recurring template (TypeScript: Mass → MassSchedule alias; table still named mass)
+export const mass = sqliteTable('mass', {
+  id, code, name, sequence,
+  church: church_id → church,
+  day: 'monday'|…|'sunday',
+  time, briefingTime,
+  active, createdAt
 });
 
-// Ministry catalog (Type Object pattern — new ministry types are inserted as rows)
+// Concrete event (TypeScript: ChurchEvent; table: event; target name: Celebration)
+export const event = sqliteTable('event', {
+  id, church_id → church, mass_id → mass,
+  date, week_number, created_at,
+  isComplete,       // ← derived flag (target: remove; derive at query time)
+  active,
+  type: 'mass'|'feast',   // ← target: replace with LiturgyKind + LiturgicalRank
+  code, description
+});
+
+// Free-text PIC per event × zone_group (target: replace with PETA RosterUsher)
+export const event_zone_pic = sqliteTable('event_zone_pic', {
+  id, event_id → event, zone_group_id → church_zone_group,
+  name,   // ← free-text PETA name
+  active, createdAt
+});
+
+// Usher assignment (TypeScript: EventUsher; target name: RosterUsher)
+export const event_usher = sqliteTable('event_usher', {
+  id, event_id → event,
+  name,           // ← free-text; no stable identity
+  wilayah,        // ← denormalized string
+  lingkungan,     // ← denormalized string
+  position_id → church_position,
+  isPpg,          // ← boolean (target: MinistryRole.PPG)
+  isKolekte,      // ← boolean (target: MinistryRole.KOLEKTE)
+  sequence, active, createdAt
+});
+
+// Physical hierarchy (target: replaced by section/zone/station)
+export const church_zone_group = sqliteTable('church_zone_group', { id, church_id, name, code, sequence, active });
+export const church_zone       = sqliteTable('church_zone',       { id, church_id, church_zone_group_id, name, code, sequence, active });
+export const church_position   = sqliteTable('church_position',   {
+  id, church_zone_id,
+  name, code, description,
+  isPpg,   // ← station-level PPG flag (intentional; drives queue manager logic)
+  sequence,
+  type: 'usher'|'prodiakon'|'peta',  // ← target: rename column to ministry
+  active
+});
+```
+
+#### New Domain Schema (admin/settings routes; partially implemented)
+
+```typescript
+// Ministry catalog (Type Object pattern)
 export const ministry = sqliteTable('ministry', {
-  id: text('id').primaryKey().unique().notNull(),
-  name: text('name').notNull(),
-  code: text('code').notNull().unique(),   // 'USHER', 'PETA', 'EMHC', 'ALTAR_SERVER'
-  description: text('description'),
-  requires_station: integer('requires_station').notNull().default(1),
-  active: integer('active').notNull().default(1),
+  id, name,
+  code,              // 'USHER', 'PETA', 'EMHC', 'ALTAR_SERVER'
+  description,
+  requiresStation,   // false for PETA
+  active
 });
 
 // MinistryRole sub-catalog (replaces is_ppg / is_kolekte boolean flags)
 export const ministry_role = sqliteTable('ministry_role', {
-  id: text('id').primaryKey().unique().notNull(),
-  ministry_id: text('ministry_id')
-    .references(() => ministry.id, { onDelete: 'cascade' })
-    .notNull(),
-  name: text('name').notNull(),
-  code: text('code').notNull(),   // 'REGULAR', 'KOLEKTE', 'PPG', 'PPKG', 'PROCESSIONAL'
-  is_special_collection: integer('is_special_collection').notNull().default(0),
-  active: integer('active').notNull().default(1),
+  id, ministry_id → ministry,
+  name, code,        // 'REGULAR', 'KOLEKTE', 'PPG', 'PPKG', 'PROCESSIONAL'
+  isSpecialCollection,
+  active
 });
+
+// Physical hierarchy (new model)
+export const section = sqliteTable('section', { id, church_id, name, code, sequence, active });
+export const zone    = sqliteTable('zone',    { id, church_id, section_id, name, code, sequence, active });
+export const station = sqliteTable('station', {
+  id, church_id, zone_id,
+  ministry_id → ministry,
+  default_role_id → ministry_role,
+  name, code, sequence, active
+});
+
+// Roster aggregate
+export const roster       = sqliteTable('roster',       { id, event_id → event, created_by_user_id → user, version, status, created_at, updated_at });
+export const roster_entry = sqliteTable('roster_entry', { id, roster_id, community_id → community, community_name, wilayah_id, wilayah_name, status, submitted_at, confirmed_at });
+export const roster_usher = sqliteTable('roster_usher', { id, roster_entry_id, name, ministry_role_id → ministry_role, station_id → station, sequence, created_at });
+
+// Territorial (new model; community replaces lingkungan in new domain)
+export const community = sqliteTable('community', { id, name, wilayah_id → wilayah, parish_id → parish, sequence, active });
 ```
 
 ### Migration Strategy

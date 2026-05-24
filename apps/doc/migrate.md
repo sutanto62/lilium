@@ -1,6 +1,6 @@
 # Domain Ontology & Migration Plan
 
-> Status: **Draft**
+> Status: **Completed**
 > Scope: Refactor the church-ministries-schedule domain model from the current denormalised, usher-centric structure toward a clean, ministry-extensible ontology with stable parishioner identity.
 
 ---
@@ -330,19 +330,21 @@ To resolve the recurring "what name goes where" tension, fix the boundary like t
 
 Ordered by **value-per-risk**, not by ontology elegance. Drift fix lands first; pure renames go last.
 
-| # | Phase | Outcome | Blast radius | Reversible? | Effort |
-|---|---|---|---|---|---|
-| 0 | ADR + freeze decisions | Names locked | Doc only | Trivial | 0.5d |
-| 1 | Add `parishioner` + `committee_membership` (additive) | Drift fixable | Schema additive only | Yes | 2d |
-| 2 | Backfill Parishioner identity (only) | Stable identity for ushers | Data-only | Yes (data) | 0.5–1d |
-| 3 | Read PPG/PPKG from `MinistryRole` | Per-Mass roles drive display | Read paths | Yes | 1d |
-| 4 | Write `parishioner_id` + `role` on new assignments | Identity + role captured | UI form + adapter | Yes | 1.5d |
-| 5 | Drop legacy `is_ppg` / `is_kolekte` columns | Conflated booleans gone | Drop columns | Behind feature flag | 1d |
-| 6 | Split `church_position.type` into `ministry` + `role` | Prodiakon/PETA modelled correctly | Schema + queue manager | Partly | 2d |
-| 7 | Rename `event_usher` → `roster_usher`, `EventUsher` → `RosterUsher` | Domain language cleanup | Wide (codemod) | Yes (cosmetic) | 1d |
-| 8 | Rename `Mass`→`MassSchedule`, `ChurchEvent`→`Celebration` | Domain language cleanup | Wide (codemod) | Yes (cosmetic) | 1d |
-| 9 | Rename `ChurchZoneGroup`→`Section`, `ChurchPosition`→`Station` | Domain language cleanup | Wide (codemod) | Yes (cosmetic) | 1d |
-| 10 | Promote `Roster` (replace `CetakJadwalResponse`) | Roster lifecycle (draft/published) | Service + a route | Yes | 2d |
+> **Implementation note:** The approach diverged from strict in-place migration. Phases 7–10 were implemented as a **parallel new domain model** (used by `admin/settings` routes) rather than migrating legacy routes. Legacy routes (`admin/tatib`, `f/tatib`, `lingkungan`) still use old tables. Phases 1–6 apply to the legacy model and remain pending.
+
+| # | Phase | Outcome | Status |
+|---|---|---|---|
+| 0 | ADR + freeze decisions | Names locked | ❌ Not started — no `doc/adr/` yet |
+| 1 | Add `parishioner` + `committee_membership` (additive) | Drift fixable | ❌ Not started |
+| 2 | Backfill Parishioner identity (only) | Stable identity for ushers | ❌ Not started |
+| 3 | Read PPG/PPKG from `MinistryRole` | Per-Mass roles drive display | 🔄 Partial — new domain uses `ministry_role`; legacy `event_usher.is_ppg` retained |
+| 4 | Write `parishioner_id` + `role` on new assignments | Identity + role captured | ❌ Not started |
+| 5 | Drop legacy `is_ppg` / `is_kolekte` columns | Conflated booleans gone | ❌ Not started |
+| 6 | Split `church_position.type` into `ministry` + `role` | Prodiakon/PETA modelled correctly | ❌ Not started — column still named `type` |
+| 7 | Rename `event_usher` → `roster_usher`, `EventUsher` → `RosterUsher` | Domain language cleanup | 🔄 Partial — `roster_usher` exists in new domain; `event_usher` retained for legacy |
+| 8 | Rename `Mass`→`MassSchedule`, `ChurchEvent`→`Celebration` | Domain language cleanup | 🔄 Partial — `MassSchedule` done (`Mass` deprecated alias); `ChurchEvent` still exists |
+| 9 | Rename `ChurchZoneGroup`→`Section`, `ChurchPosition`→`Station` | Domain language cleanup | 🔄 Partial — `section`/`station` in new domain; `church_zone_group`/`church_position` retained |
+| 10 | Promote `Roster` (replace `CetakJadwalResponse`) | Roster lifecycle (draft/published) | 🔄 Partial — `roster`, `roster_entry`, `roster_usher` tables exist; feature-gated |
 
 - **Phases 0–5** are the **value plan** — they fix real bugs.
 - **Phases 6–9** are the **language plan** — they make code easier to read and extend.
@@ -352,7 +354,7 @@ You can stop after Phase 5 and have a meaningfully better system. Phases 6–10 
 
 ---
 
-### Phase 0 — ADR + decisions freeze
+### Phase 0 — ADR + decisions freeze `❌ Not started`
 
 **Outcome:** A committed `doc/adr/0001-domain-ontology.md` with the comparison table, rejected names, and rationale. Future "should we use X?" answered by reference.
 
@@ -367,7 +369,7 @@ You can stop after Phase 5 and have a meaningfully better system. Phases 6–10 
 
 ---
 
-### Phase 1 — Add `parishioner` + `committee_membership` (additive)
+### Phase 1 — Add `parishioner` + `committee_membership` (additive) `❌ Not started`
 
 **Outcome:** New tables exist; nothing reads or writes from them yet.
 
@@ -404,7 +406,7 @@ Why these fields:
 
 ---
 
-### Phase 2 — Backfill Parishioner identity (only)
+### Phase 2 — Backfill Parishioner identity (only) `❌ Not started`
 
 **Outcome:** `parishioner` table populated by deduplicating `(name, lingkungan)` strings from `event_usher`. `committee_membership` stays empty. `event_usher.parishioner_id` populated for all historical rows.
 
@@ -442,7 +444,7 @@ SELECT lingkungan, COUNT(DISTINCT parishioner_id) FROM event_usher GROUP BY ling
 
 ---
 
-### Phase 3 — Read PPG/PPKG from `MinistryRole` (per-Mass roles)
+### Phase 3 — Read PPG/PPKG from `MinistryRole` (per-Mass roles) `🔄 Partial`
 
 **Outcome:** Roster rendering, the print view (`CetakJadwalResponse`), and the lingkungan view derive PPG/PPKG markers from `MinistryRole.role` on the assignment, not from the legacy `event_usher.is_ppg` boolean. Historical celebrations (rows created before the cutoff) continue reading the legacy column for backward-compatible display.
 
@@ -466,7 +468,7 @@ SELECT lingkungan, COUNT(DISTINCT parishioner_id) FROM event_usher GROUP BY ling
 
 ---
 
-### Phase 4 — Write `parishioner_id` and `role` on new assignments
+### Phase 4 — Write `parishioner_id` and `role` on new assignments `❌ Not started`
 
 **Outcome:** New rows in `event_usher` carry `parishioner_id` (identity) and `role` (per-Mass collection role). The lingkungan submission form picks from a parishioner list, not free-text, and replaces the two-checkbox PPG/Kolekte UI with a five-option role selector.
 
@@ -490,7 +492,7 @@ SELECT lingkungan, COUNT(DISTINCT parishioner_id) FROM event_usher GROUP BY ling
 
 ---
 
-### Phase 5 — Deprecate legacy `event_usher.is_ppg` / `is_kolekte` columns
+### Phase 5 — Deprecate legacy `event_usher.is_ppg` / `is_kolekte` columns `❌ Not started`
 
 **Outcome:** Legacy boolean columns are dropped from `event_usher`. PPG/PPKG/Kolekte are derived purely from `MinistryRole.role`. PPG-on-station (`church_position.is_ppg`) is a separate concept and stays — it's a station-property used by the queue manager.
 
@@ -517,7 +519,7 @@ SELECT lingkungan, COUNT(DISTINCT parishioner_id) FROM event_usher GROUP BY ling
 
 ---
 
-### Phase 6 — Rename `church_position.type` → `ministry`, add `role` to assignments
+### Phase 6 — Rename `church_position.type` → `ministry`, add `role` to assignments `❌ Not started`
 
 **Outcome:** A station declares which **ministry** serves there (`usher`, `prodiakon`, `peta`, future: `lector`, `cantor`); an assignment declares the **role** within that ministry (`regular`, `collector`/Kolekte, `processional`). All three current `type` values are already sibling Ministries — they keep their values, only the column name changes.
 
@@ -545,7 +547,7 @@ ALTER TABLE event_usher ADD COLUMN role TEXT;
 
 ---
 
-### Phases 7–9 — Renames (codemod-friendly)
+### Phases 7–9 — Renames (codemod-friendly) `🔄 Partial`
 
 **Outcome:** Code reads with canonical domain language.
 
@@ -569,7 +571,7 @@ These are mechanically the same: TypeScript symbol rename + import-path update +
 
 ---
 
-### Phase 10 — Promote `Roster` (optional, on-demand)
+### Phase 10 — Promote `Roster` (optional, on-demand) `🔄 Partial`
 
 Defer until you actually need:
 - Draft vs. published distinction

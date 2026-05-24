@@ -1,5 +1,7 @@
 # Design Patterns for the Three Domain Relationships
 
+> **Scope:** This document describes the **new domain model** targeted by the ongoing migration (see `migrate.md`). The new model is currently live only in `admin/settings/*` routes. Legacy routes still use the old model; see the "Legacy Domain Model Reference" section at the bottom of this document.
+
 ## Context
 
 This document captures the chosen design patterns for three key domain relationships in the church ministry scheduling system. Following the five orthogonal axes defined in `migrate.md`, these three relationships are where the most important architectural decisions live:
@@ -561,3 +563,121 @@ Patterns are a last resort, not a starting point. A function, a discriminated un
 - **Snapshot denormalization on `roster_entry`** — `communityName` + `wilayahName` stored at assignment time; audit trail survives future renames
 - **Optimistic locking on `Roster.version`** — prevents silent corruption when two PETA members edit simultaneously
 - **`applyTransition` as a pure function** — no I/O, fully unit-testable, all state-guard logic in one place
+
+---
+
+## Legacy Domain Model Reference
+
+> **Keep this section until all legacy routes are migrated.** The patterns below describe the old model still used by `admin/tatib`, `f/tatib`, `lingkungan`, and most admin routes.
+
+### Physical Hierarchy (Old)
+
+```
+Church
+ └─ ChurchZoneGroup  (table: church_zone_group)
+      └─ ChurchZone  (table: church_zone)
+           └─ ChurchPosition  (table: church_position)
+                columns: id, church_zone_id, name, code, is_ppg (boolean),
+                         type: 'usher'|'prodiakon'|'peta', sequence, active
+```
+
+**Pattern:** flat table per level, joined by FK. No abstraction — each level has its own query in `SQLiteDbEvent.ts`.
+
+**Known issue:** `type` column conflates ministry identity with position type. `is_ppg` on a station is a queue-manager hint, not committee membership. See `migrate.md § Phase 6` for the rename plan.
+
+### Territorial Hierarchy (Old)
+
+```
+Church                          (shared with new model; bridge: church.parish_id nullable)
+ └─ Wilayah  (table: wilayah)  (bridge: wilayah.parish_id nullable FK to new parish)
+      └─ Lingkungan  (table: lingkungan)
+```
+
+**Pattern:** denormalized strings on `event_usher` — `wilayah TEXT`, `lingkungan TEXT`. No FK, no stable identity. Leads to "BONY" ≠ "Bony" problem documented in `migrate.md § 6`.
+
+### Usher Assignment (Old)
+
+```typescript
+// src/core/entities/Event.ts
+export interface EventUsher {
+  id: string;
+  event: string;           // FK to event
+  name: string;            // free-text — no Parishioner identity
+  wilayah: string;         // denormalized string
+  lingkungan: string;      // denormalized string
+  position?: string;       // FK to church_position (nullable)
+  isPpg?: number;          // 0|1 boolean — per-Mass collection role (PPG envelopes)
+  isKolekte?: number;      // 0|1 boolean — per-Mass collection role (regular offertory)
+  sequence?: number;
+  active: number;
+}
+```
+
+**Known issues:**
+- `isPpg` / `isKolekte` are mutually exclusive per person but enforced only in UI, not schema.
+- Free-text `name` means the same person can appear as multiple identities across submissions.
+- `wilayah` / `lingkungan` strings drift; no FK integrity.
+
+### Schedule Model (Old)
+
+```typescript
+// src/core/entities/Schedule.ts
+export interface MassSchedule { // was: Mass (deprecated alias still exported)
+  id: string;
+  church: string;
+  name: string;
+  day: 'sunday' | 'monday' | … ;   // plain string day — no RecurrenceRule
+  time: string | null;
+  briefingTime: string | null;
+  active: number;
+}
+
+// src/core/entities/Event.ts
+export interface ChurchEvent {    // target name: Celebration
+  id: string;
+  church: string;
+  mass: string;                   // FK to mass (MassSchedule)
+  date: string;
+  weekNumber?: number;
+  isComplete?: number;            // boolean flag — target: derived projection
+  type?: EventType;               // EventType.MASS | EventType.FEAST — target: split into LiturgyKind + LiturgicalRank
+  active?: number;
+}
+
+export enum EventType {
+  MASS  = 'mass',
+  FEAST = 'feast',
+}
+```
+
+### Event Zone PIC (Old)
+
+```typescript
+// Free-text PIC name per event × zone_group
+export interface EventZonePic {
+  id: string;
+  event: string;     // FK to event
+  zoneGroup: string; // FK to church_zone_group
+  name: string;      // free-text PETA member name
+  active: number;
+}
+```
+
+**Target:** replaced by PETA `RosterUsher` with `section_id` attribute (see `migrate.md § Phase 10`).
+
+### Migration Status Summary
+
+| Old Entity | New Entity | Status |
+|---|---|---|
+| `Mass` / `mass` table | `MassSchedule` | 🔄 TypeScript alias done; DB table unchanged |
+| `ChurchEvent` / `event` table | `Celebration` | ❌ Not renamed |
+| `ChurchZoneGroup` / `church_zone_group` | `Section` / `section` | 🔄 New table exists; old retained |
+| `ChurchZone` / `church_zone` | `Zone` / `zone` | 🔄 New table exists; old retained |
+| `ChurchPosition` / `church_position` | `Station` / `station` | 🔄 New table exists; old retained |
+| `EventUsher` / `event_usher` | `RosterUsher` / `roster_usher` | 🔄 New table exists; old retained |
+| `Lingkungan` / `lingkungan` | `Community` / `community` | 🔄 New table exists; old retained |
+| `is_ppg` / `is_kolekte` booleans | `MinistryRole.code` | 🔄 New model uses roles; legacy booleans retained |
+| `EventZonePic` / `event_zone_pic` | PETA `RosterUsher` with `section_id` | ❌ Not migrated |
+| Parish as string on Church | `Parish` entity | 🔄 New table; bridge FK on church/wilayah |
+
+See `doc/migrate.md` for phase-by-phase plan and per-phase status.

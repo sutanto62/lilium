@@ -703,7 +703,6 @@ export const actions = {
 			try {
 				await queueManager.submitConfirmationQueue(confirmedEvent, selectedLingkungan);
 				await queueManager.processQueue();
-				queueManager.reset();
 			} catch (err) {
 				logger.warn('tatib_error: failed processing queue', err);
 				const errorMetadata = {
@@ -722,6 +721,9 @@ export const actions = {
 				if (err instanceof Error)
 					return fail(404, { error: err.message });
 			}
+
+			const assignedUshers = queueManager.assignedUshers;
+			queueManager.reset();
 
 			const createdDate = new Date(epochCreatedDate);
 			const processingTime = Date.now() - startTime;
@@ -757,7 +759,7 @@ export const actions = {
 					wilayahName: selectedLingkungan.wilayahName,
 					mass: selectedMass.name,
 					event: formatDate(confirmedEvent.date, 'long'),
-					ushers: queueManager.assignedUshers,
+					ushers: assignedUshers,
 				}
 			};
 		} catch (err) {

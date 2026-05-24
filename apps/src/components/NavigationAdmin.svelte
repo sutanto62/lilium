@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { enhance } from '$app/forms';
 	import { env } from '$env/dynamic/public';
-	import { SignOut } from '@auth/sveltekit/components';
 	import { themeStore } from '$lib/utils/themeStore';
 	import { MoonSolid, SunSolid, CogOutline } from 'flowbite-svelte-icons';
 
@@ -108,7 +108,6 @@
 					aria-expanded={isDropdownOpen}
 				>
 					{@render avatar('h-9 w-9')}
-					<span class="hidden lg:inline">{userName}</span>
 					<svg
 						class="h-4 w-4 transition-transform {isDropdownOpen ? 'rotate-180' : ''}"
 						fill="none"
@@ -176,16 +175,16 @@
 
 						<!-- Sign Out -->
 						<div class="border-t border-gray-200 px-4 py-2 dark:border-gray-600">
-							<SignOut options={{ redirectTo: '/' }}>
+							<form method="POST" action="/signout" use:enhance>
+								<input type="hidden" name="redirectTo" value="/" />
 								<button
-									slot="submitButton"
+									type="submit"
 									class="w-full text-left text-sm font-medium text-red-600 hover:bg-red-50 px-0 py-2 dark:text-red-400 dark:hover:bg-red-900 dark:hover:bg-opacity-20"
 									role="menuitem"
-									onclick={closeMenus}
 								>
 									Log out
 								</button>
-							</SignOut>
+							</form>
 						</div>
 					</div>
 				{/if}
@@ -201,11 +200,12 @@
 				{@render avatar('h-10 w-10')}
 			</button>
 		{:else}
-			<a
-				href="/signin"
-				class="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-			>
-				Masuk
+			<a href="/signin" aria-label="Masuk" title="Klik untuk login">
+				<img
+					src="/images/dove.png"
+					alt="Masuk"
+					class="h-10 w-10 rounded-full object-cover hover:opacity-80 transition-opacity"
+				/>
 			</a>
 		{/if}
 	</div>
@@ -266,16 +266,16 @@
 		</div>
 
 		<div class="border-t border-gray-200 px-4 py-3 dark:border-gray-600">
-			<SignOut options={{ redirectTo: '/' }}>
+			<form method="POST" action="/signout" use:enhance>
+				<input type="hidden" name="redirectTo" value="/" />
 				<button
-					slot="submitButton"
+					type="submit"
 					class="w-full text-left text-sm font-semibold text-red-600 hover:bg-red-50 px-3 py-3 rounded-lg dark:text-red-400 dark:hover:bg-red-900 dark:hover:bg-opacity-20"
 					role="menuitem"
-					onclick={closeMenus}
 				>
 					Log out
 				</button>
-			</SignOut>
+			</form>
 		</div>
 	</div>
 {/if}

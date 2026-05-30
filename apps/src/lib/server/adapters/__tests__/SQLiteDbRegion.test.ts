@@ -11,7 +11,11 @@ import {
 	deactivateWilayah,
 	listCommunities,
 	listCommunitiesByWilayah,
-	listWilayahsByParish
+	listWilayahsByParish,
+	createCommunity,
+	updateCommunity,
+	deactivateCommunity,
+	getParishIdByChurch
 } from '../SQLiteDbRegion';
 
 describe('SQLiteDbRegion — new ParishRepository methods — integration', () => {
@@ -234,6 +238,91 @@ describe('SQLiteDbRegion — new ParishRepository methods — integration', () =
 
 		it('returns false for nonexistent wilayah', async () => {
 			const ok = await deactivateWilayah(db, 'ghost-wil');
+			expect(ok).toBe(false);
+		});
+	});
+
+	describe('getParishIdByChurch', () => {
+		it('returns parishId for a linked church', async () => {
+			const result = await getParishIdByChurch(db, churchId);
+			expect(result).toBe(parishId);
+		});
+
+		it('throws ServiceError.notFound for unknown church', async () => {
+			await expect(getParishIdByChurch(db, 'ghost-church')).rejects.toMatchObject({
+				type: 'NOT_FOUND_ERROR'
+			});
+		});
+	});
+
+	describe('createCommunity', () => {
+		it('creates a community and returns it with wilayahName populated', async () => {
+			const result = await createCommunity(db, {
+				name: 'Komunitas Baru',
+				wilayahId: 'wil-1',
+				parishId,
+				sequence: 5,
+				active: 1
+			});
+
+			expect(result.id).toBeDefined();
+			expect(result.name).toBe('Komunitas Baru');
+			expect(result.wilayahId).toBe('wil-1');
+			expect(result.wilayahName).toBe('Wilayah A');
+			expect(result.sequence).toBe(5);
+			expect(result.parishId).toBe(parishId);
+			expect(result.active).toBe(true);
+		});
+
+		it('throws ServiceError.notFound for unknown wilayahId', async () => {
+			await expect(
+				createCommunity(db, {
+					name: 'X',
+					wilayahId: 'ghost-wil',
+					parishId,
+					sequence: null,
+					active: 1
+				})
+			).rejects.toMatchObject({ type: 'NOT_FOUND_ERROR' });
+		});
+	});
+
+	describe('updateCommunity', () => {
+		it('updates name and wilayahId, returns true', async () => {
+			const ok = await updateCommunity(db, 'comm-1', { name: 'Renamed', wilayahId: 'wil-2' });
+			expect(ok).toBe(true);
+
+			const after = await findCommunityById(db, 'comm-1');
+			expect(after!.community.name).toBe('Renamed');
+			expect(after!.community.wilayahId).toBe('wil-2');
+		});
+
+		it('returns false for nonexistent community', async () => {
+			const ok = await updateCommunity(db, 'ghost-comm', { name: 'X' });
+			expect(ok).toBe(false);
+		});
+	});
+
+	describe('deactivateCommunity', () => {
+		it('sets active to 0 and returns true', async () => {
+			const ok = await deactivateCommunity(db, 'comm-1');
+			expect(ok).toBe(true);
+
+			const list = await listCommunities(db, parishId);
+			const ids = list.map((c) => c.id);
+			expect(ids).not.toContain('comm-1');
+		});
+
+		it('does not hard-delete — row still exists in DB', async () => {
+			await deactivateCommunity(db, 'comm-1');
+
+			const after = await findCommunityById(db, 'comm-1');
+			expect(after).not.toBeNull();
+			expect(after!.community.active).toBe(false);
+		});
+
+		it('returns false for nonexistent community', async () => {
+			const ok = await deactivateCommunity(db, 'ghost-comm');
 			expect(ok).toBe(false);
 		});
 	});

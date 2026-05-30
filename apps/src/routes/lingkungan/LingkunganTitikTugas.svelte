@@ -173,7 +173,7 @@
 	<input type="hidden" name="eventId" bind:value={selectedEventId} />
 </form>
 
-<div class="grid w-full gap-4 lg:gap-6 lg:grid-cols-[280px_1fr]">
+<div class="grid w-full gap-6 lg:grid-cols-[280px_1fr]">
 	<aside aria-label="Pilih jadwal misa">
 		<EventSelectorPanel
 			{events}

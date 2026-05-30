@@ -126,7 +126,7 @@
 - [x] **C4** Delegate both methods in `src/lib/server/adapters/SQLiteAdapter.ts`
 - [x] **C5** Update `admin/settings/parish/+page.server.ts` — extend load to return `church: FacilityChurch | null`; add `updateChurch` action with analytics
 - [x] **C6** Update `admin/settings/parish/+page.svelte` — Church Info Card (Nama/Kode/Kolekte Khusus) above Parish card; in-place edit form
-- [ ] **C7** Add `admin_church_update` event to `doc/events-inventory.md`
+- [x] **C7** Regenerate `doc/events-scan-report.md` — now includes all new events (admin_church_update, admin_lingkungan_*, admin_wilayah_*, admin_parish_*); 139 total events
 
 **⏸ CHECKPOINT 6.7** — `npm run db:migrate` clean; `npm run check` passes; Church card shows above Parish card; `?/updateChurch` persists; no regressions
 

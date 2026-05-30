@@ -75,8 +75,8 @@
 		Selamat Melayani
 	</Heading>
 	<P>Sistem informasi pelayanan Paroki Alam Sutera. Hanya untuk kalangan sendiri.</P>
-	<FeatureDefault class="mb-4 mt-8 grid grid-cols-1 gap-4 space-y-0 md:grid-cols-4">
-		{#if data.isAdmin}
+	{#if data.isAdmin}
+		<FeatureDefault class="mt-8 grid grid-cols-1 gap-4 space-y-0 md:grid-cols-3">
 			<FeatureCard
 				title="Jadwal Tata Tertib"
 				description="Kelola jadwal tata tertib lingkungan. Melihat kelengkapan petugas per misa. Cetak daftar petugas."
@@ -92,7 +92,9 @@
 				buttonColor="alternative"
 				onclick={() => handleFeatureClick('Pengaturan Misa', '/admin/misa')}
 			/>
-		{/if}
+		</FeatureDefault>
+	{/if}
+	<FeatureDefault class="mb-4 mt-4 grid grid-cols-1 gap-4 space-y-0 md:grid-cols-3">
 		<FeatureCard
 			title="Tugas Tata Tertib"
 			description="Konfirmasi kehadiran tugas tata tertib lingkungan."

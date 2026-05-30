@@ -2,6 +2,7 @@
 
 > Status: **Completed**
 > Scope: Refactor the church-ministries-schedule domain model from the current denormalised, usher-centric structure toward a clean, ministry-extensible ontology with stable parishioner identity.
+> For canonical concept definitions and taxonomy, see [`ontology.md`](ontology.md). For implementation patterns, see [`design-pattern.md`](design-pattern.md).
 
 ---
 

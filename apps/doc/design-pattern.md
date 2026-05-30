@@ -1,6 +1,9 @@
 # Design Patterns for the Three Domain Relationships
 
-> **Scope:** This document describes the **new domain model** targeted by the ongoing migration (see `migrate.md`). The new model is currently live only in `admin/settings/*` routes. Legacy routes still use the old model; see the "Legacy Domain Model Reference" section at the bottom of this document.
+> **Scope:** This document describes the **implementation patterns** (chosen patterns, rejected alternatives, TypeScript interfaces, DB schema, files to create) for the new domain model.
+> For canonical concept definitions, naming policy, and the entity taxonomy, see [`ontology.md`](ontology.md).
+> For the migration plan and phase-by-phase status, see [`migrate.md`](migrate.md).
+> The new model is currently live only in `admin/settings/*` routes. Legacy routes still use the old model; see the "Legacy Domain Model Reference" section at the bottom of this document.
 
 ## Context
 

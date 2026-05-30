@@ -156,7 +156,7 @@
 						</tr>
 						{#each group.ushers as usher}
 							<tr class="border-b border-gray-100 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-								<td class="py-3 pr-4 text-base">
+								<td class="py-2 pr-4 text-base">
 									<!-- Mobile: 2-line stacked -->
 									<div class="lg:hidden">
 										<div class="flex flex-wrap items-center gap-1.5">
@@ -164,14 +164,14 @@
 											{#if usher.isPpg}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-sm text-gray-700 dark:bg-gray-600 dark:text-gray-300">PPG</span>{/if}
 											{#if usher.isKolekte}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-sm text-gray-700 dark:bg-gray-600 dark:text-gray-300">Kolekte</span>{/if}
 										</div>
-										<p class="mt-0.5 text-base text-gray-500 dark:text-gray-400">{usher.zone} · {usher.position}</p>
+										<p class="mb-0 mt-0.5 text-base text-gray-500 dark:text-gray-400">{usher.zone} · {usher.position}</p>
 									</div>
 									<!-- Desktop: name only -->
 									<span class="hidden text-gray-900 dark:text-gray-100 lg:inline">{usher.name}</span>
 								</td>
-								<td class="hidden py-3 pr-4 text-base text-gray-700 dark:text-gray-300 lg:table-cell">{usher.zone}</td>
-								<td class="hidden py-3 pr-4 text-base text-gray-700 dark:text-gray-300 lg:table-cell">{usher.position}</td>
-								<td class="hidden py-3 text-base text-gray-700 dark:text-gray-300 lg:table-cell">
+								<td class="hidden py-2 pr-4 text-base text-gray-700 dark:text-gray-300 lg:table-cell">{usher.zone}</td>
+								<td class="hidden py-2 pr-4 text-base text-gray-700 dark:text-gray-300 lg:table-cell">{usher.position}</td>
+								<td class="hidden py-2 text-base text-gray-700 dark:text-gray-300 lg:table-cell">
 									{#if usher.isPpg}<span class="mr-1 rounded bg-gray-200 px-1 py-0.5 text-base text-gray-700 dark:bg-gray-600 dark:text-gray-300">PPG</span>{/if}
 									{#if usher.isKolekte}<span class="rounded bg-gray-200 px-1 py-0.5 text-base text-gray-700 dark:bg-gray-600 dark:text-gray-300">Kolekte</span>{/if}
 								</td>

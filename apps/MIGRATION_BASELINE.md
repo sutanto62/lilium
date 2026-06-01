@@ -78,6 +78,70 @@ npm run db:migrate:custom
 npm run db:studio
 ```
 
+---
+
+## Safe Migration Script (`scripts/migrate-safe.sh`)
+
+Use this script when applying pending migrations to a live or staging database. It backs up the database before touching it, runs Drizzle's migration, then verifies that all expected tables, columns, and seed rows are present.
+
+### What it does
+
+1. **Backup** — copies `db/lilium.db` to `db/backups/lilium_pre_migration_<timestamp>.db` before any changes.
+2. **Migrate** — runs `npm run db:migrate` (Drizzle Kit).
+3. **Verify** — checks that all 10 new domain tables exist, 4 new columns are present, and seed rows are correct (1 parish, 5 ministries, 5 ministry roles).
+4. **Exits non-zero** if any check fails, so CI or a manual operator can catch partial failures.
+
+### Usage
+
+```bash
+# From the apps/ directory
+bash scripts/migrate-safe.sh            # full run: backup → migrate → verify
+bash scripts/migrate-safe.sh --dry-run  # preview only: shows current DB state, no changes
+```
+
+### What gets migrated
+
+| Migration | What it adds |
+|---|---|
+| `0001` | `user.feature_preference` column |
+| `0002` | New domain tables: `parish`, `community`, `section`, `zone`, `ministry`, `ministry_role`, `station`, `roster`, `roster_entry`, `roster_usher`; `church.parish_id`, `wilayah.parish_id` columns; seed data for parish, ministries, and ministry roles |
+| `0003` | Skipped — its journal timestamp predates migration 0000's corrected timestamp; see Known Issues below |
+| `0004` | Backfills `church.parish_id = 'parish-1'` for all existing church rows |
+| `0005` | `roster_entry.confirmed_by_user_id` column (handles what 0003 was supposed to add) |
+
+### Restoring from backup
+
+If the migration fails mid-way:
+
+```bash
+# Replace <timestamp> with the value printed at the start of the run
+cp db/backups/lilium_pre_migration_<timestamp>.db db/lilium.db
+```
+
+### Known issues and fixes applied
+
+#### `__drizzle_migrations` timestamp mismatch (fixed)
+
+**Symptom:** `npm run db:migrate` fails with `LibsqlError: SQLITE_OK: not an error`.
+
+**Root cause:** The `created_at` stored in `__drizzle_migrations` for migration 0000 was `1735469290126` (the original DB setup date), but the journal was later updated to set 0000's `when` to `1769133298583`. Drizzle compares these values to decide which migrations to apply: since `1735469290126 < 1769133298583`, it tried to re-run 0000 — whose file is a pure SQL comment. libsql's native binding throws `SQLITE_OK` when executing a comment-only batch, surfacing as a misleading error.
+
+**Fix applied:** Updated `__drizzle_migrations` directly:
+```sql
+UPDATE __drizzle_migrations
+SET created_at = 1769133298583
+WHERE created_at = 1735469290126;
+```
+This aligns the stored timestamp with the journal, so Drizzle correctly skips 0000 on subsequent runs.
+
+#### Migration 0003 skipped by design
+
+**Symptom:** `roster_entry.confirmed_by_user_id` is not added by migration 0003.
+
+**Root cause:** 0003's journal `when` (`1747386600000`) is earlier than 0000's corrected timestamp (`1769133298583`). Drizzle's migrator skips any migration whose `folderMillis` is not greater than the last applied `created_at`, so 0003 is never applied.
+
+**Fix applied:** Migration 0005 was updated to add `confirmed_by_user_id` instead. 0003 remains in the folder but is permanently skipped — do not remove it, as removing migration files breaks Drizzle's journal integrity.
+
 ## Environment Setup
 
 Ensure the following environment variable is set:

@@ -1,8 +1,5 @@
-ALTER TABLE `roster_entry` ADD `confirmed_by_user_id` text REFERENCES user(id);--> statement-breakpoint
-/*
- SQLite does not support "Creating foreign key on existing column" out of the box, we do not generate automatic migration for that, so it has to be done manually
- Please refer to: https://www.techonthenet.com/sqlite/tables/alter_table.php
-                  https://www.sqlite.org/lang_altertable.html
-
- Due to that we don't generate migration automatically and it has to be done manually
-*/
+-- 0003 has when=1747386600000, which is older than migration 0000's journal timestamp
+-- (1769133298583). Drizzle will skip 0003, so this migration adds confirmed_by_user_id.
+-- SQLite does not support "Creating foreign key on existing column" out of the box;
+-- the REFERENCES clause is stored in schema metadata only (not enforced on ALTER).
+ALTER TABLE `roster_entry` ADD `confirmed_by_user_id` text REFERENCES user(id);

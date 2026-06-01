@@ -22,7 +22,18 @@ export async function findChurches(db: ReturnType<typeof drizzle>): Promise<Chur
 }
 
 export async function findChurchById(db: ReturnType<typeof drizzle>, id: string): Promise<Church> {
-	const result = await db.select().from(church).where(eq(church.id, id)).limit(1);
+	const result = await db
+		.select({
+			id: church.id,
+			name: church.name,
+			code: church.code,
+			parish: church.parish,
+			requirePpg: church.requirePpg,
+			active: church.active,
+		})
+		.from(church)
+		.where(eq(church.id, id))
+		.limit(1);
 
 	return {
 		id: result[0]?.id ?? '',

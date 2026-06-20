@@ -87,7 +87,7 @@
 			<h2 class="mb-2 font-bold">CATATAN:</h2>
 			<ol class="max-w-full list-inside list-decimal space-y-1" style="margin-left: 2rem">
 				<li>
-					Petugas TATIB dan PM wajib hadir {event.briefingTime ?? 'sesuai instruksi'} sebelum Misa untuk
+					Petugas TATIB dan PPKG wajib hadir {event.briefingTime ?? 'sesuai instruksi'} sebelum Misa untuk
 					briefing
 				</li>
 				<li>
@@ -103,6 +103,10 @@
 				<li>
 					Petugas menempati posisi tugas masing-masing yang telah ditentukan dan tidak berpindah
 					tempat
+				</li>
+				<li>
+					Bagi yang tidak bertugas menghitung kolekte, mohon menyisir bangku umat untuk mengumpulkan
+					sampah atau amplop yang tertinggal.
 				</li>
 			</ol>
 		</div>

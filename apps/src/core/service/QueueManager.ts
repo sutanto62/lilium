@@ -13,6 +13,19 @@ export interface ConfirmationQueue {
 export interface AssignedEventUsher extends EventUsher {
 	zone?: string;
 	positionName?: string;
+	positionIsPpg?: boolean | null;
+}
+
+type PosWithMeta = ChurchPosition & {
+	_zoneGroupName?: string | null;
+};
+
+function isInPpgZone(pos: ChurchPosition): boolean {
+	const extended = pos as PosWithMeta;
+	const zone = pos.zone.toUpperCase();
+	const group = (extended._zoneGroupName ?? '').toUpperCase();
+	return zone.includes('PPG') || zone.includes('PPKG')
+		|| group.includes('PPG') || group.includes('PPKG');
 }
 
 /**
@@ -277,7 +290,8 @@ export class QueueManager {
 				const pos = available[posIdx];
 				idx += 1;
 				this.nextIndexNonPpg += 1;
-				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name });
+				const ppgZone = isInPpgZone(pos);
+				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name, positionIsPpg: ppgZone, isKolekte: ppgZone ? false : usher.isKolekte });
 			}
 		} else if (this.isPpgEnabled) {
 			// Separate pools: PPG ushers → PPG positions; non-PPG ushers → non-PPG positions
@@ -293,7 +307,8 @@ export class QueueManager {
 				const pos = availPpg[posIdx];
 				ppgIdx += 1;
 				this.nextIndexPpg += 1;
-				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name });
+				const ppgZone = isInPpgZone(pos);
+				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name, positionIsPpg: ppgZone, isKolekte: ppgZone ? false : usher.isKolekte });
 			}
 
 			let nonPpgIdx = this.isRoundRobinEnabled ? this.nextIndexNonPpg : 0;
@@ -304,7 +319,8 @@ export class QueueManager {
 				const pos = availNonPpg[posIdx];
 				nonPpgIdx += 1;
 				this.nextIndexNonPpg += 1;
-				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name });
+				const ppgZone = isInPpgZone(pos);
+				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name, positionIsPpg: ppgZone, isKolekte: ppgZone ? false : usher.isKolekte });
 			}
 		} else {
 			// isPpgEnabled false: all ushers assigned to non-PPG positions only
@@ -316,7 +332,8 @@ export class QueueManager {
 				if (posIdx === null) { logger.warn(`no more available non-PPG positions for usher: ${usher.name}`); break; }
 				const pos = available[posIdx];
 				this.nextIndexNonPpg += 1;
-				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name });
+				const ppgZone = isInPpgZone(pos);
+				assignedUshers.push({ ...usher, event: eventId, position: pos.id, zone: pos.zone, positionName: pos.name, positionIsPpg: ppgZone, isKolekte: ppgZone ? false : usher.isKolekte });
 			}
 		}
 

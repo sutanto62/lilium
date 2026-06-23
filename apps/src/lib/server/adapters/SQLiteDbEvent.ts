@@ -710,7 +710,7 @@ export async function findEventSchedule(
 		// Count ushers, PPG, and Kolekte
 		acc[zoneName].zoneUshers++;
 		if (r.isPpg === 1) acc[zoneName].zonePpg++;
-		if (r.isKolekte === 1) acc[zoneName].zoneKolekte++;
+		if (r.isKolekte === 1 && r.isPpg !== 1) acc[zoneName].zoneKolekte++;
 
 		const lingkunganName = r.lingkungan || 'Lingkungan';
 		const lingkunganId = r.lingkunganId || '';
@@ -726,7 +726,7 @@ export async function findEventSchedule(
 			name: r.name || 'No Name',
 			position: r.position || 'Posisi Kosong',
 			isPpg: r.isPpg === 1,
-			isKolekte: r.isKolekte === 1,
+			isKolekte: r.isKolekte === 1 && r.isPpg !== 1,
 			createdAt: r.createdAt ?? 0
 		};
 

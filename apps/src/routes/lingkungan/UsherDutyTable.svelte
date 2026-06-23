@@ -49,7 +49,7 @@
 		for (const group of groupedUshers) {
 			lines.push(`${group.lingkungan} (${group.wilayah})`);
 			for (const usher of group.ushers) {
-				const badges = [usher.isPpg ? 'PPG' : '', usher.isKolekte ? 'Kolekte' : '']
+				const badges = [usher.isPpg ? 'PPG' : '', (usher.isKolekte && !usher.isPpg) ? 'Kolekte' : '']
 					.filter(Boolean)
 					.join(', ');
 				lines.push(`  ${usher.name} — ${usher.zone} / ${usher.position}${badges ? ` [${badges}]` : ''}`);
@@ -162,7 +162,7 @@
 										<div class="flex flex-wrap items-center gap-1.5">
 											<span class="font-medium text-gray-900 dark:text-gray-100">{usher.name}</span>
 											{#if usher.isPpg}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-sm text-gray-700 dark:bg-gray-600 dark:text-gray-300">PPG</span>{/if}
-											{#if usher.isKolekte}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-sm text-gray-700 dark:bg-gray-600 dark:text-gray-300">Kolekte</span>{/if}
+											{#if usher.isKolekte && !usher.isPpg}<span class="rounded bg-gray-200 px-1.5 py-0.5 text-sm text-gray-700 dark:bg-gray-600 dark:text-gray-300">Kolekte</span>{/if}
 										</div>
 										<p class="mb-0 mt-0.5 text-base text-gray-500 dark:text-gray-400">{usher.zone} · {usher.position}</p>
 									</div>
@@ -173,7 +173,7 @@
 								<td class="hidden py-2 pr-4 text-base text-gray-700 dark:text-gray-300 lg:table-cell">{usher.position}</td>
 								<td class="hidden py-2 text-base text-gray-700 dark:text-gray-300 lg:table-cell">
 									{#if usher.isPpg}<span class="mr-1 rounded bg-gray-200 px-1 py-0.5 text-base text-gray-700 dark:bg-gray-600 dark:text-gray-300">PPG</span>{/if}
-									{#if usher.isKolekte}<span class="rounded bg-gray-200 px-1 py-0.5 text-base text-gray-700 dark:bg-gray-600 dark:text-gray-300">Kolekte</span>{/if}
+									{#if usher.isKolekte && !usher.isPpg}<span class="rounded bg-gray-200 px-1 py-0.5 text-base text-gray-700 dark:bg-gray-600 dark:text-gray-300">Kolekte</span>{/if}
 								</td>
 							</tr>
 						{/each}

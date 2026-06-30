@@ -5,6 +5,8 @@
 | `apps/` | SvelteKit 5 + TypeScript + Drizzle ORM + SQLite → [apps/CLAUDE.md](apps/CLAUDE.md) |
 | `api/` | Go + Gin |
 
+> **When working on any file under `apps/`, always read `apps/CLAUDE.md` in full before making any changes.**
+
 ## Quick Start
 
 ```bash
